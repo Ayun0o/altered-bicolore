@@ -89,6 +89,15 @@ textarea{width:100%;min-height:140px;font-size:13px}
 .mobtoggle{display:none}
 @media(max-width:900px){.wrap{grid-template-columns:minmax(0,1fr)}.deck{position:static;max-height:none;border-left:0;border-top:1px solid var(--line)}.mobtoggle{display:inline-flex}.top{position:static}}
 @media(prefers-reduced-motion:no-preference){.card{transition:opacity .15s}}
+.badge.U{background:linear-gradient(135deg,#f7dc8a,#c9952f);color:#3a2600}
+#viewDeck.on{background:var(--ink,#222);color:var(--bg,#fff)}
+.dstats{display:grid;gap:8px;padding:10px 12px;border:1px solid var(--line);border-radius:10px;margin:4px 0 10px}
+.dsrow{display:flex;gap:28px;flex-wrap:wrap;align-items:flex-end}
+.dscurve{display:flex;gap:6px;align-items:flex-end;height:100px;margin-top:4px}
+.dsb{display:flex;flex-direction:column;align-items:center;width:28px;justify-content:flex-end;height:100%}
+.dsbar{width:22px;background:linear-gradient(#5b8fd6,#2f5fa8);border-radius:4px 4px 0 0;min-height:2px}
+.dsn{font-size:12px;font-weight:700;min-height:16px}.dsl{font-size:12px;opacity:.75;border-top:1px solid var(--line);width:100%;text-align:center}
+.dstypes{display:grid;gap:4px;font-size:14px}
 </style>
 </head>
 <body>
@@ -99,7 +108,7 @@ textarea{width:100%;min-height:140px;font-size:13px}
 <a id="playLink" href="play.html"><button tabindex="-1" class="on">▶ Jouer en ligne</button></a>
 <button id="fmtBtn">Format</button>
 <button id="langBtn" aria-label="Langue des cartes"></button>
-<a class="mobtoggle" href="#deckpanel"><button tabindex="-1">Voir le deck</button></a>
+<button id="viewDeck" title="Voir les cartes de ton deck en grand, avec les statistiques">🃏 Voir mon deck</button>
 <span class="sync" id="sync">Chargement…</span>
 <button id="acctBtn" title="Compte : retrouve tes decks et tes stats sur tous tes appareils">Se connecter</button>
 </header>
@@ -245,12 +254,12 @@ function analyse(d){
 function legal(c){const d=D();if(!d)return true;const h=BY[d.hero];if(!h)return true;if(c.t==='HERO')return true;return c.f===h.f||(d.sec&&c.f===d.sec)}
 
 function cardHtml(c){
- const d=D(),n=d?(c.t==='HERO'?(d.hero===c.r?1:0):(d.cards[c.r]||0)):0,oof=c.y==='R'&&c.f!==c.h;
+ const d=D(),n=d?(c.t==='HERO'?(d.hero===c.r?1:0):c.u?1:(d.cards[c.r]||0)):0,oof=c.y==='R'&&c.f!==c.h;
  const pw=c.p?'<div class="pw"><span><i>F</i>'+esc(c.p[0])+'</span><span><i>M</i>'+esc(c.p[1])+'</span><span><i>O</i>'+esc(c.p[2])+'</span></div>':'';
  const cost=c.t==='HERO'?'':'<div class="cost" title="Coût de main / coût de réserve">'+'<span>'+cst(c.c)+'</span><span>'+cst(c.rc)+'</span></div>';
- const rb=c.t==='HERO'?'<span class="badge">Héros</span>':c.y==='R'?'<span class="badge R">Rare</span>':'<span class="badge">Commune</span>';
+ const rb=c.t==='HERO'?'<span class="badge">Héros</span>':c.u?'<span class="badge U">Unique</span>':c.y==='R'?'<span class="badge R">Rare</span>':'<span class="badge">Commune</span>';
  const ob=oof?'<span class="badge oof">hors faction · origine '+esc(FN[c.h])+'</span>':'';
- const btn=c.t==='HERO'?'<button data-hero="'+esc(c.r)+'">'+(n?'Héros choisi':'Choisir ce héros')+'</button>':'<button data-rm="'+esc(c.r)+'" aria-label="Retirer">−</button><span class="n">'+n+'</span><button data-add="'+esc(c.r)+'" aria-label="Ajouter">+</button>';
+ const btn=c.u?'<button data-urmr="'+esc(c.r)+'">Retirer l\'unique</button>':c.t==='HERO'?'<button data-hero="'+esc(c.r)+'">'+(n?'Héros choisi':'Choisir ce héros')+'</button>':'<button data-rm="'+esc(c.r)+'" aria-label="Retirer">−</button><span class="n">'+n+'</span><button data-add="'+esc(c.r)+'" aria-label="Ajouter">+</button>';
  return '<article class="card'+(legal(c)?'':' off')+'" style="--fc:var(--'+c.f+')"><img class="art" decoding="async" data-r="'+esc(c.r)+'" alt="'+esc(NM(c))+'" width="360" height="502"><div class="hd"><div class="nm">'+esc(NM(c))+'</div>'+cost+'</div><div class="meta"><span class="chip"><span class="fd" style="background:var(--'+c.f+')"></span>'+esc(FN[c.f])+'</span>'+rb+ob+'</div><div class="meta">'+esc(TYL(c.t))+(ST(c).length?' · '+esc(ST(c).join(', ')):'')+' · '+esc(SETL(c.s))+'</div>'+'<details class="txt"><summary>Texte et stats</summary>'+pw+'<div class="fx">'+fxHtml(TX(c))+(EC(c)?'<br><span class="sym">'+(EN()?'echo':'écho')+'</span> '+fxHtml(EC(c)):'')+'</div></details><div class="act">'+btn+'</div></article>';
 }
 
@@ -258,7 +267,9 @@ const BUN=new Map();
 function bundle_unused(r){const p=r.split('_'),k0=p[1]+'_'+p[3],k=LANG+':'+k0;if(!BUN.has(k))BUN.set(k,fetch((EN()?'imgb_en/':'imgb/')+k0+'.json').then(x=>x.ok?x.json():{}).catch(()=>({})));return BUN.get(k)}
 function imgFor(r){if(BY[r]&&BY[r].u)r=BY[r].base;return Promise.resolve(/^ALT_[A-Z0-9_]+$/.test(r)?'img/'+LANG+'/'+r+'.webp':'')}
 function fillImgs(){document.querySelectorAll('img.art[data-r]:not([src])').forEach(im=>{const r=im.dataset.r;imgFor(r).then(u=>{if(u&&im.dataset.r===r)im.src=u})})}
-function filtered(){
+let DECKVIEW=false;
+function deckCards(){const d=D();if(!d)return[];const L=[];if(BY[d.hero])L.push(BY[d.hero]);for(const r of Object.keys(d.cards))if(BY[r]&&d.cards[r]>0)L.push(BY[r]);for(const u of d.uniques)if(u.r&&BY[u.r])L.push(BY[u.r]);return L}
+function filtered(){if(DECKVIEW){const L=deckCards(),h=L.filter(c=>c.t==='HERO');return h.concat(L.filter(c=>c.t!=='HERO'))}
  const q=norm($('q').value.trim()),t=$('fType').value,r=$('fRar').value,s=$('fSet').value,co=$('fCost').value,only=$('onlyLegal').checked;
  return CARDS.filter(c=>{
   if(t&&c.t!==t)return false;if(s&&c.s!==s)return false;
@@ -275,9 +286,15 @@ const CV=c=>c.t==='HERO'?-1:(parseInt(String(c.c).replace(/#/g,''),10)||0);
 function sorted(L){const m=$('fSort').value,col=new Intl.Collator(EN()?'en':'fr',{sensitivity:'base'});
  if(m==='set')return L;const byName=(a,b)=>col.compare(NM(a),NM(b))||(a.y<b.y?-1:a.y>b.y?1:0)||(a.r<b.r?-1:1);
  return L.slice().sort(m==='name'?byName:(a,b)=>CV(a)-CV(b)||byName(a,b))}
-function renderGrid(){renderFacChips();const L=sorted(filtered()),d=D(),hh=d&&BY[d.hero],only=$('onlyLegal').checked;
+function deckStats(){const d=D();if(!d)return'';const L=deckCards().filter(c=>c.t!=='HERO');const cnt=c=>c.u?1:(d.cards[c.r]||0);
+ const curve=[0,0,0,0,0,0,0,0],ty={CHARACTER:0,SPELL:0,PERM:0},src={P:0,S:0};let tot=0;const hf=BY[d.hero]&&BY[d.hero].f;
+ for(const c of L){const n=cnt(c);tot+=n;const v=Math.min(7,parseInt(String(c.c).replace(/#/g,''),10)||0);curve[v]+=n;if(c.t==='CHARACTER')ty.CHARACTER+=n;else if(c.t==='SPELL')ty.SPELL+=n;else ty.PERM+=n;if(c.f===hf)src.P+=n;else src.S+=n}
+ const mx=Math.max(1,...curve);const bars=curve.map((n,i)=>'<div class="dsb"><span class="dsn">'+(n||'')+'</span><div class="dsbar" style="height:'+Math.round(70*n/mx)+'px"></div><span class="dsl">'+(i===7?'7+':i)+'</span></div>').join('');
+ return '<div class="dstats"><div><b>'+tot+'</b> cartes + héros'+(d.sec?' · '+src.P+' '+FN[hf]+' / '+src.S+' '+FN[d.sec]:'')+'</div><div class="dsrow"><div><span class="lbl">Courbe de mana</span><div class="dscurve">'+bars+'</div></div><div class="dstypes"><div><b>'+ty.CHARACTER+'</b> personnages</div><div><b>'+ty.SPELL+'</b> sorts</div><div><b>'+ty.PERM+'</b> permanents / repères</div><div><b>'+d.uniques.length+'</b> unique'+(d.uniques.length>1?'s':'')+'</div></div></div></div>'}
+function renderGrid(){renderFacChips();const L0=filtered(),L=DECKVIEW?L0.filter(c=>c.t==='HERO').concat(sorted(L0.filter(c=>c.t!=='HERO'))):sorted(L0),d=D(),hh=d&&BY[d.hero],only=$('onlyLegal').checked;
  const n=L.length+' carte'+(L.length>1?'s':'');
- $('count').textContent=!only?n+' (toutes factions)':!hh?'Commence par choisir ton héros : '+n:'Pool du deck : '+FN[hh.f]+' (principale)'+(d.sec?' + '+FN[d.sec]+' (secondaire)':'')+' · '+n;$('grid').innerHTML=L.slice(0,shown).map(cardHtml).join('');$('more').style.display=L.length>shown?'block':'none';fillImgs()}
+ $('count').textContent=!only?n+' (toutes factions)':!hh?'Commence par choisir ton héros : '+n:'Pool du deck : '+FN[hh.f]+' (principale)'+(d.sec?' + '+FN[d.sec]+' (secondaire)':'')+' · '+n;if(DECKVIEW){$('count').innerHTML=deckStats();shown=999}
+ $('grid').innerHTML=L.slice(0,shown).map(cardHtml).join('');$('viewDeck').classList.toggle('on',DECKVIEW);$('viewDeck').textContent=DECKVIEW?'← Retour aux cartes':'🃏 Voir mon deck';$('more').style.display=L.length>shown?'block':'none';fillImgs()}
 
 function renderDeck(){
  const d=D();if(!d)return;
@@ -310,6 +327,7 @@ async function flush(){if(!db){$('saveNote').textContent='Enregistré dans ce na
  catch(e){$('saveNote').textContent=e&&e.code==='invalid_argument'?'Lecture seule : tu n\'as pas le droit de modifier ces decks.':'Échec de l\'enregistrement, nouvel essai à la prochaine modification.'}saving=false}
 
 document.addEventListener('click',e=>{const im=e.target.closest('img.art');if(im){$('zoomImg').src=im.dataset.r?'img/'+LANG+'-hd/'+encodeURIComponent(im.dataset.r)+'.webp':im.src;$('zoomImg').alt=im.alt;$('zoom').showModal();return}if(e.target.closest('#zoom')){$('zoom').close();return}const pv=e.target.closest('[data-pv]');if(pv&&!e.target.closest('button')){$('zoomImg').removeAttribute('src');$('zoomImg').src='img/'+LANG+'-hd/'+encodeURIComponent(pv.dataset.pv)+'.webp';$('zoomImg').alt='';$('zoom').showModal();return}const b=e.target.closest('button');if(!b)return;const d=D();
+ if(b.dataset.urmr){const i=d.uniques.findIndex(u=>u.r===b.dataset.urmr);if(i>=0){d.uniques.splice(i,1);touch();renderDeck();renderGrid()}return}
  if(b.dataset.add){const c=BY[b.dataset.add];d.cards[c.r]=(d.cards[c.r]||0)+1;touch();renderDeck();renderGrid()}
  else if(b.dataset.rm){const r=b.dataset.rm;if(d.cards[r]){d.cards[r]--;if(!d.cards[r])delete d.cards[r]}touch();renderDeck();renderGrid()}
  else if(b.dataset.hero){d.hero=b.dataset.hero;const P=BY[d.hero].f;if(d.sec&&(d.sec===P||!neighbours(P).includes(d.sec)))d.sec='';touch();renderDeck();renderGrid()}
@@ -323,6 +341,7 @@ let STARTERS=[];fetch('starters.json').then(r=>r.ok?r.json():[]).then(x=>{STARTE
 function makeDeck(name,base){const id='d'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);const d=newDeckObj(name);if(base){d.hero=BY[base.hero]?base.hero:'';for(const [r,n] of Object.entries(base.cards||{}))if(BY[r])d.cards[r]=n}decks[id]=d;cur=id;touch();renderAll();$('dName').focus();$('dName').select()}
 $('newCancel').onclick=()=>$('newDlg').close();
 $('newList').addEventListener('click',e=>{const b=e.target.closest('[data-start]');if(!b)return;const k=b.dataset.start;$('newDlg').close();if(k==='empty')makeDeck('Nouveau deck');else{const s=STARTERS.find(x=>x.id===k);if(s)makeDeck('Mon deck '+(FN[BY[s.hero]?.f]||'')+' (base départ)',s)}});
+$('viewDeck').onclick=()=>{DECKVIEW=!DECKVIEW;shown=60;renderGrid();window.scrollTo({top:0,behavior:'smooth'})};
 $('newDeck').onclick=()=>{$('newList').innerHTML='<button data-start="empty" style="text-align:left"><b>Deck vide</b><br><span class="note">Choisis ton héros et tes cartes toi-même</span></button>'+STARTERS.map(s=>{const f=BY[s.hero]?.f;return '<button data-start="'+esc(s.id)+'" style="display:flex;gap:8px;align-items:center;text-align:left"><span class="fd" style="width:14px;height:14px;background:var(--'+f+')"></span><span><b>'+esc(s.name)+'</b><br><span class="note">'+esc(FN[f]||'')+' · '+esc(NM(BY[s.hero]))+' · 39 cartes</span></span></button>'}).join('');$('newDlg').showModal()};
 $('newDeck').dataset.old='1';const _oldNew=()=>{const id='d'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);decks[id]=newDeckObj('Nouveau deck');cur=id;touch();renderAll();$('dName').focus();$('dName').select()};
 $('playLink').addEventListener('click',()=>{try{$('playLink').href='play.html?deck='+deckCode(D())}catch(e){}});
