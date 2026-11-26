@@ -291,7 +291,7 @@
     const top = X.discard[X.discard.length - 1];
     const res = '<div class="sres"><span class="lbl">Réserve<span class="mx"> (max ' + X.rl + ')</span></span><div class="cards rz">' + (X.reserve.length ? cardsEl(X.reserve) : '') + slots(X.rl - X.reserve.length) + '</div></div>';
     const lm = '<div class="slm"><span class="lbl">Repères<span class="mx"> (max ' + X.ll + ')</span></span><div class="cards rz">' + (X.lm.length ? cardsEl(X.lm) : '') + slots(X.ll - X.lm.length) + '</div></div>';
-    const disc = '<div class="discz" data-disc="' + p + '" title="Voir la défausse"><span class="lbl">Défausse (' + X.discard.length + ')</span><span class="dico">🗑 ' + X.discard.length + '</span><div class="cards rz">' + (top ? cardEl(top) : '<i class="slot"></i>') + '</div></div>';
+    const disc = '<div class="discz" data-disc="' + p + '" title="Voir la défausse"><span class="lbl">Défausse</span><span class="dico">🗑 ' + X.discard.length + '</span><div class="cards rz dpile">' + (top ? cardEl(top) : '<i class="slot"></i>') + '<b class="dcount">' + X.discard.length + '</b></div></div>';
     const deck = '<div class="deckz"><span class="lbl">Deck</span><span class="dchip" title="Cartes restantes dans le deck"><i></i>' + (X.deckCount || 0) + '</span><div class="deckpile" title="Cartes restantes dans le deck"><b>' + (X.deckCount || 0) + '</b></div></div>';
     const mid = p !== me ? '<div class="ofan" title="Cartes en main de l’adversaire : ' + (X.handCount || 0) + '">' + backs(X.handCount || 0, 'fback') + '</div>' : '<div></div>';
     return '<div class="strip2"><div class="sL">' + deck + res + '</div>' + mid + '<div class="sR">' + lm + disc + '</div></div>';
@@ -560,30 +560,40 @@
     document.addEventListener('drop', e => { const z = e.target.closest && e.target.closest('[data-drop]'); if (!z) return; e.preventDefault(); z.style.outline = ''; const id = e.dataTransfer.getData('text/plain'); if (id) playTo(id, z.dataset.drop); });
   }
   const zoomEl = document.createElement('div'); zoomEl.id = 'zoomCard'; document.body.appendChild(zoomEl);
-  function zoomHtml(x) { const d = DB[x.ref] || {}; if (!d.u) return '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(x.ref) + '.webp">';
+  function zoomHtml(x) { if (x.tok) { const r = tokRef(x.tok.n); return r ? '<img alt="" style="width:100%;display:block;border-radius:14px" src="img/tok/' + r + '_' + LANG + '.webp">' : '<div class="tokz"><b>' + esc(tokName(x.tok.n)) + '</b>' + (x.tok.p ? '<span>' + x.tok.p.join(' / ') + '</span>' : '') + '</div>'; }
+    const d = DB[x.ref] || {}; if (!d.u) return '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(x.ref) + '.webp">';
     return '<span class="uqw"><img alt="" style="width:100%;display:block;border-radius:14px" src="img/' + LANG + '-hd/' + encodeURIComponent(uqBase(AltUniques.familyOf(x.ref), d.f, DB)) + '.webp">' + uqOverlay(d) + '</span><div class="uqz"><b>' + esc(NM(d)) + ' — unique</b><span>Coût ' + esc(d.c) + ' / ' + esc(d.rc) + ' · <i class="F">' + esc(d.p[0]) + '</i> <i class="M">' + esc(d.p[1]) + '</i> <i class="W">' + esc(d.p[2]) + '</i></span><span>' + esc(LANG === 'en' ? d.xe : d.x) + '</span>' + (d.e ? '<span><i>' + esc(LANG === 'en' ? d.ee : d.e) + '</i></span>' : '') + '</div>'; }
   function hideZoom() { if (zoomEl.classList.contains('selz')) return; zoomEl.style.display = 'none'; }
   const MOB = () => matchMedia('(max-width:900px)').matches;
+  // Espace / Entrée = le bouton principal de la boîte d'instructions
+  document.addEventListener('keydown', e => {
+    if ((e.key !== ' ' && e.key !== 'Enter') || e.repeat || !V) return;
+    const t = e.target; if (t && (/^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName) || t.isContentEditable)) return;
+    if (t && t.tagName === 'BUTTON' && !t.closest('#prompt')) return;
+    const bs = [...document.querySelectorAll('#prompt button')].filter(b => !b.disabled && b.offsetParent);
+    const b = bs.find(b => b.classList.contains('pri')) || bs[0]; if (!b) return;
+    e.preventDefault(); b.click();
+  });
   { const h = document.querySelector('.hand'); if (h && window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty('--handh', h.offsetHeight + 'px')).observe(h); }
 
   let PEEK = null, PEEKSTEP = null, HV = 'H', AUTOK = null;
   function selPreview() {
     if (V && V.step !== PEEKSTEP) { PEEK = null; PEEKSTEP = V.step; }
     const sid = sel || PEEK, x = sid && V && MOB() ? card(sid) : null, L = x && locate(sid);
-    if (x && !x.tok && L && !(L.p !== me && L.z === 'hand')) { zoomEl.innerHTML = zoomHtml(x); zoomEl.classList.remove('touch'); zoomEl.classList.add('selz'); zoomEl.style.display = 'block'; }
+    if (x && L && !(L.p !== me && L.z === 'hand')) { zoomEl.innerHTML = zoomHtml(x); zoomEl.classList.remove('touch'); zoomEl.classList.add('selz'); zoomEl.style.display = 'block'; }
     else if (zoomEl.classList.contains('selz')) { zoomEl.classList.remove('selz'); zoomEl.style.display = 'none'; }
   }
   function bindZoom() {
     document.addEventListener('mouseover', e => {
       if (sel && !DRAG) { const z = e.target.closest && e.target.closest('[data-drop]'); const zk = z ? z.dataset.drop : null; if (zk !== PREVZ) { PREVZ = zk; if (zk) { const c = card(sel); if (c && V.players[me] && (V.players[me].hand.includes(sel) || V.players[me].reserve.includes(sel))) previewPlay(sel, zk); } else clearPreview(); } }
       const c = e.target.closest && e.target.closest('.c[data-id]'); if (!c || !V) return;
-      const x = card(c.dataset.id); if (!x || x.tok) { hideZoom(); return; }
+      const x = card(c.dataset.id); if (!x) { hideZoom(); return; }
       zoomEl.innerHTML = zoomHtml(x); zoomEl.style.display = 'block';
     });
     // Téléphone : appui long sur une carte = zoom, on relâche = ça se ferme
     let lpT = null;
     let lpX = 0, lpY = 0;
-    document.addEventListener('touchstart', e => { const c = e.target.closest && e.target.closest('.c[data-id]'); if (!c || !V) return; const t0 = e.touches[0]; lpX = t0.clientX; lpY = t0.clientY; clearTimeout(lpT); lpT = setTimeout(() => { const x = card(c.dataset.id); if (!x || x.tok) return; zoomEl.classList.remove('selz'); zoomEl.innerHTML = zoomHtml(x); zoomEl.style.display = 'block'; zoomEl.classList.add('touch'); }, 380); }, { passive: true });
+    document.addEventListener('touchstart', e => { const c = e.target.closest && e.target.closest('.c[data-id]'); if (!c || !V) return; const t0 = e.touches[0]; lpX = t0.clientX; lpY = t0.clientY; clearTimeout(lpT); lpT = setTimeout(() => { const x = card(c.dataset.id); if (!x) return; zoomEl.classList.remove('selz'); zoomEl.innerHTML = zoomHtml(x); zoomEl.style.display = 'block'; zoomEl.classList.add('touch'); }, 380); }, { passive: true });
     const endLP = () => { clearTimeout(lpT); if (zoomEl.classList.contains('touch')) { zoomEl.classList.remove('touch'); zoomEl.style.display = 'none'; selPreview(); } };
     document.addEventListener('touchend', endLP, { passive: true }); document.addEventListener('touchcancel', endLP, { passive: true }); document.addEventListener('touchmove', e => { const t = e.touches[0]; if (t && Math.hypot(t.clientX - lpX, t.clientY - lpY) > 12) clearTimeout(lpT); }, { passive: true });
     document.addEventListener('contextmenu', e => { if (e.target.closest && e.target.closest('.c[data-id]') && zoomEl.classList.contains('touch')) e.preventDefault(); });

@@ -892,7 +892,7 @@
   }
   function noonAuto(s, db, ph) {
     ph = ph || 'noon'; const PH = { noon: 'Midi', dusk: 'Crépuscule', night: 'Nuit' }[ph]; const RE = new RegExp('^at ' + ph + '\\s*[—-]\\s*(.*)$', 'i');
-    let manual = false;
+    const manual = [false, false];
     const order = [s.first, 1 - s.first];
     for (const p of order) {
       const P = s.players[p];
@@ -902,12 +902,12 @@
         for (const cl of clauses({ xe: (db[c.ref].xe || '') + featText(c, db[c.ref]) })) {
           const m = cl.match(RE); if (!m) continue;
           const acts = parseBody(m[1]);
-          if (!acts) { manual = true; continue; }
+          if (!acts) { manual[p] = true; continue; }
           log(s, PH + ' : effet de ' + cname(s, id, db) + '.'); acts.forEach(a => doAction(s, p, id, a, db));
         }
       }
     }
-    return manual;
+    return manual[0] || manual[1] ? manual : false;
   }
 
   // Fait avancer la partie jusqu'à la prochaine décision des joueurs
@@ -929,7 +929,7 @@
         case 'NOON':
           s.phase = 'NOON';
           if (s.noonDay !== s.day) { s.noonDay = s.day; s.noonManual = noonAuto(s, db); if (s.choices.length) return; }
-          if (s.noonManual && !(s.ready[0] && s.ready[1])) { if (!s.pending) { s.pending = 'noon'; log(s, 'Midi : appliquez les effets « À Midi », puis validez.'); } return; }
+          if (s.noonManual && !(s.ready[0] && s.ready[1])) { if (!s.pending) { s.pending = 'noon'; if (Array.isArray(s.noonManual)) s.ready = [!s.noonManual[0], !s.noonManual[1]]; log(s, 'Midi : appliquez les effets « À Midi », puis validez.'); } return; }
           s.pending = null; s.ready = [false, false]; s.phase = 'AFTERNOON'; s.step = 'AFTERNOON'; s.turn = s.first; s.passed = [false, false]; s.played = 0;
           log(s, 'Après-midi : ' + s.players[s.first].name + ' commence.'); continue;
         case 'AFTERNOON':
@@ -938,13 +938,13 @@
           return;
         case 'DUSK':
           if (s.duskDay !== s.day) { s.duskDay = s.day; s.duskManual = noonAuto(s, db, 'dusk'); if (s.choices.length) return; }
-          if (s.duskManual && !(s.ready[0] && s.ready[1])) { if (s.pending !== 'dusk') { s.pending = 'dusk'; log(s, 'Crépuscule : appliquez les effets « Au Crépuscule », puis validez.'); } return; }
+          if (s.duskManual && !(s.ready[0] && s.ready[1])) { if (s.pending !== 'dusk') { s.pending = 'dusk'; if (Array.isArray(s.duskManual)) s.ready = [!s.duskManual[0], !s.duskManual[1]]; log(s, 'Crépuscule : appliquez les effets « Au Crépuscule », puis validez.'); } return; }
           s.pending = null; s.ready = [false, false];
           for (const X of s.players) { X.disc = []; X.nb = []; X.nf = []; X.noFleet = false; X.nextR = false; }
           progress(s, db); s.phase = 'NIGHT'; s.step = 'NIGHT'; continue;
         case 'NIGHT':
           if (s.nightDay !== s.day) { s.nightDay = s.day; s.nightManual = noonAuto(s, db, 'night'); if (s.choices.length) return; }
-          if (s.nightManual && !(s.ready[0] && s.ready[1]) && s.pending !== 'night-done') { if (s.pending !== 'night') { s.pending = 'night'; log(s, 'Nuit : appliquez les effets « À la Nuit », puis validez.'); } return; }
+          if (s.nightManual && !(s.ready[0] && s.ready[1]) && s.pending !== 'night-done') { if (s.pending !== 'night') { s.pending = 'night'; if (Array.isArray(s.nightManual)) s.ready = [!s.nightManual[0], !s.nightManual[1]]; log(s, 'Nuit : appliquez les effets « À la Nuit », puis validez.'); } return; }
           s.pending = null; s.ready = [false, false];
           rest(s, db);
           if (s.afterRest && s.afterRest.length) { const L = s.afterRest; s.afterRest = []; L.forEach(x => doAction(s, x.p, x.self, x.act, db)); }

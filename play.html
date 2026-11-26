@@ -465,6 +465,27 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 @media(hover:none){.hand .c:hover{transform:none}}
 @media(pointer:coarse){.c,.c img{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none}}
 .c.sel{outline-offset:-3px}
+
+/* Réglages du 26/11 (PC + téléphone) */
+#game .main>*{flex-shrink:0}
+#myMana .orbs{display:none!important}
+.zone.exp .c .tokst{display:none}
+.tokz{background:#1d1f22;border:2px solid #8a8f98;border-radius:14px;padding:30px 16px;display:flex;flex-direction:column;align-items:center;gap:8px;font-size:18px;color:#fff}
+.dpile{position:relative}
+.dpile .dcount{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);background:#0009;border-radius:50%;width:28px;height:28px;display:grid;place-items:center;font-size:15px;color:#fff;pointer-events:none}
+@media(min-width:901px){
+ .zone.exp.eH .xstats{grid-column:2;justify-self:center;margin:0}
+ .zone.exp.eH .xname{grid-column:3;justify-self:end;margin-right:10px}
+ .zone.exp.eC .xstats{grid-column:2;justify-self:center;margin:0}
+ .zone.exp.eC .xname{grid-column:1;justify-self:start;margin-left:10px}
+}
+body[data-mood=morning]{--mood:#ff7a2a}
+body[data-mood=noon]{--mood:#ffe227}
+body[data-mood=afternoon]{--mood:#f5b942}
+body[data-mood=dusk]{--mood:#8a3fd1}
+body[data-mood=night]{--mood:#3d5bff}
+#adv::before,#adv::after{box-shadow:0 0 10px 3px color-mix(in srgb,var(--mood) 70%,transparent),0 0 26px 8px color-mix(in srgb,var(--mood) 35%,transparent)!important;transition:background 1.2s,box-shadow 1.2s}
+body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 0 12px 4px #ffe227cc,0 0 34px 12px #ffd00066!important}
 </style>
 </head>
 <body>
@@ -536,10 +557,10 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/uniques.js?v=1795716790"></script>
 <script src="js/cloud.js?v=1795716790"></script>
-<script src="js/engine.js?v=1795716790"></script>
+<script src="js/engine.js?v=1795727845"></script>
 <script src="js/ai.js?v=1795716790"></script>
 <script src="js/net.js?v=1795716790"></script>
-<script src="js/play.js?v=1795726016"></script>
+<script src="js/play.js?v=1795727845"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
  t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');
