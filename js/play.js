@@ -263,7 +263,7 @@
       (mine ? '<div class="orbs">' + X.mana.map((m, i) => '<span class="orb' + (m.ex ? ' ex' : '') + '" data-orb="' + i + '" title="Épuiser / redresser"></span>').join('') + '</div>' : '') + '</div>';
   }
   function totPills(t, terr, winT, base) {
-    return ['F', 'M', 'W'].map(k => { const ch = base && base[k] !== t[k]; return '<span class="pill p' + k + (terr.includes(k) ? ' act' : ' off') + (winT.includes(k) ? ' win' : '') + (ch ? ' chg' : '') + '" title="' + TL[k] + (terr.includes(k) ? ' — compte dans la région actuelle' : ' — ne compte pas ici') + '">' + (ch ? '<s>' + base[k] + '</s>' : '') + t[k] + '</span>'; }).join('');
+    return ['F', 'M', 'W'].map(k => { const ch = base && base[k] !== t[k]; return '<span class="pill p' + k + (terr.includes(k) ? ' act' : ' off') + (winT.includes(k) ? ' win' : '') + (ch ? ' chg' : '') + '" title="' + TL[k] + (terr.includes(k) ? ' — compte dans la région actuelle' : ' — ne compte pas ici') + '">' + t[k] + (ch ? '<sup class="dl' + (t[k] < base[k] ? ' neg' : '') + '">' + (t[k] > base[k] ? '+' : '') + (t[k] - base[k]) + '</sup>' : '') + '</span>'; }).join('');
   }
   // Aperçu des scores si on joue la carte « id » dans l'expédition « e »
   function previewPlay(id, e) {
