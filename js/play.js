@@ -63,14 +63,15 @@
     $('bSolo').onclick = startSolo;
     const q = new URLSearchParams(location.search).get('join'); if (q) $('jcode').value = q;
     bindGame();
+    const sb = $('statsBox'); if (sb) sb.innerHTML = statsHtml();
   }
-  const myName = () => ($('pname').value.trim() || 'Joueur').slice(0, 24);
+  const myName = (def) => ($('pname').value.trim() || def || 'Joueur 1').slice(0, 24);
   function needDeck() { const d = getDeck($('pdeck').value); if (!d) { $('lobbyMsg').innerHTML = '<span class="err">Choisis un deck avec un héros.</span>'; } return d; }
 
   function startHost() {
     const d = needDeck(); if (!d) return;
     if (typeof Peer === 'undefined') { $('lobbyMsg').innerHTML = '<span class="err">Le module réseau n’a pas pu se charger.</span>'; return; }
-    mode = 'host'; me = 0; decksUsed[0] = d; names[0] = myName();
+    mode = 'host'; me = 0; decksUsed[0] = d; names[0] = myName('Joueur 1');
     S = E.newGame({}); E.addPlayer(S, 0, names[0], d, DB);
     $('lobbyMsg').textContent = 'Création de la partie…';
     net = NET.host(onHostMsg, (st, x) => {
@@ -83,7 +84,7 @@
   function onHostMsg(m) {
     if (!m || typeof m !== 'object') return;
     if (m.type === 'hello') {
-      if (!S.players[1]) { const deck = sanitizeDeck(m.deck); if (!deck) { net.send({ type: 'err', m: 'Deck invalide.' }); return; } decksUsed[1] = deck; names[1] = String(m.name || 'Invité').slice(0, 24); E.addPlayer(S, 1, names[1], deck, DB); E.advance(S, DB); }
+      if (!S.players[1]) { const deck = sanitizeDeck(m.deck); if (!deck) { net.send({ type: 'err', m: 'Deck invalide.' }); return; } decksUsed[1] = deck; names[1] = String(m.name || 'Joueur 2').slice(0, 24); if (names[1] === names[0]) names[1] += ' (2)'; E.addPlayer(S, 1, names[1], deck, DB); E.advance(S, DB); }
       push();
     } else if (m.type === 'act' && m.a && typeof m.a === 'object') {
       const err = applyAct(1, m.a); if (err) net.send({ type: 'err', m: err }); push();
@@ -103,7 +104,7 @@
       else if (m.type === 'err') flash(m.m);
       else if (m.type === 'full') { $('lobbyMsg').innerHTML = '<span class="err">Cette partie a déjà deux joueurs.</span>'; }
     }, (st, x) => {
-      if (st === 'connected') { net.send({ type: 'hello', name: myName(), deck: { hero: d.hero, cards: d.cards } }); setConn('Connecté'); }
+      if (st === 'connected') { net.send({ type: 'hello', name: myName('Joueur 2'), deck: { hero: d.hero, cards: d.cards } }); setConn('Connecté'); }
       else if (st === 'left') setConn('Connexion perdue avec l’hôte.');
       else if (st === 'error') { $('lobbyMsg').innerHTML = '<span class="err">' + esc(x) + '</span>'; setConn('Erreur : ' + x); }
     });
@@ -111,7 +112,7 @@
 
   function startSolo() {
     const a = needDeck(); if (!a) return; const b = getDeck($('sdeck').value) || a;
-    mode = 'solo'; me = 0; decksUsed = [a, b]; names = [(myName() && myName() !== 'Joueur') ? myName() : 'Joueur 1', 'Joueur 2'];
+    mode = 'solo'; me = 0; decksUsed = [a, b]; names = [myName('Joueur 1'), 'Joueur 2'];
     S = E.newGame({}); E.addPlayer(S, 0, names[0], a, DB); E.addPlayer(S, 1, names[1], b, DB); E.advance(S, DB);
     $('bSwitch').classList.remove('hidden'); setConn('Partie d’essai');
     showGame(); push();
@@ -303,6 +304,31 @@
     if (cls === 'lg') cls += mine ? ' me' : theirs ? ' op' : '';
     return '<div class="' + cls + '">' + t + '</div>';
   }
+  // ---------- Statistiques (enregistrées sur cet appareil) ----------
+  let statDone = null;
+  function recordStats() {
+    if (!V || V.step !== 'END' || V.winner == null || mode === 'solo') return;
+    const key = (V.players.map(X => X && X.name).join('|')) + '#' + V.day + '#' + V.log.length; if (statDone === key) return; statDone = key;
+    const P = V.players[me], O = V.players[1 - me]; if (!P || !O) return;
+    const fac = X => (DB[(card(X.hero) || {}).ref] || {}).f || '?', hero = X => NM(DB[(card(X.hero) || {}).ref] || {}) || '?';
+    const st = store.get('alt-bi-stats', { games: [] }); st.games = st.games || [];
+    st.games.push({ t: Date.now(), win: V.winner === me, me: fac(P), heroMe: hero(P), deck: (decksUsed[me] || {}).name || hero(P), vs: fac(O), heroVs: hero(O), opp: O.name, days: V.day });
+    if (st.games.length > 500) st.games = st.games.slice(-500);
+    store.set('alt-bi-stats', st);
+  }
+  function statsHtml() {
+    const g = (store.get('alt-bi-stats', { games: [] }).games || []); if (!g.length) return '<p class="note">Aucune partie en ligne terminée pour l’instant. Les résultats s’enregistreront ici automatiquement.</p>';
+    const w = g.filter(x => x.win).length, pct = n => Math.round(100 * n);
+    const by = (k) => { const m = {}; g.forEach(x => { const v = x[k]; m[v] = m[v] || [0, 0]; m[v][0]++; if (x.win) m[v][1]++; }); return Object.entries(m).sort((a, b) => b[1][0] - a[1][0]); };
+    const row = (lab, n, v, col) => '<tr><td>' + (col ? '<span class="sdot" style="background:' + col + '"></span>' : '') + esc(lab) + '</td><td>' + n + '</td><td>' + v + ' – ' + (n - v) + '</td><td><b>' + pct(v / n) + ' %</b></td></tr>';
+    const FN = { AX: 'Axiom', BR: 'Bravos', LY: 'Lyra', MU: 'Muna', OR: 'Ordis', YZ: 'Yzmir' };
+    const tbl = (t, rows) => '<h3 class="sth">' + t + '</h3><table class="stt"><tr><th></th><th>Parties</th><th>V – D</th><th>Victoires</th></tr>' + rows + '</table>';
+    return '<div class="stsum"><b>' + g.length + '</b> parties · <b>' + w + '</b> victoires · <b>' + (g.length - w) + '</b> défaites · <b>' + pct(w / g.length) + ' %</b></div>' +
+      tbl('Avec ma faction', by('me').map(([k, v]) => row(FN[k] || k, v[0], v[1], FC[k])).join('')) +
+      tbl('Contre la faction', by('vs').map(([k, v]) => row(FN[k] || k, v[0], v[1], FC[k])).join('')) +
+      tbl('Par deck', by('deck').map(([k, v]) => row(k, v[0], v[1])).join('')) +
+      '<h3 class="sth">Dernières parties</h3>' + g.slice(-8).reverse().map(x => '<div class="stlast ' + (x.win ? 'w' : 'l') + '">' + (x.win ? 'Victoire' : 'Défaite') + ' · ' + esc(x.heroMe) + ' contre ' + esc(x.heroVs) + ' (' + esc(x.opp) + ') · jour ' + x.days + '</div>').join('');
+  }
   function render() {
     if (!V) return;
     if (V.step !== lastStep) { pick = new Set(); lastStep = V.step; }
@@ -325,7 +351,7 @@
     document.body.style.background = 'var(--bg)';
     const mainEl = document.querySelector('#game .main'); if (mainEl) mainEl.style.background = 'linear-gradient(to bottom,' + (fo ? FC[fo] + '30' : 'transparent') + ' 0%,' + (fo ? FC[fo] + '99' : 'transparent') + ' 26%,transparent 46%,transparent 54%,' + (fm ? FC[fm] + '99' : 'transparent') + ' 74%,' + (fm ? FC[fm] + '30' : 'transparent') + ' 100%),var(--bg)';
     renderPrompt(P, O); renderSide();
-    animate();
+    animate(); recordStats();
   }
   // Petites animations non bloquantes : carte posée, boosts / statuts qui tombent sur la carte, dé lancé
   let SNAP = null, LOGN = 0;
