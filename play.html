@@ -152,6 +152,22 @@ button.mini{min-height:24px;padding:0 7px;font-size:11px}
 @keyframes roll{0%{transform:translate(-120px,40px) rotate(-540deg) scale(.6)}75%{transform:translate(6px,-4px) rotate(12deg)}100%{transform:none}}
 @keyframes diefade{0%,80%{opacity:1}100%{opacity:0}}
 @media(prefers-reduced-motion:reduce){.c.landed,.c .drop,.die{animation:none}}
+
+/* Piste d'aventure : 5 vraies cartes à l'horizontale */
+.adv{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;align-items:center}
+.tcard{position:relative;aspect-ratio:1.4;border-radius:9px;overflow:hidden;box-shadow:0 3px 10px #0008}
+.tcimg{position:absolute;inset:0;background-size:cover;background-position:center}
+.tcimg.flip{transform:rotate(180deg)}
+.reg{position:absolute;top:0;bottom:0;display:flex;flex-direction:column;justify-content:space-between;align-items:center;padding:4px 0}
+.reg.L{left:0;width:50%}.reg.R{right:0;width:50%}.reg.S{left:0;right:0}.reg.Sh{left:22%}.reg.Sc{right:22%}
+.reg .mko,.reg .mkm{display:flex;gap:4px;min-height:1px}
+.reg .mko{margin-top:16%}.reg .mkm{margin-bottom:16%}
+.reg.here{box-shadow:inset 0 0 0 2px #fff6}
+.tcard .mk3 i{display:none}
+.tcard .mk3{width:clamp(22px,2.8vw,42px);height:clamp(22px,2.8vw,42px)}
+@media(max-width:900px){.adv{gap:4px}.tcard{border-radius:5px}.reg .mko{margin-top:6%}.reg .mkm{margin-bottom:6%}}
+.c .st i img{aspect-ratio:1/1;width:100%;height:100%;border-radius:50%;background:none;object-fit:cover}
+.reg.S.here{box-shadow:none}
 </style>
 </head>
 <body>
@@ -198,8 +214,8 @@ button.mini{min-height:24px;padding:0 7px;font-size:11px}
 </section>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/engine.js?v=1795695758"></script>
-<script src="js/net.js?v=1795695758"></script>
-<script src="js/play.js?v=1795695758"></script>
+<script src="js/engine.js?v=1795696648"></script>
+<script src="js/net.js?v=1795696648"></script>
+<script src="js/play.js?v=1795696648"></script>
 </body>
 </html>

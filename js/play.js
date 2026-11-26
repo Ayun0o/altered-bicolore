@@ -257,21 +257,23 @@
     const col = (t) => '<div class="half"><div class="bgs"><span style="background-image:url(img/ui/' + ({ F: 'forest', M: 'mountain', W: 'water' })[t] + '.svg)"></span></div><b class="arn">' + TL[t] + '</b><span class="arv ' + (A[t] > B[t] ? 'me' : B[t] > A[t] ? 'opp' : '') + '">Toi ' + A[t] + ' — ' + B[t] + ' Adv</span></div>';
     return '<div class="advcard" style="grid-column:1/-1"><span class="lab">Arène — départage : la somme de tes deux expéditions par terrain. Tu gagnes ' + a + ' terrain(s), l’adversaire ' + b + '.</span><div class="halves" style="grid-template-columns:1fr 1fr 1fr">' + col('F') + col('M') + col('W') + '</div></div>';
   }
-  const TUM = { F: 1, M: 1, W: 1, FM: 1, FW: 1, MW: 1 };
   function track() {
     if (V.tie) return arena();
-    const cell = (i, side) => {
-      const r = V.adv[i]; const mk = [];
-      V.players.forEach((X, p) => { if (!X) return; ['H', 'C'].forEach(e => { if (X.pos[e] === i) mk.push(marker(p, e)); }); });
-      const key = r.terr.slice().sort().join('');
-      if (r.up && r.kind === 'T' && TUM[key]) return '<div class="half scan" style="background-image:url(img/ui/scan/t_' + key + '.webp)" title="' + r.terr.map(t => TL[t]).join(' + ') + '">' + mk.join('') + '</div>';
-      if (r.kind !== 'T') return '<div class="half start scan">' + mk.join('') + '</div>';
-      const bg = r.up ? '<div class="bgs">' + r.terr.map(t => '<span style="background-image:url(img/ui/' + ({ F: 'forest', M: 'mountain', W: 'water' })[t] + '.svg)"></span>').join('') + '</div>' : '';
-      return '<div class="half' + (r.up ? '' : ' down ' + (side || 'L')) + (r.kind !== 'T' ? ' start' : '') + '">' + bg + '<div class="t">' + (r.up ? r.terr.map(t => '<span class="ter ' + t + '" title="' + TL[t] + '">' + TL[t][0] + '</span>').join('') : '<span class="note">?</span>') + '</div>' + mk.join('') + '</div>';
+    // Une région : jetons de l'adversaire en haut, les miens en bas (comme sur BGA)
+    const zone = (i, cls) => {
+      const r = V.adv[i], top = [], bot = [];
+      V.players.forEach((X, p) => { if (!X) return; ['H', 'C'].forEach(e => { if (X.pos[e] === i) (p === me ? bot : top).push(marker(p, e)); }); });
+      const here = top.length || bot.length;
+      return '<div class="reg ' + cls + (here ? ' here' : '') + '" title="' + (r.up ? r.terr.map(t => TL[t]).join(' + ') : 'Région face cachée') + '"><div class="mko">' + top.join('') + '</div><div class="mkm">' + bot.join('') + '</div></div>';
     };
-    return '<div class="advcard end hero"><span class="lab">Départ Héros</span>' + cell(0) + '</div>' +
-      [1, 3, 5].map((i, k) => '<div class="advcard"><span class="lab">Tumulte ' + (k + 1) + (V.adv[i].up ? '' : ' · face cachée') + '</span><div class="halves">' + cell(i, 'L') + cell(i + 1, 'R') + '</div></div>').join('') +
-      '<div class="advcard end comp"><span class="lab">Départ Compagnon</span>' + cell(7) + '</div>';
+    const tcard = i => {
+      const a = V.adv[i], b = V.adv[i + 1], up = a.up || b.up;
+      const singleRight = a.terr.length > 1, key = (singleRight ? b : a).terr[0];
+      return '<div class="tcard' + (up ? '' : ' down') + '"><div class="tcimg' + (up && singleRight ? ' flip' : '') + '" style="background-image:url(img/ui/scan/' + (up ? 'card_t_' + key : 'card_back') + '.webp)"></div>' + zone(i, 'L') + zone(i + 1, 'R') + '</div>';
+    };
+    return '<div class="tcard start"><div class="tcimg" style="background-image:url(img/ui/scan/card_start_H.webp)"></div>' + zone(0, 'S Sh') + '</div>' +
+      [1, 3, 5].map(tcard).join('') +
+      '<div class="tcard start"><div class="tcimg" style="background-image:url(img/ui/scan/card_start_C.webp)"></div>' + zone(7, 'S Sc') + '</div>';
   }
   function render() {
     if (!V) return;
