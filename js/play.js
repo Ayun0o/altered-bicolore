@@ -169,6 +169,8 @@
     if (ch.kind === 'charres') return (L.z === 'exp' || L.z === 'reserve') && isChar;
     if (ch.kind === 'myres') return L.z === 'reserve' && L.p === me && (!ch.notSelf || id !== ch.src);
     if (ch.kind === 'reschar') return L.z === 'reserve' && isChar;
+    if (ch.kind === 'oppany') return L.p !== me && (L.z === 'exp' || L.z === 'lm');
+    if (ch.kind === 'readyable') return (L.z === 'reserve' && c.ex) || ((L.z === 'exp' || L.z === 'lm') && c.ex);
     if (ch.kind === 'augm' || ch.kind === 'anyres') return ['exp', 'reserve', 'lm'].includes(L.z) && (c.boost > 0 || (c.ctr && Object.values(c.ctr).some(v => v > 0)));
     if (ch.maxStat != null) { const pw = c.tok ? c.tok.p : (DB[c.ref] || {}).p || [0, 0, 0]; if (pw.some(x => E.num(x) + c.boost > ch.maxStat)) return false; }
     if (ch.kind === 'myperm') return L.p === me && (L.z === 'exp' || L.z === 'lm') && !c.tok && /PERMANENT/.test((DB[c.ref] || {}).t || '');
