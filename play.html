@@ -350,6 +350,15 @@ body[data-mood=night]{--mood:#5b6bd6}
 .mood-ico{margin-right:6px;display:inline-block;transition:transform .6s}
 body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:0 0 0 1px color-mix(in srgb,var(--mood) 35%,transparent)}
 .actionbox{box-shadow:0 0 0 1px color-mix(in srgb,var(--mood) 30%,transparent);transition:box-shadow 1.2s}
+
+/* Ambiance déplacée : fines bandes au-dessus et en dessous de la piste de Tumulte */
+#game .bar::before,#game .bar::after{display:none}
+.actionbox{box-shadow:none}
+body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none}
+#adv{position:relative}
+#adv::before,#adv::after{content:'';position:absolute;left:4%;right:4%;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,var(--mood) 20%,var(--mood) 80%,transparent);box-shadow:0 0 8px 1px color-mix(in srgb,var(--mood) 45%,transparent);opacity:.75;pointer-events:none;transition:background 1.2s,box-shadow 1.2s}
+#adv::before{top:-6px}#adv::after{bottom:-6px}
+@media(max-width:900px){#adv::before{top:-4px}#adv::after{bottom:-4px}#adv::before,#adv::after{height:2px}}
 </style>
 </head>
 <body>
