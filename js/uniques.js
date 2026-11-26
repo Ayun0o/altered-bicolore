@@ -9,7 +9,7 @@
 
   // Base d'une famille de cartes : ALT_CORE_B_LY_07_C → ALT_CORE_B_LY_07
   const familyOf = r => String(r).replace(/_(C|R1|R2|U_\d+)$/, '');
-  const imageRef = r => familyOf(r) + '_C';
+  const imageRef = r => familyOf(r) + '_R1';   // illustration de la rare (plus travaillée)
 
   // « BTG-069-U-5171 » → ALT_CORE_B_LY_07_U_5171 (set de base uniquement)
   function parseCode(code) {

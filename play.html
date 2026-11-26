@@ -365,6 +365,12 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 .uqz{position:absolute;left:4%;right:4%;bottom:4%;background:#14120ee8;border:2px solid #d8b24a;border-radius:10px;padding:8px 10px;display:flex;flex-direction:column;gap:4px;font-size:13px;color:#f3ead2}
 .uqz i.F,.uqz i.M,.uqz i.W{font-style:normal;font-weight:800;padding:0 6px;border-radius:6px;color:#fff}.uqz i.F{background:var(--F)}.uqz i.M{background:var(--M)}.uqz i.W{background:var(--W)}
 #zoomCard{position:fixed}
+
+/* Uniques : cadre doré + reflet qui passe lentement */
+.c:has(.uqtag){border-radius:7px;box-shadow:0 0 0 2px #e2b84a,0 0 10px 2px #f5c51866}
+.c:has(.uqtag)::before{content:'';position:absolute;inset:0;border-radius:6px;pointer-events:none;z-index:2;background:linear-gradient(115deg,transparent 35%,#fff6d455 48%,#ffe08a66 50%,transparent 62%);background-size:250% 100%;animation:uqshine 5s ease-in-out infinite;mix-blend-mode:screen}
+@keyframes uqshine{0%,60%{background-position:120% 0}100%{background-position:-120% 0}}
+@media(prefers-reduced-motion:reduce){.c:has(.uqtag)::before{animation:none}}
 </style>
 </head>
 <body>
@@ -432,11 +438,11 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/uniques.js?v=1795714856"></script>
-<script src="js/cloud.js?v=1795714856"></script>
-<script src="js/engine.js?v=1795714856"></script>
-<script src="js/ai.js?v=1795714856"></script>
-<script src="js/net.js?v=1795714856"></script>
-<script src="js/play.js?v=1795714856"></script>
+<script src="js/uniques.js?v=1795715728"></script>
+<script src="js/cloud.js?v=1795715728"></script>
+<script src="js/engine.js?v=1795715728"></script>
+<script src="js/ai.js?v=1795715728"></script>
+<script src="js/net.js?v=1795715728"></script>
+<script src="js/play.js?v=1795715728"></script>
 </body>
 </html>

@@ -190,7 +190,7 @@
     if (c.tok) { const r = tokRef(c.tok.n); if (r) return '<img loading="lazy" draggable="false" alt="' + esc(tokName(c.tok.n)) + '" src="img/tok/' + r + '_' + LANG + '.webp">' + (c.tok.p ? '<span class="tokst">' + c.tok.p.join('/') + '</span>' : ''); }
     return imgOld(c);
   }
-  function imgOld(c) { return c.tok ? '<div class="tok"><b>' + esc(tokName(c.tok.n)) + '</b><span>' + c.tok.p.join(' / ') + '</span><span class="note">jeton</span></div>' : '<img loading="lazy" draggable="false" alt="' + esc(NM(DB[c.ref])) + '" src="img/' + LANG + '/' + encodeURIComponent((DB[c.ref] && DB[c.ref].u) ? DB[c.ref].base : c.ref) + '.webp">' + ((DB[c.ref] && DB[c.ref].u) ? '<span class="uqtag">U</span>' : ''); }
+  function imgOld(c) { return c.tok ? '<div class="tok"><b>' + esc(tokName(c.tok.n)) + '</b><span>' + c.tok.p.join(' / ') + '</span><span class="note">jeton</span></div>' : '<img loading="lazy" draggable="false" alt="' + esc(NM(DB[c.ref])) + '" src="img/' + LANG + '/' + encodeURIComponent((DB[c.ref] && DB[c.ref].u) ? DB[c.ref].base : c.ref) + '.webp"' + ((DB[c.ref] && DB[c.ref].u) ? ' onerror="this.onerror=null;this.src=this.src.replace(/_R1\.webp$/,\'_C.webp\')"' : '') + '>' + ((DB[c.ref] && DB[c.ref].u) ? '<span class="uqtag">U</span>' : ''); }
   const CH = () => V && V.choices && V.choices[0];
   function isTarget(id) {
     const ch = CH(); if (!ch || ch.p !== me) return false;
@@ -510,7 +510,7 @@
   }
   const zoomEl = document.createElement('div'); zoomEl.id = 'zoomCard'; document.body.appendChild(zoomEl);
   function zoomHtml(x) { const d = DB[x.ref] || {}; if (!d.u) return '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(x.ref) + '.webp">';
-    return '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(d.base) + '.webp"><div class="uqz"><b>' + esc(NM(d)) + ' — unique</b><span>Coût ' + esc(d.c) + ' / ' + esc(d.rc) + ' · <i class="F">' + esc(d.p[0]) + '</i> <i class="M">' + esc(d.p[1]) + '</i> <i class="W">' + esc(d.p[2]) + '</i></span><span>' + esc(LANG === 'en' ? d.xe : d.x) + '</span>' + (d.e ? '<span><i>' + esc(LANG === 'en' ? d.ee : d.e) + '</i></span>' : '') + '</div>'; }
+    return '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(d.base) + '.webp" onerror="this.onerror=null;this.src=this.src.replace(/_R1\.webp$/,\'_C.webp\')"><div class="uqz"><b>' + esc(NM(d)) + ' — unique</b><span>Coût ' + esc(d.c) + ' / ' + esc(d.rc) + ' · <i class="F">' + esc(d.p[0]) + '</i> <i class="M">' + esc(d.p[1]) + '</i> <i class="W">' + esc(d.p[2]) + '</i></span><span>' + esc(LANG === 'en' ? d.xe : d.x) + '</span>' + (d.e ? '<span><i>' + esc(LANG === 'en' ? d.ee : d.e) + '</i></span>' : '') + '</div>'; }
   function hideZoom() { zoomEl.style.display = 'none'; }
   function bindZoom() {
     document.addEventListener('mouseover', e => {
