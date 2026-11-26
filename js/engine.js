@@ -1010,7 +1010,7 @@
     const d = s.players.map(distance);
     if (d[0] <= 6 && d[1] <= 6) return;
     if (d[0] >= 7 && d[0] > d[1]) { s.winner = 0; } else if (d[1] >= 7 && d[1] > d[0]) { s.winner = 1; }
-    else { s.tie = true; log(s, 'Égalité : départage dans l’Arène (forêt, montagne, eau ; les expéditions ne bougent plus).'); return; }
+    else { s.tie = true; log(s, 'Égalité : départage dans l’Arène (forêt, montagne, océan ; les expéditions ne bougent plus).'); return; }
     s.phase = 'END'; s.step = 'END'; log(s, s.players[s.winner].name + ' remporte la partie !');
   }
   function tieDusk(s, db) {

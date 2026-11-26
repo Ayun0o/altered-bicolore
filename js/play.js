@@ -10,7 +10,7 @@
   let DRAG = null, PREVZ = null, lastStep = null, STARTERS = [], DB = {}, mode = null, S = null, V = null, me = 0, net = null, sel = null, sideView = 'card', keep = { R: new Set(), L: new Set() }, pick = new Set(), decksUsed = [], names = [];
   const NM = d => d ? (LANG === 'en' ? d.en : d.n) : '?';
   const TX = d => d ? (LANG === 'en' ? d.xe : d.x) : '';
-  const TL = { F: 'Forêt', M: 'Montagne', W: 'Eau' };
+  const TL = { F: 'Forêt', M: 'Montagne', W: 'Océan' };
 
   // ---------- Lobby ----------
   function decks() { const d = store.get('alt-bi-decks', {}); return Object.entries(d).filter(([k, v]) => v && v.hero && DB[v.hero]); }

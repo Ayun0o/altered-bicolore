@@ -585,6 +585,10 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 .qact{position:absolute;right:-6px;top:-6px;z-index:6;width:26px;height:26px;min-height:0!important;padding:0!important;border-radius:50%;background:#f5c518!important;color:#1a1400!important;border:2px solid #fff!important;font-size:12px;line-height:1;display:grid;place-items:center;box-shadow:0 2px 8px #000a;cursor:pointer;animation:qpop .18s ease-out}
 @keyframes qpop{from{transform:scale(.4)}}
 .c{position:relative}
+
+#tutBox .anat{position:relative;width:min(240px,62vw);margin:6px auto 26px}
+#tutBox .anat img{width:100%;display:block;border-radius:10px}
+#tutBox .an{position:absolute;font-size:11px;font-weight:700;background:#000d;color:#f5c518;border:1px solid #f5c51888;border-radius:6px;padding:1px 5px;white-space:nowrap}
 </style>
 </head>
 <body>
@@ -659,10 +663,10 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/uniques.js?v=1795716790"></script>
 <script src="js/cloud.js?v=1795716790"></script>
-<script src="js/engine.js?v=1795728589"></script>
+<script src="js/engine.js?v=1795731536"></script>
 <script src="js/ai.js?v=1795716790"></script>
 <script src="js/net.js?v=1795716790"></script>
-<script src="js/play.js?v=1795731084"></script>
+<script src="js/play.js?v=1795731536"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
  t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');
@@ -677,16 +681,22 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
  const $=id=>document.getElementById(id), MOB=()=>matchMedia('(max-width:900px)').matches;
  const pr=()=>($('prompt')||{}).textContent||'';
  const S=[
-  {t:'Bienvenue !',x:'Le but : faire avancer tes deux expéditions, <b>Héros</b> et <b>Compagnon</b>, sur la piste de Tumulte, jusqu\'à ce qu\'elles se rejoignent. Ton adversaire essaie de faire pareil.',el:()=>$('adv')},
+  {t:'Bienvenue dans Altered TCG !',x:'Le but : faire avancer tes deux expéditions, <b>Héros</b> et <b>Compagnon</b>, sur la piste de Tumulte, jusqu\'à ce qu\'elles se rejoignent. Ton adversaire essaie de faire pareil.',el:()=>$('adv')},
   {t:'Ton mana',x:'Pour commencer, <b>touche 3 cartes de ta main</b> : elles deviennent ton mana pour la partie. Puis clique <b>Valider</b>.',el:()=>$('hand'),until:()=>!/Mise en place/.test(pr()),waitTxt:'Choisis 3 cartes puis Valide…'},
-  {t:'L’orbe de mana',x:'Elle montre ton mana <b>disponible / total</b>. Chaque matin, tu peux ajouter une carte de ta main à ton mana. Clique l’orbe pour voir tes cartes en mana.',el:()=>$('myMana'),when:()=>/toi de jouer|Matin|Midi/.test(pr())},
-  {t:'Le coût des cartes',x:'En haut à gauche de chaque carte : le <b>rond bleu</b> est son coût depuis la main, le rond juste en dessous son coût depuis la <b>Réserve</b>. Les cartes que tu peux payer ont un <b>fin liseré blanc</b>.',el:()=>document.querySelector('#hand .c'),when:()=>/toi de jouer/.test(pr()),waitTxt:'Attends que ce soit à toi de jouer…'},
-  {t:'Jouer une carte',x:'Glisse une carte sur ton expédition <b>Héros</b> ou <b>Compagnon</b> (ou touche-la puis touche l’expédition). Joue une carte maintenant !',el:()=>$('myExps'),when:()=>/toi de jouer/.test(pr()),until:()=>document.querySelectorAll('#myExps .zone.exp .c[data-id]').length>0,waitTxt:'Joue une carte…'},
-  {t:'Les terrains',x:'Les pastilles <b>forêt / montagne / eau</b> additionnent la force de ton expédition. Au <b>Crépuscule</b>, ton expédition avance si elle est plus forte que celle d’en face sur un terrain de sa région (les pastilles en couleur sont celles qui comptent ; en doré, tu gagnes).',el:()=>document.querySelector('#myExps .tot')},
+  {t:'L’orbe de mana',x:'Elle montre ton mana <b>disponible / total</b>. Chaque carte que tu joues en consomme ; ton mana se recharge entièrement chaque matin. Chaque matin, tu peux aussi ajouter une carte de ta main à ton mana pour en avoir plus.',el:()=>$('myMana'),when:()=>/toi de jouer|Matin|Midi/.test(pr())},
+  {t:'Lire une carte',img:1,x:'Le mana sert à jouer tes cartes. Les cartes que tu peux payer ce tour ont un <b>fin liseré blanc</b>.',el:()=>$('hand'),when:()=>/toi de jouer/.test(pr()),waitTxt:'Attends que ce soit à toi de jouer…'},
+  {t:'Jouer une carte',get x(){return MOB()?'Touche une carte pour la voir en grand, puis touche ton expédition <b>Héros</b> ou <b>Compagnon</b> pour l’y jouer. Joue une carte maintenant !':'Glisse une carte sur ton expédition <b>Héros</b> ou <b>Compagnon</b> (ou clique-la puis clique l’expédition). Joue une carte maintenant !'},el:()=>$('myExps'),when:()=>/toi de jouer/.test(pr()),until:()=>document.querySelectorAll('#myExps .zone.exp .c[data-id]').length>0,waitTxt:'Joue une carte…'},
+  {t:'Les terrains',x:'Les pastilles <b>forêt / montagne / océan</b> additionnent la force de ton expédition. Au <b>Crépuscule</b>, ton expédition avance si elle est plus forte que celle d’en face sur un terrain de sa région (les pastilles en couleur sont celles qui comptent ; en doré, tu gagnes).',el:()=>document.querySelector('#myExps .tot')},
   {t:'Passer',x:'Chacun joue une carte à son tour. Quand tu ne veux plus jouer, clique <b>Passer</b> (ou appuie sur Espace). La journée continue quand les deux joueurs ont passé.',el:()=>$('prompt')},
   {t:'La Réserve',x:'La nuit, tes personnages retournent dans ta <b>Réserve</b>. Tu pourras les rejouer plus tard pour leur coût de Réserve. '+(MOB()?'Sur téléphone, le bouton <b>Rés.</b> à gauche de ta main affiche ta Réserve.':'Elle est juste sous ton expédition Héros.'),el:()=>MOB()?($('rsvTog')||document.querySelector('#myStrip .sres')):document.querySelector('#myStrip .sres')},
   {t:'Le lexique',x:'Un mot-clé ou un symbole t’échappe ? Ouvre <b>📖 Lexique</b> dans les Outils'+(MOB()?' (languette ‹ à droite de l’écran)':'')+'. Bonne partie !',el:()=>MOB()?$('sideTab'):document.querySelector('[data-tool=lex]')}
  ];
+ const ANAT='<div class="anat"><img src="img/fr-hd/ALT_CORE_B_YZ_18_R1.webp" alt="">'+
+  '<span class="an" style="left:17%;top:2.5%">← Coût depuis la main</span>'+
+  '<span class="an" style="left:20%;top:9.5%">← Coût depuis la Réserve</span>'+
+  '<span class="an" style="left:15%;top:24%">← Forces : forêt / montagne / océan</span>'+
+  '<span class="an" style="left:50%;top:62%;transform:translateX(-50%)">Capacités ↓</span>'+
+  '<span class="an" style="left:50%;top:100.5%;transform:translateX(-50%)">↑ Effet en Réserve (Soutien)</span></div>';
  let i=-1,box=null,hl=null,tm=null;
  function clear(){if(hl)hl.classList.remove('tut-hl');hl=null}
  function end(){clear();clearInterval(tm);tm=null;if(box)box.remove();box=null;try{localStorage.setItem('alt-bi-tuto','1')}catch(e){}}
@@ -698,7 +708,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
   const r=el?el.getBoundingClientRect():null;
   box.className=r&&r.top<innerHeight*.45?'bot':'top';
   const waiting=!ready||(st.until&&!st.until());
-  box.innerHTML='<h4>'+st.t+'</h4><div>'+(ready?st.x:'')+'</div>'+(waiting?'<div class="wait">'+(ready?(st.waitTxt||''):(st.waitTxt||'Un instant…'))+'</div>':'')+
+  box.innerHTML='<h4>'+st.t+'</h4>'+(ready&&st.img?ANAT:'')+'<div>'+(ready?st.x:'')+'</div>'+(waiting?'<div class="wait">'+(ready?(st.waitTxt||''):(st.waitTxt||'Un instant…'))+'</div>':'')+
    '<div class="tr"><span class="tn">'+(i+1)+' / '+S.length+'</span><span><button id="tutQ">Quitter</button> '+(waiting?'':'<button id="tutN" class="pri">'+(i===S.length-1?'Terminer':'Suivant')+'</button>')+'</span></div>';
   $('tutQ').onclick=end;const n=$('tutN');if(n)n.onclick=()=>{i++;show()};
   box.dataset.w=waiting?'1':'';box.dataset.r=ready?'1':'';
