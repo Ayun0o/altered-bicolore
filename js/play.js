@@ -7,7 +7,7 @@
   const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } } };
   let LANG = 'fr'; try { LANG = localStorage.getItem('alt-bi-lang') === 'en' ? 'en' : 'fr'; } catch (e) { }
 
-  let lastStep = null, STARTERS = [], DB = {}, mode = null, S = null, V = null, me = 0, net = null, sel = null, sideView = 'card', keep = { R: new Set(), L: new Set() }, pick = new Set(), decksUsed = [], names = [];
+  let DRAG = null, PREVZ = null, lastStep = null, STARTERS = [], DB = {}, mode = null, S = null, V = null, me = 0, net = null, sel = null, sideView = 'card', keep = { R: new Set(), L: new Set() }, pick = new Set(), decksUsed = [], names = [];
   const NM = d => d ? (LANG === 'en' ? d.en : d.n) : '?';
   const TX = d => d ? (LANG === 'en' ? d.xe : d.x) : '';
   const TL = { F: 'Forêt', M: 'Montagne', W: 'Eau' };
@@ -195,10 +195,11 @@
   }
   function cardEl(id) {
     const c = card(id); if (!c) return '<div class="c"><div class="tok">?</div></div>';
-    const b = []; if (c.boost) b.push('+' + c.boost); if (c.ctr) for (const [k, v] of Object.entries(c.ctr)) if (v) b.push(v + ' ' + k); if (c.completed) b.push('accomplie'); if (c.fleeting) b.push('fugace'); if (c.anchored) b.push('ancré'); if (c.asleep) b.push('endormi');
+    const b = []; if (c.boost) b.push('+' + c.boost); if (c.ctr) for (const [k, v] of Object.entries(c.ctr)) if (v) b.push(v + ' ' + k);
+    const st = []; if (c.fleeting) st.push(['💨', 'Fugace']); if (c.anchored) st.push(['⚓', 'Ancré']); if (c.asleep) st.push(['💤', 'Endormi']); if (c.completed) st.push(['🏅', 'Accomplie']);
     const k = keep.R.has(id) || keep.L.has(id) || pick.has(id);
     const P = V.players[me]; const drag = P && c.owner === me && (P.hand.includes(id) || P.reserve.includes(id));
-    return '<div class="c' + (c.ex ? ' ex' : '') + (sel === id || k ? ' sel' : '') + (isTarget(id) ? ' tgt' : '') + (GLOW.has(id) ? ' trig' : '') + '" data-id="' + esc(id) + '"' + (drag ? ' draggable="true"' : '') + '>' + img(c) + (b.length ? '<div class="bd">' + b.map(x => '<b>' + esc(x) + '</b>').join('') + '</div>' : '') + '</div>';
+    return '<div class="c' + (c.ex ? ' ex' : '') + (sel === id || k ? ' sel' : '') + (isTarget(id) ? ' tgt' : '') + (GLOW.has(id) ? ' trig' : '') + '" data-id="' + esc(id) + '"' + (drag ? ' draggable="true"' : '') + '>' + img(c) + (st.length ? '<div class="st">' + st.map(x => '<i title="' + x[1] + '">' + x[0] + '</i>').join('') + '</div>' : '') + (b.length ? '<div class="bd">' + b.map(x => '<b' + (/^\+/.test(x) ? ' class="bst"' : '') + '>' + esc(x) + '</b>').join('') + '</div>' : '') + '</div>';
   }
   const cardsEl = ids => ids.map(cardEl).join('') || '<span class="note empty">—</span>';
   const PH = { SETUP_MANA: 'Mise en place', MORNING: 'Matin', EXPAND: 'Matin', NOON: 'Midi', AFTERNOON: 'Après-midi', DUSK: 'Crépuscule', NIGHT: 'Nuit', CLEANUP: 'Nuit', END: 'Fin de partie' };
@@ -207,6 +208,24 @@
     return '<div class="manabox' + (mine ? ' mine' : '') + '" title="Mana disponible / total"><div class="manaico"><b>' + r + '</b><span>/' + X.mana.length + '</span></div>' +
       (mine ? '<div class="orbs">' + X.mana.map((m, i) => '<span class="orb' + (m.ex ? ' ex' : '') + '" data-orb="' + i + '" title="Épuiser / redresser"></span>').join('') + '</div>' : '') + '</div>';
   }
+  function totPills(t, terr, winT, base) {
+    return ['F', 'M', 'W'].map(k => { const ch = base && base[k] !== t[k]; return '<span class="pill p' + k + (terr.includes(k) ? ' act' : ' off') + (winT.includes(k) ? ' win' : '') + (ch ? ' chg' : '') + '" title="' + TL[k] + (terr.includes(k) ? ' — compte dans la région actuelle' : ' — ne compte pas ici') + '">' + (ch ? '<s>' + base[k] + '</s>' : '') + t[k] + '</span>'; }).join('');
+  }
+  // Aperçu des scores si on joue la carte « id » dans l'expédition « e »
+  function previewPlay(id, e) {
+    let S; try { S = JSON.parse(JSON.stringify(V)); } catch (x) { return; }
+    for (const P of S.players) if (P && P.deck) P.deck = P.deck.filter(d => S.cards[d]);
+    if (S.step !== 'AFTERNOON') return; S.turn = me; S.choices = []; S.log = [];
+    try { const r = E.act(S, me, { type: 'play', id, e, cost: 0 }, DB); if (typeof r === 'string') return; } catch (x) { return; }
+    for (let p = 0; p < 2; p++) for (const ex of ['H', 'C']) {
+      const el = document.getElementById('tot-' + p + ex); if (!el || !S.players[p]) continue;
+      const X = S.players[p], o = 1 - p, t = E.totals(S, p, ex, DB), ot = E.totals(S, o, ex, DB), b = E.totals(V, p, ex, DB);
+      const reg = S.adv[X.pos[ex]]; const terr = reg ? reg.terr : []; const asc = X.asc && X.asc[ex];
+      const winT = terr.filter(k => (t[k] > ot[k] || (asc && t[k] === ot[k])) && t[k] > 0);
+      if (!el.classList.contains('prev')) el.dataset.orig = el.innerHTML; el.innerHTML = totPills(t, terr, winT, b); el.classList.add('prev');
+    }
+  }
+  function clearPreview() { document.querySelectorAll('.tot.prev').forEach(el => { el.innerHTML = el.dataset.orig || el.innerHTML; el.classList.remove('prev'); }); }
   function expRow(p) {
     const X = V.players[p], o = 1 - p, mine = p === me;
     const zone = e => {
@@ -216,9 +235,9 @@
       const winT = V.tie ? [] : terr.filter(k => (t[k] > ot[k] || (asc && t[k] === ot[k])) && t[k] > 0);
       const blocked = X.exp[e].some(id => { const c = card(id); return c && !c.tok && !c.asleep && E.kw(DB[c.ref]).defender; });
       const will = winT.length && !blocked;
-      const tot = ['F', 'M', 'W'].map(k => '<span class="' + (terr.includes(k) ? 'act ' : 'off ') + (winT.includes(k) ? 'win w' + k : '') + '" title="' + TL[k] + (terr.includes(k) ? ' (terrain de la région actuelle)' : '') + '"><span class="ter ' + k + '">' + TL[k][0] + '</span>' + t[k] + '</span>').join('');
+      const tot = totPills(t, terr, winT);
       const badge = V.tie ? '' : (winT.length && blocked ? '<span class="nowill" title="Bloquée par un Défenseur">🛡</span>' : '');
-      return '<div class="zone exp' + (mine ? ' mine' : '') + (will ? ' willz' : '') + '"' + (mine ? ' data-drop="' + e + '"' : '') + '><h3>' + (e === 'H' ? 'Héros' : 'Compagnon') + ' <span class="tot">' + tot + '</span>' + badge + (asc ? '<span class="asc" title="Expédition élevée">⇑</span>' : '') + '<span class="sp"></span><button class="mini" data-pos="' + p + ',' + e + ',-1" title="Reculer l’expédition">◀</button><button class="mini" data-pos="' + p + ',' + e + ',1" title="Avancer l’expédition">▶</button></h3><div class="cards">' + cardsEl(X.exp[e]) + '</div></div>';
+      return '<div class="zone exp' + (mine ? ' mine' : '') + (will ? ' willz' : '') + '"' + (mine ? ' data-drop="' + e + '"' : '') + '><h3>' + (e === 'H' ? 'Héros' : 'Compagnon') + ' <span class="tot" id="tot-' + p + e + '">' + tot + '</span>' + badge + (asc ? '<span class="asc" title="Expédition élevée">⇑</span>' : '') + '<span class="sp"></span><button class="mini" data-pos="' + p + ',' + e + ',-1" title="Reculer l’expédition">◀</button><button class="mini" data-pos="' + p + ',' + e + ',1" title="Avancer l’expédition">▶</button></h3><div class="cards">' + cardsEl(X.exp[e]) + '</div></div>';
     };
     return zone('H') + '<div class="herocol">' + (X.hero ? cardEl(X.hero) : '') + '<span class="hname" style="color:' + (FC[(DB[(card(X.hero) || {}).ref] || {}).f] || 'inherit') + '">' + esc(X.name) + '</span></div>' + zone('C');
   }
@@ -348,15 +367,18 @@
     sel = null; dispatch(a);
   }
   function bindDrag() {
-    document.addEventListener('dragstart', e => { const c = e.target.closest && e.target.closest('.c[draggable]'); if (!c) return; e.dataTransfer.setData('text/plain', c.dataset.id); e.dataTransfer.effectAllowed = 'move'; hideZoom(); });
-    document.addEventListener('dragover', e => { const z = e.target.closest && e.target.closest('[data-drop]'); if (!z) return; e.preventDefault(); z.style.outline = '2px dashed var(--acc)'; });
-    document.addEventListener('dragleave', e => { const z = e.target.closest && e.target.closest('[data-drop]'); if (z) z.style.outline = ''; });
+
+    document.addEventListener('dragend', () => { DRAG = null; PREVZ = null; clearPreview(); });
+    document.addEventListener('dragstart', e => { const c = e.target.closest && e.target.closest('.c[draggable]'); if (!c) return; DRAG = c.dataset.id; e.dataTransfer.setData('text/plain', c.dataset.id); e.dataTransfer.effectAllowed = 'move'; hideZoom(); });
+    document.addEventListener('dragover', e => { const z = e.target.closest && e.target.closest('[data-drop]'); if (!z) return; e.preventDefault(); z.style.outline = '2px dashed var(--acc)'; if (DRAG && PREVZ !== z.dataset.drop) { PREVZ = z.dataset.drop; previewPlay(DRAG, PREVZ); } });
+    document.addEventListener('dragleave', e => { const z = e.target.closest && e.target.closest('[data-drop]'); if (!z) return; if (e.relatedTarget && z.contains(e.relatedTarget)) return; z.style.outline = ''; PREVZ = null; clearPreview(); });
     document.addEventListener('drop', e => { const z = e.target.closest && e.target.closest('[data-drop]'); if (!z) return; e.preventDefault(); z.style.outline = ''; const id = e.dataTransfer.getData('text/plain'); if (id) playTo(id, z.dataset.drop); });
   }
   const zoomEl = document.createElement('div'); zoomEl.id = 'zoomCard'; document.body.appendChild(zoomEl);
   function hideZoom() { zoomEl.style.display = 'none'; }
   function bindZoom() {
     document.addEventListener('mouseover', e => {
+      if (sel && !DRAG) { const z = e.target.closest && e.target.closest('[data-drop]'); const zk = z ? z.dataset.drop : null; if (zk !== PREVZ) { PREVZ = zk; if (zk) { const c = card(sel); if (c && V.players[me] && (V.players[me].hand.includes(sel) || V.players[me].reserve.includes(sel))) previewPlay(sel, zk); } else clearPreview(); } }
       const c = e.target.closest && e.target.closest('.c[data-id]'); if (!c || !V) return;
       const x = card(c.dataset.id); if (!x || x.tok) { hideZoom(); return; }
       zoomEl.innerHTML = '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(x.ref) + '.webp">'; zoomEl.style.display = 'block';
