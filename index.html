@@ -145,6 +145,12 @@ textarea{width:100%;min-height:140px;font-size:13px}
 </div>
 
 <dialog id="zoom"><img id="zoomImg" alt=""></dialog>
+<dialog id="newDlg">
+<h2 style="margin-bottom:8px">Nouveau deck</h2>
+<p class="note">Pars de zéro, ou d'un deck de départ officiel que tu pourras modifier.</p>
+<div id="newList" style="display:grid;gap:6px;margin-top:8px"></div>
+<div class="row" style="justify-content:flex-end;margin-top:10px"><button id="newCancel">Annuler</button></div>
+</dialog>
 <dialog id="fmtDlg">
 <h2 style="margin-bottom:8px">Règles du format</h2>
 <p class="note">Partagées par tous ceux qui utilisent cette page.</p>
@@ -301,7 +307,12 @@ $('dHero').onchange=e=>{const d=D();d.hero=e.target.value;const P=BY[d.hero]?.f;
 $('dSec').onchange=e=>{D().sec=e.target.value;touch();renderDeck();renderGrid();renderDots()};
 $('dName').oninput=e=>{D().name=e.target.value;$('asideTitle').textContent=e.target.value||'Mon deck';touch();renderSel()};
 $('deckSel').onchange=e=>{cur=e.target.value;try{localStorage.setItem('alt-bi-cur',cur)}catch(x){}shown=60;renderAll()};
-$('newDeck').onclick=()=>{const id='d'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);decks[id]=newDeckObj('Nouveau deck');cur=id;touch();renderAll();$('dName').focus();$('dName').select()};
+let STARTERS=[];fetch('starters.json').then(r=>r.ok?r.json():[]).then(x=>{STARTERS=Array.isArray(x)?x:[]}).catch(()=>{});
+function makeDeck(name,base){const id='d'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);const d=newDeckObj(name);if(base){d.hero=BY[base.hero]?base.hero:'';for(const [r,n] of Object.entries(base.cards||{}))if(BY[r])d.cards[r]=n}decks[id]=d;cur=id;touch();renderAll();$('dName').focus();$('dName').select()}
+$('newCancel').onclick=()=>$('newDlg').close();
+$('newList').addEventListener('click',e=>{const b=e.target.closest('[data-start]');if(!b)return;const k=b.dataset.start;$('newDlg').close();if(k==='empty')makeDeck('Nouveau deck');else{const s=STARTERS.find(x=>x.id===k);if(s)makeDeck('Mon deck '+(FN[BY[s.hero]?.f]||'')+' (base départ)',s)}});
+$('newDeck').onclick=()=>{$('newList').innerHTML='<button data-start="empty" style="text-align:left"><b>Deck vide</b><br><span class="note">Choisis ton héros et tes cartes toi-même</span></button>'+STARTERS.map(s=>{const f=BY[s.hero]?.f;return '<button data-start="'+esc(s.id)+'" style="display:flex;gap:8px;align-items:center;text-align:left"><span class="fd" style="width:14px;height:14px;background:var(--'+f+')"></span><span><b>'+esc(s.name)+'</b><br><span class="note">'+esc(FN[f]||'')+' · '+esc(NM(BY[s.hero]))+' · 39 cartes</span></span></button>'}).join('');$('newDlg').showModal()};
+$('newDeck').dataset.old='1';const _oldNew=()=>{const id='d'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);decks[id]=newDeckObj('Nouveau deck');cur=id;touch();renderAll();$('dName').focus();$('dName').select()};
 let delArm=false;$('del').onclick=()=>{if(!delArm){delArm=true;$('del').textContent='Confirmer la suppression';setTimeout(()=>{delArm=false;$('del').textContent='Supprimer'},4000);return}
  delArm=false;$('del').textContent='Supprimer';const id=cur;delete decks[id];dirty.add(id);if(!Object.keys(decks).length){const n='d'+Date.now().toString(36);decks[n]=newDeckObj('Mon premier deck');dirty.add(n)}cur=Object.keys(decks)[0];touch();renderAll()};
 ['q','fType','fRar','fSet','fCost','fSort','onlyLegal'].forEach(id=>$(id).addEventListener('input',()=>{shown=60;renderGrid()}));
