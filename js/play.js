@@ -7,18 +7,26 @@
   const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } } };
   let LANG = 'fr'; try { LANG = localStorage.getItem('alt-bi-lang') === 'en' ? 'en' : 'fr'; } catch (e) { }
 
-  let DB = {}, mode = null, S = null, V = null, me = 0, net = null, sel = null, sideView = 'card', keep = { R: new Set(), L: new Set() }, decksUsed = [], names = [];
+  let STARTERS = [], DB = {}, mode = null, S = null, V = null, me = 0, net = null, sel = null, sideView = 'card', keep = { R: new Set(), L: new Set() }, decksUsed = [], names = [];
   const NM = d => d ? (LANG === 'en' ? d.en : d.n) : '?';
   const TX = d => d ? (LANG === 'en' ? d.xe : d.x) : '';
   const TL = { F: 'Forêt', M: 'Montagne', W: 'Eau' };
 
   // ---------- Lobby ----------
   function decks() { const d = store.get('alt-bi-decks', {}); return Object.entries(d).filter(([k, v]) => v && v.hero && DB[v.hero]); }
-  function deckOpts(sel) { const L = decks(); return L.length ? L.map(([k, v]) => { const n = Object.values(v.cards || {}).reduce((a, b) => a + b, 0); return '<option value="' + esc(k) + '"' + (k === sel ? ' selected' : '') + '>' + esc(v.name || 'Sans nom') + ' — ' + esc(NM(DB[v.hero])) + ' (' + n + ' cartes)</option>'; }).join('') : '<option value="">Aucun deck : crée-en un dans le deckbuilder</option>'; }
-  function getDeck(id) { const d = store.get('alt-bi-decks', {})[id]; return d && d.hero ? { hero: d.hero, cards: d.cards || {}, name: d.name } : null; }
+  function deckOpts(sel) {
+    const L = decks();
+    const mine = L.map(([k, v]) => { const n = Object.values(v.cards || {}).reduce((a, b) => a + b, 0); return '<option value="' + esc(k) + '"' + (k === sel ? ' selected' : '') + '>' + esc(v.name || 'Sans nom') + ' — ' + esc(NM(DB[v.hero])) + ' (' + n + ' cartes)</option>'; }).join('');
+    const st = STARTERS.map(s => '<option value="' + esc(s.id) + '"' + (s.id === sel ? ' selected' : '') + '>' + esc(s.name) + ' — ' + esc(NM(DB[s.hero])) + '</option>').join('');
+    return (mine ? '<optgroup label="Mes decks">' + mine + '</optgroup>' : '') + '<optgroup label="Decks de départ officiels">' + st + '</optgroup>';
+  }
+  function getDeck(id) {
+    const s = STARTERS.find(x => x.id === id); if (s) return { hero: s.hero, cards: s.cards, name: s.name };
+    const d = store.get('alt-bi-decks', {})[id]; return d && d.hero ? { hero: d.hero, cards: d.cards || {}, name: d.name } : null;
+  }
 
   async function init() {
-    try { const r = await fetch('cards.json'); for (const c of await r.json()) DB[c.r] = c; } catch (e) { $('lobbyMsg').textContent = 'Impossible de charger les cartes.'; return; }
+    try { const r = await fetch('cards.json'); for (const c of await r.json()) DB[c.r] = c; const rs = await fetch('starters.json'); STARTERS = (await rs.json()).filter(s => DB[s.hero]); } catch (e) { $('lobbyMsg').textContent = 'Impossible de charger les cartes.'; return; }
     const qd = new URLSearchParams(location.search).get('deck');
     if (qd) { try { let s = qd.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; const o = JSON.parse(decodeURIComponent(escape(atob(s))));
       if (o && DB[o.h]) { const all = store.get('alt-bi-decks', {}); const cards = {}; for (const [r, n] of Object.entries(o.c || {})) if (DB[r]) cards[r] = Math.max(0, Math.min(9, n | 0));
@@ -27,7 +35,7 @@
         store.set('alt-bi-decks', all); store.set('alt-bi-lastdeck', id); } } catch (e) { } history.replaceState(null, '', location.pathname + (new URLSearchParams(location.search).get('join') ? '?join=' + new URLSearchParams(location.search).get('join') : '')); }
     $('pname').value = store.get('alt-bi-name', '');
     $('pdeck').innerHTML = deckOpts(store.get('alt-bi-lastdeck', '')); $('sdeck').innerHTML = deckOpts('');
-    $('deckNote').textContent = decks().length ? '' : 'Tu n’as pas encore de deck sur ce navigateur : ouvre le deckbuilder, crée un deck avec un héros, puis reviens ici.';
+    $('deckNote').textContent = decks().length ? '' : 'Pas encore de deck perso sur ce navigateur : joue avec un deck de départ officiel, ou crée le tien dans le deckbuilder.';
     $('pname').oninput = () => store.set('alt-bi-name', $('pname').value);
     $('pdeck').onchange = () => store.set('alt-bi-lastdeck', $('pdeck').value);
     $('bHost').onclick = startHost; $('bJoin').onclick = () => startJoin($('jcode').value.trim());
