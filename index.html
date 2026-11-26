@@ -37,7 +37,7 @@ input,select,textarea{background:var(--panel);border:1px solid var(--line);borde
 .art{width:100%;height:auto;aspect-ratio:360/502;border-radius:8px;display:block;background:var(--soft);cursor:zoom-in}
 .txt summary{font-size:12px;color:var(--mute);cursor:pointer}
 .txt[open]{display:flex;flex-direction:column;gap:6px}
-#zoom{padding:0;border:0;background:transparent;max-width:min(520px,94vw)}#zoom img{width:100%;height:auto;border-radius:14px;display:block}
+#zoom{padding:0;border:0;background:transparent;max-width:min(640px,94vw)}#zoom img{width:100%;height:auto;border-radius:14px;display:block}
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
 .card{background:var(--panel);border:1px solid var(--line);border-top:5px solid var(--fc);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
 .card.off{opacity:.45}
@@ -291,7 +291,7 @@ async function flush(){if(!db){$('saveNote').textContent='Enregistré dans ce na
  try{for(const id of [...dirty]){dirty.delete(id);if(decks[id])await db.collection('decks').doc(id).set(decks[id]);else await db.collection('decks').doc(id).delete()}$('saveNote').textContent='Enregistré et partagé.'}
  catch(e){$('saveNote').textContent=e&&e.code==='invalid_argument'?'Lecture seule : tu n\'as pas le droit de modifier ces decks.':'Échec de l\'enregistrement, nouvel essai à la prochaine modification.'}saving=false}
 
-document.addEventListener('click',e=>{const im=e.target.closest('img.art');if(im){$('zoomImg').src=im.src;$('zoomImg').alt=im.alt;$('zoom').showModal();return}if(e.target.closest('#zoom')){$('zoom').close();return}const pv=e.target.closest('[data-pv]');if(pv&&!e.target.closest('button')){$('zoomImg').removeAttribute('src');imgFor(pv.dataset.pv).then(u=>{if(u)$('zoomImg').src=u});$('zoomImg').alt='';$('zoom').showModal();return}const b=e.target.closest('button');if(!b)return;const d=D();
+document.addEventListener('click',e=>{const im=e.target.closest('img.art');if(im){$('zoomImg').src=im.dataset.r?'img/'+LANG+'-hd/'+encodeURIComponent(im.dataset.r)+'.webp':im.src;$('zoomImg').alt=im.alt;$('zoom').showModal();return}if(e.target.closest('#zoom')){$('zoom').close();return}const pv=e.target.closest('[data-pv]');if(pv&&!e.target.closest('button')){$('zoomImg').removeAttribute('src');$('zoomImg').src='img/'+LANG+'-hd/'+encodeURIComponent(pv.dataset.pv)+'.webp';$('zoomImg').alt='';$('zoom').showModal();return}const b=e.target.closest('button');if(!b)return;const d=D();
  if(b.dataset.add){const c=BY[b.dataset.add];d.cards[c.r]=(d.cards[c.r]||0)+1;touch();renderDeck();renderGrid()}
  else if(b.dataset.rm){const r=b.dataset.rm;if(d.cards[r]){d.cards[r]--;if(!d.cards[r])delete d.cards[r]}touch();renderDeck();renderGrid()}
  else if(b.dataset.hero){d.hero=b.dataset.hero;const P=BY[d.hero].f;if(d.sec&&(d.sec===P||!neighbours(P).includes(d.sec)))d.sec='';touch();renderDeck();renderGrid()}

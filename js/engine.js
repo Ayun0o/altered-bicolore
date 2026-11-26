@@ -27,7 +27,7 @@
     tum.forEach((p, i) => { adv.push({ terr: [p[0]], up: false, kind: 'T', card: i }); adv.push({ terr: [p[1]], up: false, kind: 'T', card: i }); });
     adv.push({ terr: TERR.slice(), up: true, kind: 'C' });
     const s = { v: 1, day: 1, phase: 'SETUP', step: 'SETUP_MANA', first: rnd() < 0.5 ? 0 : 1, turn: null, passed: [false, false],
-      ready: [false, false], adv, cards: {}, nid: 1, players: [], log: [], winner: null, tie: false, pending: null };
+      ready: [false, false], adv, cards: {}, nid: 1, players: [], log: [], winner: null, tie: false, pending: null, choices: [], noonDay: 0 };
     s.turn = s.first;
     return s;
   }
@@ -108,10 +108,146 @@
     return false;
   }
 
+
+  // ---------- Effets automatiques ----------
+  // Découpe le texte anglais en clauses ; chaque clause a ses déclencheurs ({J} joué, {H} depuis la main, {R} depuis la réserve).
+  function clauses(card) {
+    const t = ((card && card.xe) || '').replace(/ /g, ' ').replace(/#/g, '').replace(/\([^)]*\)/g, '');
+    return t.split(/\s{2,}/).map(x => x.trim()).filter(Boolean);
+  }
+  const NUMW = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4 };
+  // Traduit une phrase d'effet en action. Renvoie null si on ne sait pas l'automatiser.
+  function parseAction(b) {
+    b = b.toLowerCase().replace(/\[\]/g, '').replace(/\s+/g, ' ').trim().replace(/\.$/, '');
+    let m;
+    if (/^\[resupply\]$/.test(b)) return { k: 'resupply' };
+    if (/^\[exhausted resupply\]$/.test(b)) return { k: 'resupply', ex: true };
+    if ((m = b.match(/^i gain \[\[?(anchored|asleep|fleeting)\]?\]$/))) return { k: 'selfFlag', f: m[1], v: true };
+    if ((m = b.match(/^i lose \[\[?(anchored|asleep|fleeting)\]?\]$/))) return { k: 'selfFlag', f: m[1], v: false };
+    if ((m = b.match(/^i gain (\d+) boosts?$/))) return { k: 'selfBoost', n: +m[1] };
+    if ((m = b.match(/^draw (a|an|one|two|three|four|\d+) cards?$/))) return { k: 'draw', n: NUMW[m[1]] || +m[1] };
+    if (/^\[sabotage\]$/.test(b)) return { k: 'choose', kind: 'reserve', opt: true, act: { k: 'discard' }, label: 'Sabotage : choisis une carte dans une réserve à défausser' };
+    if ((m = b.match(/^target character (?:with hand cost \{(\d+)\} or less )?gains (\d+) boosts?$/))) return { k: 'choose', kind: 'char', max: m[1] ? +m[1] : null, act: { k: 'boost', n: +m[2] }, label: 'Choisis un personnage qui gagne ' + m[2] + ' boost(s)' + (m[1] ? ' (coût de main ' + m[1] + ' ou moins)' : '') };
+    if ((m = b.match(/^target character (?:with hand cost \{(\d+)\} or less )?gains \[\[?(anchored|asleep|fleeting)\]?\]$/))) return { k: 'choose', kind: 'char', max: m[1] ? +m[1] : null, act: { k: 'flag', f: m[2] }, label: 'Choisis un personnage qui devient ' + ({ anchored: 'ancré', asleep: 'endormi', fleeting: 'fugace' })[m[2]] + (m[1] ? ' (coût de main ' + m[1] + ' ou moins)' : '') };
+    if ((m = b.match(/^pay \{(\d+)\} less for the next character you play this turn, down to a minimum of \{(\d+)\}$/))) return { k: 'disc', t: 'character', n: +m[1], min: +m[2] };
+    if (/^exhaust target card in reserve$/.test(b)) return { k: 'choose', kind: 'reserve', act: { k: 'flag', f: 'ex' }, label: 'Choisis une carte en réserve à épuiser' };
+    if (/^send target character to reserve$/.test(b)) return { k: 'choose', kind: 'char', act: { k: 'toReserve' }, label: 'Choisis un personnage à renvoyer en réserve' };
+    if ((m = b.match(/^create (?:a|an) \[(.+?) (\d+)\/(\d+)\/(\d+)\] (.+?) token in (target expedition|my expedition|each of your expeditions)$/))) {
+      const tok = { n: m[1].replace(/\b\w/g, c => c.toUpperCase()), p: [+m[2], +m[3], +m[4]] };
+      if (m[6] === 'target expedition') return { k: 'choose', kind: 'exp', act: { k: 'token', tok }, label: 'Dans quelle expédition créer le jeton ' + tok.n + ' ?' };
+      return { k: 'token', tok, where: m[6] === 'my expedition' ? 'mine' : 'both' };
+    }
+    if ((m = b.match(/^(you may )?send (?:to reserve )?target character (?:with hand cost \{(\d+)\} or less )?(?:to reserve)?$/))) return { k: 'choose', kind: 'char', opt: !!m[1], max: m[2] ? +m[2] : null, act: { k: 'toReserve' }, label: 'Choisis un personnage à renvoyer en réserve' + (m[2] ? ' (coût de main ' + m[2] + ' ou moins)' : '') };
+    if (/^each player draws a card$/.test(b)) return { k: 'drawAll', n: 1 };
+    if (/^target opponent draws a card$/.test(b)) return { k: 'drawOpp', n: 1 };
+    if (/^put a card from your hand in reserve$/.test(b)) return { k: 'choose', kind: 'hand', act: { k: 'toReserve' }, label: 'Mets une carte de ta main en réserve' };
+    if (/^draw a card, then discard a card from your hand$/.test(b)) return { k: 'seq', list: [{ k: 'draw', n: 1 }, { k: 'choose', kind: 'hand', act: { k: 'discard' }, label: 'Défausse une carte de ta main' }] };
+    if (/^target opponent discards a card from their hand$/.test(b)) return { k: 'chooseOpp', kind: 'hand', act: { k: 'discard' }, label: 'Défausse une carte de ta main (effet adverse)' };
+    if (/^send me to reserve$/.test(b)) return { k: 'selfReserve' };
+    if ((m = b.match(/^target character in my expedition gains (\d+) boosts?$/))) return { k: 'choose', kind: 'char', act: { k: 'boost', n: +m[1] }, label: 'Choisis un personnage de cette expédition qui gagne ' + m[1] + ' boost(s)' };
+    if ((m = b.match(/^you may have me gain \[\[?(asleep|fleeting|anchored)\]?\]$/))) return { k: 'choose', kind: 'yesno', act: { k: 'selfFlag', f: m[1], v: true }, label: 'Veux-tu que cette carte devienne ' + ({ anchored: 'ancrée', asleep: 'endormie', fleeting: 'fugace' })[m[1]] + ' ?' };
+    if (/^each player puts the top card of their deck in their mana zone$/.test(b)) return { k: 'manaAll' };
+    if (/^put the top card of your deck in your mana zone$/.test(b)) return { k: 'manaTop' };
+    if ((m = b.match(/^the next (card|character|spell|permanent) you play this (?:turn|afternoon) costs \{(\d+)\} less$/))) return { k: 'disc', t: m[1], n: +m[2] };
+    if ((m = b.match(/^the next (card|character|spell|permanent) you play this (?:turn|afternoon) gains (\d+) boosts?$/))) return { k: 'nextBoost', t: m[1], n: +m[2] };
+    if (/^you may put a card from your hand in reserve$/.test(b)) return { k: 'choose', kind: 'hand', opt: true, act: { k: 'toReserve' }, label: 'Tu peux mettre une carte de ta main en réserve' };
+    if (/^you may put a card from your hand in reserve to draw a card$/.test(b)) return { k: 'choose', kind: 'hand', opt: true, act: { k: 'toReserve', then: { k: 'draw', n: 1 } }, label: 'Tu peux mettre une carte de ta main en réserve pour piocher une carte' };
+    return null;
+  }
+  function parseBody(body) {
+    const parts = body.split(/\.\s+/).map(x => x.trim()).filter(Boolean);
+    const acts = parts.map(parseAction);
+    return acts.every(Boolean) ? acts : null;
+  }
+  function expOf(s, id) { const w = where(s, id); return w && w.z === 'exp' ? w.e : null; }
+  function doAction(s, p, self, a, db) {
+    const P = s.players[p], c = s.cards[self];
+    const nm = () => c ? cname(s, self, db) : '';
+    switch (a.k) {
+      case 'resupply': { if (!P.deck.length && P.discard.length) { P.deck = P.discard.splice(0); shuffle(P.deck, Math.random); } const id = P.deck.shift(); if (id) { P.reserve.push(id); if (a.ex) s.cards[id].ex = true; log(s, '→ ' + P.name + ' se ravitaille' + (a.ex ? ' (carte épuisée)' : '') + ' : ' + cname(s, id, db) + '.'); } break; }
+      case 'selfFlag': if (c && expOf(s, self)) { c[a.f] = a.v; log(s, '→ ' + nm() + (a.v ? ' devient ' : ' perd ') + ({ anchored: 'ancré', asleep: 'endormi', fleeting: 'fugace' })[a.f] + '.'); } break;
+      case 'selfBoost': if (c && expOf(s, self)) { c.boost += a.n; log(s, '→ ' + nm() + ' gagne ' + a.n + ' boost(s).'); } break;
+      case 'draw': for (let i = 0; i < a.n; i++) draw(s, p); log(s, '→ ' + P.name + ' pioche ' + a.n + ' carte(s).'); break;
+      case 'token': {
+        const es = a.where === 'both' ? ['H', 'C'] : [a.e || expOf(s, self) || 'H'];
+        for (const e of es) { const id = 't' + (s.nid++); s.cards[id] = { id, ref: '__token', owner: p, boost: 0, ex: false, fleeting: false, anchored: false, asleep: false, tok: { n: a.tok.n, p: a.tok.p.slice() } }; P.exp[e].push(id); }
+        log(s, '→ ' + P.name + ' crée ' + (es.length > 1 ? 'des jetons ' : 'un jeton ') + a.tok.n + ' ' + a.tok.p.join('/') + '.'); break;
+      }
+      case 'choose': { const ch = { p, kind: a.kind, opt: !!a.opt || a.kind === 'yesno', max: a.max ?? null, act: a.act, label: a.label, src: self }; if (hasTargets(s, ch, db)) s.choices.push(ch); else log(s, '→ aucune cible possible, effet ignoré.'); break; }
+      case 'chooseOpp': if (s.players[1 - p].hand.length) s.choices.push({ p: 1 - p, kind: a.kind, opt: false, act: a.act, label: a.label, src: self }); break;
+      case 'seq': a.list.forEach(x => doAction(s, p, self, x, db)); break;
+      case 'drawAll': for (let q = 0; q < 2; q++) draw(s, q); log(s, '→ chaque joueur pioche une carte.'); break;
+      case 'drawOpp': draw(s, 1 - p); log(s, '→ ' + s.players[1 - p].name + ' pioche une carte.'); break;
+      case 'selfReserve': if (c && where(s, self)) { moveTo(s, self, 'reserve'); log(s, '→ ' + nm() + ' va en réserve.'); } break;
+      case 'manaTop': { const id = P.deck.shift(); if (id) { P.mana.push({ id, ex: false }); log(s, '→ ' + P.name + ' met la carte du dessus de son deck en mana.'); } break; }
+      case 'manaAll': for (const X of s.players) { const id = X.deck.shift(); if (id) X.mana.push({ id, ex: false }); } log(s, '→ chaque joueur met la carte du dessus de son deck en mana.'); break;
+      case 'disc': (P.disc = P.disc || []).push({ t: a.t, n: a.n, min: a.min || 0 }); log(s, '→ la prochaine carte (' + ({ card: 'toute', character: 'personnage', spell: 'sort', permanent: 'permanent' })[a.t] + ') de ' + P.name + ' coûtera ' + a.n + ' de moins.'); break;
+      case 'nextBoost': (P.nb = P.nb || []).push({ t: a.t, n: a.n }); log(s, '→ le prochain personnage de ' + P.name + ' gagnera ' + a.n + ' boost(s).'); break;
+    }
+  }
+  function hasTargets(s, ch, db) {
+    if (ch.kind === 'exp' || ch.kind === 'yesno') return true;
+    if (ch.kind === 'hand') return s.players[ch.p].hand.length > 0;
+    if (ch.kind === 'reserve') return s.players.some(X => X.reserve.length);
+    if (ch.kind === 'char') return s.players.some(X => ['H', 'C'].some(e => X.exp[e].some(id => { const c = s.cards[id]; return c.tok || ((db[c.ref] || {}).t === 'CHARACTER' && (ch.max == null || num(db[c.ref].c) <= ch.max)); })));
+    return true;
+  }
+  function applyChoice(s, ch, target, db) {
+    const P = s.players[ch.p], a = ch.act;
+    if ((target === null || target === undefined) && ch.kind !== 'yesno') { log(s, '→ ' + P.name + ' ne choisit rien.'); return null; }
+    if (ch.kind === 'yesno') { if (target === 'yes') doAction(s, ch.p, ch.src, a, db); else log(s, '→ ' + P.name + ' refuse.'); return null; }
+    if (ch.kind === 'exp') { if (target !== 'H' && target !== 'C') return 'Choisis une expédition.'; doAction(s, ch.p, ch.src, Object.assign({}, a, { e: target, where: 'one' }), db); return null; }
+    const c = s.cards[target]; const w = c && where(s, target); if (!w) return 'Cible invalide';
+    if (ch.kind === 'reserve' && w.z !== 'reserve') return 'Choisis une carte dans une réserve.';
+    if (ch.kind === 'char' && !(w.z === 'exp' && (c.tok || (db[c.ref] || {}).t === 'CHARACTER'))) return 'Choisis un personnage en expédition.';
+    if (ch.kind === 'hand' && !(w.z === 'hand' && w.p === ch.p)) return 'Choisis une carte de ta main.';
+    if (ch.max !== null && ch.max !== undefined && !c.tok && num((db[c.ref] || {}).c) > ch.max) return 'Coût de main trop élevé (max ' + ch.max + ').';
+    const nm = cname(s, target, db);
+    if (a.k === 'discard') { moveTo(s, target, 'discard'); log(s, '→ ' + (ch.kind === 'hand' ? 'une carte de la main de ' + s.players[w.p].name : nm) + ' est défaussée.'); }
+    else if (a.k === 'boost') { c.boost += a.n; log(s, '→ ' + nm + ' gagne ' + a.n + ' boost(s).'); }
+    else if (a.k === 'flag') { c[a.f] = true; log(s, '→ ' + nm + ' devient ' + ({ anchored: 'ancré', asleep: 'endormi', fleeting: 'fugace', ex: 'épuisée' })[a.f] + '.'); }
+    else if (a.k === 'toReserve') { if (c.tok) { moveTo(s, target, 'reserve'); log(s, '→ le jeton ' + nm + ' quitte le jeu.'); } else { moveTo(s, target, 'reserve'); log(s, '→ ' + (ch.kind === 'hand' ? 'une carte' : nm) + ' va en réserve.'); } if (a.then) doAction(s, ch.p, ch.src, a.then, db); }
+    return null;
+  }
+  function cname(s, id, db) { const c = s.cards[id]; return c ? (c.tok ? c.tok.n : ((db[c.ref] || {}).n || '?')) : '?'; }
+  // Effets à l'arrivée en jeu. Renvoie le nombre de clauses non automatisées.
+  function onPlay(s, p, id, fromRes, db) {
+    const c = s.cards[id], d = db[c.ref]; let manual = 0, auto = 0;
+    for (const cl of clauses(d)) {
+      const m = cl.match(/^((?:\{[jhr]\}\s*)+)(.*)$/i); if (!m) continue;
+      const tr = m[1].toLowerCase();
+      const ok = tr.includes('{j}') || (tr.includes('{h}') && !fromRes) || (tr.includes('{r}') && fromRes);
+      if (!ok) continue;
+      const acts = parseBody(m[2]);
+      if (!acts) { manual++; continue; }
+      acts.forEach(a => doAction(s, p, id, a, db)); auto++;
+    }
+    return { manual, auto };
+  }
+  // Effets « À Midi » simples des cartes en jeu. Renvoie true s'il reste des effets à faire à la main.
+  function noonAuto(s, db) {
+    let manual = false;
+    const order = [s.first, 1 - s.first];
+    for (const p of order) {
+      const P = s.players[p];
+      for (const id of [P.hero, ...P.lm, ...P.exp.H, ...P.exp.C]) {
+        const c = id && s.cards[id]; if (!c || c.tok) continue;
+        for (const cl of clauses(db[c.ref])) {
+          const m = cl.match(/^at noon\s*[—-]\s*(.*)$/i); if (!m) continue;
+          const acts = parseBody(m[1]);
+          if (!acts) { manual = true; continue; }
+          log(s, 'Midi : effet de ' + cname(s, id, db) + '.'); acts.forEach(a => doAction(s, p, id, a, db));
+        }
+      }
+    }
+    return manual;
+  }
+
   // Fait avancer la partie jusqu'à la prochaine décision des joueurs
   function advance(s, db) {
     for (let guard = 0; guard < 40; guard++) {
       if (s.winner !== null) return;
+      if (s.choices && s.choices.length) return;
       if (s.players.length < 2 || !s.players[0] || !s.players[1]) return;
       switch (s.step) {
         case 'SETUP_MANA': if (s.ready[0] && s.ready[1]) { s.ready = [false, false]; s.phase = 'NOON'; s.step = 'NOON'; log(s, 'Jour 1 — la première matinée est sautée.'); continue; } return;
@@ -125,7 +261,8 @@
         case 'EXPAND': if (s.ready[0] && s.ready[1]) { s.ready = [false, false]; s.phase = 'NOON'; s.step = 'NOON'; continue; } return;
         case 'NOON':
           s.phase = 'NOON';
-          if (triggerPresent(s, db, 'noon') && !(s.ready[0] && s.ready[1])) { if (!s.pending) { s.pending = 'noon'; log(s, 'Midi : appliquez les effets « À Midi », puis validez.'); } return; }
+          if (s.noonDay !== s.day) { s.noonDay = s.day; s.noonManual = noonAuto(s, db); if (s.choices.length) return; }
+          if (s.noonManual && !(s.ready[0] && s.ready[1])) { if (!s.pending) { s.pending = 'noon'; log(s, 'Midi : appliquez les effets « À Midi », puis validez.'); } return; }
           s.pending = null; s.ready = [false, false]; s.phase = 'AFTERNOON'; s.step = 'AFTERNOON'; s.turn = s.first; s.passed = [false, false];
           log(s, 'Après-midi : ' + s.players[s.first].name + ' commence.'); continue;
         case 'AFTERNOON':
@@ -135,6 +272,7 @@
         case 'DUSK':
           if (triggerPresent(s, db, 'dusk') && !(s.ready[0] && s.ready[1])) { if (s.pending !== 'dusk') { s.pending = 'dusk'; log(s, 'Crépuscule : appliquez les effets « Au Crépuscule », puis validez.'); } return; }
           s.pending = null; s.ready = [false, false];
+          for (const X of s.players) { X.disc = []; X.nb = []; }
           progress(s, db); s.phase = 'NIGHT'; s.step = 'NIGHT'; continue;
         case 'NIGHT':
           if (triggerPresent(s, db, 'night') && !(s.ready[0] && s.ready[1]) && s.pending !== 'night-done') { if (s.pending !== 'night') { s.pending = 'night'; log(s, 'Nuit : appliquez les effets « À la Nuit », puis validez.'); } return; }
@@ -211,6 +349,8 @@
   function act(s, p, a, db) {
     const P = s.players[p]; if (!P) return 'Joueur inconnu';
     const c = a.id ? s.cards[a.id] : null;
+    if (!s.choices) s.choices = [];
+    if (s.choices.length && ['play', 'pass', 'ready', 'toManaMany', 'toMana', 'cleanup'].includes(a.type)) return 'Termine d’abord le choix en cours (' + s.choices[0].label + ').';
     const name = id => { const c = s.cards[id]; return c && c.tok ? c.tok.n : ((db[c && c.ref] || {}).n || '?'); };
     switch (a.type) {
       case 'ready': {
@@ -224,6 +364,21 @@
         else if (s.step === 'EXPAND') { if (s.ready[p]) return 'Tu as déjà fait ton choix ce matin.'; s.ready[p] = true; }
         else if (!a.free) return 'Pas maintenant (seulement au matin).';
         moveTo(s, a.id, 'mana'); log(s, P.name + ' met une carte en mana.'); break;
+      }
+      case 'choose': {
+        const ch = s.choices[0]; if (!ch) return 'Aucun choix en cours.';
+        if (ch.p !== p) return 'C’est à l’adversaire de choisir.';
+        if ((a.target === null || a.target === undefined) && !ch.opt && ch.kind !== 'exp' && hasTargets(s, ch, db)) return 'Ce choix est obligatoire.';
+        const err = applyChoice(s, ch, a.target, db); if (err) return err;
+        s.choices.shift(); break;
+      }
+      case 'support': {
+        if (!c || c.owner !== p || !P.reserve.includes(a.id)) return 'La carte doit être dans ta réserve.';
+        const sd = db[c.ref] || {}; const cl = clauses({ xe: (sd.ee || '') + '  ' + (sd.xe || '') }).find(x => /^\{d\}\s*:/i.test(x)); if (!cl) return 'Pas de capacité « défaussez-moi » sur cette carte.';
+        const acts = parseBody(cl.replace(/^\{d\}\s*:\s*/i, ''));
+        moveTo(s, a.id, 'discard'); log(s, P.name + ' défausse ' + name(a.id) + ' de sa réserve pour utiliser sa capacité.');
+        if (acts) acts.forEach(x => doAction(s, p, a.id, x, db)); else log(s, '⚠ Effet à appliquer à la main.');
+        break;
       }
       case 'toManaMany': {
         const ids = Array.isArray(a.ids) ? a.ids.filter((id, i, arr) => arr.indexOf(id) === i) : [];
@@ -243,14 +398,22 @@
         const d = db[c.ref]; if (!d) return 'Carte inconnue';
         const fromRes = w.z === 'reserve';
         if (fromRes && c.ex) return 'Cette carte est épuisée en réserve.';
-        const cost = Number.isFinite(a.cost) ? Math.max(0, a.cost) : num(fromRes ? d.rc : d.c);
+        const tmatch = t => t === 'card' || (t === 'character' && d.t === 'CHARACTER') || (t === 'spell' && d.t === 'SPELL') || (t === 'permanent' && /PERMANENT/.test(d.t));
+        const di = (P.disc || []).findIndex(x => tmatch(x.t));
+        const base = num(fromRes ? d.rc : d.c);
+        const cost = Number.isFinite(a.cost) ? Math.max(0, a.cost) : (di >= 0 ? Math.max(Math.min(base, P.disc[di].min || 0), base - P.disc[di].n) : base);
+        const usedDisc = !Number.isFinite(a.cost) && di >= 0;
         if (readyMana(P) < cost) return 'Pas assez de mana (' + readyMana(P) + ' / ' + cost + ').';
         payMana(P, cost);
+        if (usedDisc) P.disc.splice(di, 1);
         const k = kw(d);
         if (d.t === 'CHARACTER' || d.t === 'EXPEDITION_PERMANENT') { moveTo(s, a.id, 'exp', a.e); c.fleeting = fromRes || k.fleeting; }
         else if (d.t === 'LANDMARK_PERMANENT' || d.t === 'PERMANENT') moveTo(s, a.id, 'lm');
         else if (d.t === 'SPELL') { if (fromRes || k.fleeting) moveTo(s, a.id, 'discard'); else { moveTo(s, a.id, 'reserve'); if (k.cooldown) c.ex = true; } }
-        log(s, P.name + ' joue ' + name(a.id) + (fromRes ? ' depuis la réserve' : '') + ' (' + cost + ' mana)' + (d.t === 'CHARACTER' || d.t === 'EXPEDITION_PERMANENT' ? ' dans l’expédition ' + (a.e === 'C' ? 'Compagnon' : 'Héros') : '') + '. Appliquez son effet.');
+        log(s, P.name + ' joue ' + name(a.id) + (fromRes ? ' depuis la réserve' : '') + ' (' + cost + ' mana)' + (d.t === 'CHARACTER' || d.t === 'EXPEDITION_PERMANENT' ? ' dans l’expédition ' + (a.e === 'C' ? 'Compagnon' : 'Héros') : '') + '.');
+        if (d.t === 'CHARACTER') { const bi = (P.nb || []).findIndex(x => x.t === 'character' || x.t === 'card'); if (bi >= 0) { c.boost += P.nb[bi].n; log(s, '→ ' + name(a.id) + ' gagne ' + P.nb[bi].n + ' boost(s).'); P.nb.splice(bi, 1); } }
+        const fx = onPlay(s, p, a.id, fromRes, db);
+        if (fx.manual) log(s, '⚠ ' + name(a.id) + ' : une partie de l’effet est à appliquer à la main.');
         s.lastPlayed = { id: a.id, by: p };
         if (!s.passed[1 - p]) s.turn = 1 - p;
         break;
@@ -314,5 +477,6 @@
     return v;
   }
 
-  root.AlteredEngine = { newGame, addPlayer, advance, act, view, totals, kw, num, distance, readyMana, LAST };
+  function supportBody(d) { const cl = clauses({ xe: ((d && d.ee) || '') + '  ' + ((d && d.xe) || '') }).find(x => /^\{d\}\s*:/i.test(x)); return cl ? { text: cl, auto: !!parseBody(cl.replace(/^\{d\}\s*:\s*/i, '')) } : null; }
+  root.AlteredEngine = { supportBody, parseBody, clauses, newGame, addPlayer, advance, act, view, totals, kw, num, distance, readyMana, LAST };
 })(typeof window !== 'undefined' ? window : globalThis);
