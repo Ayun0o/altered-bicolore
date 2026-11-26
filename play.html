@@ -6,9 +6,9 @@
 <title>Altered bicolore · Table</title>
 <link href="https://fonts.googleapis.com/css2?family=Spectral:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-:root{color-scheme:dark;--bg:#25272b;--panel:#2e3135;--soft:#3a3e44;--ink:#ece9e4;--mute:#a3a09a;--line:#454950;--ok:#7fcf8b;--bad:#ff8a80;--acc:#5b9ee8;--F:#4f8a1f;--M:#a0661c;--W:#2f74c0;--me:#2f74c0;--opp:#c83a35}
+:root{color-scheme:dark;--bg:#2b2e33;--panel:#33373d;--soft:#41464d;--ink:#ece9e4;--mute:#a3a09a;--line:#454950;--ok:#7fcf8b;--bad:#ff8a80;--acc:#5b9ee8;--F:#4f8a1f;--M:#a0661c;--W:#2f74c0;--me:#2f74c0;--opp:#c83a35}
 *{box-sizing:border-box;min-width:0}
-body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,system-ui,sans-serif}
+body{margin:0;background:var(--bg);min-height:100vh;color:var(--ink);font:14px/1.45 Inter,system-ui,sans-serif}
 h1,h2,h3{font-family:Spectral,Georgia,serif;margin:0;line-height:1.1}
 button,input,select{font:inherit;color:inherit}
 button{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 11px;min-height:34px;cursor:pointer}
@@ -62,6 +62,9 @@ button.mini{min-height:24px;padding:0 7px;font-size:11px}
 .c.sel{outline:3px solid var(--acc)}
 .c.tgt{outline:3px solid #f3c26b;box-shadow:0 0 12px #f3c26b99}
 .c[draggable]{cursor:grab}
+.c .tokst{position:absolute;right:2px;bottom:2px;font-size:10px;font-weight:700;color:#fff;background:#000c;border-radius:4px;padding:0 3px}
+.mk2{display:inline-flex;align-items:center;gap:2px;filter:drop-shadow(0 1px 2px #000a)}.mk2 i{font-style:normal;font-size:9px;font-weight:700;color:var(--ink)}
+.discz{cursor:pointer}.undo{justify-content:flex-end}.undo button{min-height:26px;font-size:12px;padding:0 8px}
 .tok{width:100%;aspect-ratio:360/502;border-radius:6px;background:#4a4f57;display:flex;flex-direction:column;justify-content:center;align-items:center;font-size:10px;text-align:center;padding:3px;gap:2px}
 .manabox{display:flex;align-items:center;gap:6px}
 .manaico{width:46px;height:46px;border-radius:50%;background:radial-gradient(circle at 35% 30%,#7fb6f0,#2f74c0 60%,#1c4a80);border:2px solid #cfe3fb;display:flex;align-items:baseline;justify-content:center;padding-top:9px;color:#fff;box-shadow:0 2px 8px #0008}
@@ -129,8 +132,8 @@ button.mini{min-height:24px;padding:0 7px;font-size:11px}
 </section>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/engine.js?v=1795655373"></script>
-<script src="js/net.js?v=1795655373"></script>
-<script src="js/play.js?v=1795655373"></script>
+<script src="js/engine.js?v=1795656019"></script>
+<script src="js/net.js?v=1795656019"></script>
+<script src="js/play.js?v=1795656019"></script>
 </body>
 </html>

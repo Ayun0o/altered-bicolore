@@ -22,9 +22,9 @@
 
   function newGame(opts) {
     const rnd = opts.rnd || Math.random;
-    const tum = shuffle([['F', 'M'], ['M', 'W'], ['W', 'F']], rnd).map(p => rnd() < 0.5 ? p : p.slice().reverse());
+    const tum = shuffle([[['F'], ['M', 'W']], [['M'], ['F', 'W']], [['W'], ['F', 'M']]], rnd).map(p => rnd() < 0.5 ? p : p.slice().reverse());
     const adv = [{ terr: TERR.slice(), up: true, kind: 'H' }];
-    tum.forEach((p, i) => { adv.push({ terr: [p[0]], up: false, kind: 'T', card: i }); adv.push({ terr: [p[1]], up: false, kind: 'T', card: i }); });
+    tum.forEach((p, i) => { adv.push({ terr: p[0].slice(), up: false, kind: 'T', card: i }); adv.push({ terr: p[1].slice(), up: false, kind: 'T', card: i }); });
     adv.push({ terr: TERR.slice(), up: true, kind: 'C' });
     const s = { v: 1, day: 1, phase: 'SETUP', step: 'SETUP_MANA', first: rnd() < 0.5 ? 0 : 1, turn: null, passed: [false, false],
       ready: [false, false], adv, cards: {}, nid: 1, players: [], log: [], winner: null, tie: false, pending: null, choices: [], noonDay: 0 };

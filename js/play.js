@@ -86,7 +86,8 @@
       if (!S.players[1]) { const deck = sanitizeDeck(m.deck); if (!deck) { net.send({ type: 'err', m: 'Deck invalide.' }); return; } decksUsed[1] = deck; names[1] = String(m.name || 'Invité').slice(0, 24); E.addPlayer(S, 1, names[1], deck, DB); E.advance(S, DB); }
       push();
     } else if (m.type === 'act' && m.a && typeof m.a === 'object') {
-      const err = E.act(S, 1, m.a, DB); if (err) net.send({ type: 'err', m: err }); push();
+      const err = applyAct(1, m.a); if (err) net.send({ type: 'err', m: err }); push();
+    } else if (m.type === 'undo') { const err = undo(1); if (err) net.send({ type: 'err', m: err }); push();
     } else if (m.type === 'rematch') rematch();
   }
   function sanitizeDeck(d) { if (!d || !DB[d.hero]) return null; const c = {}; let n = 0; for (const [r, k] of Object.entries(d.cards || {})) if (DB[r] && DB[r].t !== 'HERO') { const v = Math.max(0, Math.min(9, k | 0)); if (v) { c[r] = v; n += v; } } return n && n <= 80 ? { hero: d.hero, cards: c } : null; }
@@ -118,12 +119,19 @@
   function rematch() {
     if (mode === 'guest') { net.send({ type: 'rematch' }); return; }
     if (!decksUsed[1]) return;
-    S = E.newGame({}); E.addPlayer(S, 0, names[0], decksUsed[0], DB); E.addPlayer(S, 1, names[1], decksUsed[1], DB); E.advance(S, DB); sel = null; push();
+    S = E.newGame({}); E.addPlayer(S, 0, names[0], decksUsed[0], DB); E.addPlayer(S, 1, names[1], decksUsed[1], DB); E.advance(S, DB); sel = null; hist = []; push();
   }
 
+  let hist = [];
+  function applyAct(p, a) { const snap = JSON.stringify(S); const err = E.act(S, p, a, DB); if (!err) { hist.push({ s: snap, by: p }); if (hist.length > 40) hist.shift(); } return err; }
+  function undo(p) {
+    const last = hist[hist.length - 1]; if (!last) return 'Rien à annuler.';
+    if (mode !== 'solo' && last.by !== p) return 'La dernière action est celle de l’adversaire : il doit l’annuler lui-même.';
+    hist.pop(); S = JSON.parse(last.s); S.log.push({ d: S.day, m: (S.players[p] ? S.players[p].name : '?') + ' annule sa dernière action.' }); return null;
+  }
   function dispatch(a) {
     if (mode === 'guest') { net.send({ type: 'act', a }); return; }
-    const err = E.act(S, me, a, DB); if (err) flash(err); push();
+    const err = applyAct(me, a); if (err) flash(err); push();
   }
   function push() {
     if (mode === 'host' && net && S.players[1]) net.send({ type: 'state', v: E.view(S, 1) });
@@ -139,7 +147,12 @@
   const tokName = n => { const t = TOKENS.find(x => x.en.toLowerCase() === String(n).toLowerCase()); return t ? (LANG === 'en' ? t.en : t.fr) : n; };
   const card = id => V.cards[id];
   const data = c => c && (c.tok ? null : DB[c.ref]);
-  function img(c) { return c.tok ? '<div class="tok"><b>' + esc(tokName(c.tok.n)) + '</b><span>' + c.tok.p.join(' / ') + '</span><span class="note">jeton</span></div>' : '<img loading="lazy" draggable="false" alt="' + esc(NM(DB[c.ref])) + '" src="img/' + LANG + '/' + encodeURIComponent(c.ref) + '.webp">'; }
+  const tokRef = n => { const t = TOKENS.find(x => x.en.toLowerCase() === String(n).toLowerCase()); return t && t.r; };
+  function img(c) {
+    if (c.tok) { const r = tokRef(c.tok.n); if (r) return '<img loading="lazy" draggable="false" alt="' + esc(tokName(c.tok.n)) + '" src="img/tok/' + r + '_' + LANG + '.webp"><span class="tokst">' + c.tok.p.join('/') + '</span>'; }
+    return imgOld(c);
+  }
+  function imgOld(c) { return c.tok ? '<div class="tok"><b>' + esc(tokName(c.tok.n)) + '</b><span>' + c.tok.p.join(' / ') + '</span><span class="note">jeton</span></div>' : '<img loading="lazy" draggable="false" alt="' + esc(NM(DB[c.ref])) + '" src="img/' + LANG + '/' + encodeURIComponent(c.ref) + '.webp">'; }
   const CH = () => V && V.choices && V.choices[0];
   function isTarget(id) {
     const ch = CH(); if (!ch || ch.p !== me) return false;
@@ -174,12 +187,16 @@
     return zone('H') + '<div class="herocol">' + (X.hero ? cardEl(X.hero) : '') + '<span class="hname" style="color:' + (FC[(DB[(card(X.hero) || {}).ref] || {}).f] || 'inherit') + '">' + esc(X.name) + '</span></div>' + zone('C');
   }
   function strip(X, p) {
-    return '<div class="strip"><div><span class="lbl">Réserve (max ' + X.rl + ')</span><div class="cards sm">' + cardsEl(X.reserve) + '</div></div><div><span class="lbl">Repères (max ' + X.ll + ')</span><div class="cards sm">' + cardsEl(X.lm) + '</div></div></div>';
+    const top = X.discard[X.discard.length - 1];
+    return '<div class="strip"><div><span class="lbl">Réserve (max ' + X.rl + ')</span><div class="cards sm">' + cardsEl(X.reserve) + '</div></div><div><span class="lbl">Repères (max ' + X.ll + ')</span><div class="cards sm">' + cardsEl(X.lm) + '</div></div><span class="sp"></span><div class="discz" data-disc="' + p + '" title="Voir la défausse"><span class="lbl">Défausse (' + X.discard.length + ')</span><div class="cards sm">' + (top ? cardEl(top) : '<span class="note empty">vide</span>') + '</div></div></div>';
   }
+  const SH = '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2 20 5v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z" fill="currentColor"/><path d="M12 6l1.6 3.3 3.6.5-2.6 2.5.6 3.6L12 14.2 8.8 15.9l.6-3.6-2.6-2.5 3.6-.5z" fill="#fff"/></svg>';
+  const PAW = '<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="11" fill="currentColor"/><g fill="#fff"><ellipse cx="12" cy="15.5" rx="4" ry="3.2"/><circle cx="7" cy="10.5" r="1.8"/><circle cx="10.2" cy="7.5" r="1.8"/><circle cx="13.8" cy="7.5" r="1.8"/><circle cx="17" cy="10.5" r="1.8"/></g></svg>';
+  function marker(p, e) { const X = V.players[p]; const f = (DB[(card(X.hero) || {}).ref] || {}).f; return '<span class="mk2" style="color:' + (FC[f] || '#888') + '" title="' + esc(X.name) + ' — expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + '">' + (e === 'H' ? SH : PAW) + '<i>' + (p === me ? 'moi' : 'adv') + '</i></span>'; }
   function track() {
     const cell = (i) => {
       const r = V.adv[i]; const mk = [];
-      V.players.forEach((X, p) => { if (!X) return; ['H', 'C'].forEach(e => { if (X.pos[e] === i) mk.push('<span class="mk ' + (p === me ? 'me' : 'opp') + '">' + (p === me ? 'Moi' : 'Adv') + ' · ' + (e === 'H' ? 'Héros' : 'Comp.') + '</span>'); }); });
+      V.players.forEach((X, p) => { if (!X) return; ['H', 'C'].forEach(e => { if (X.pos[e] === i) mk.push(marker(p, e)); }); });
       return '<div class="half' + (r.up ? '' : ' down') + '"><div class="t">' + (r.up ? r.terr.map(t => '<span class="ter ' + t + '" title="' + TL[t] + '">' + TL[t][0] + '</span>').join('') : '<span class="note">?</span>') + '</div>' + mk.join('') + '</div>';
     };
     return '<div class="advcard end"><span class="note">Départ Héros</span>' + cell(0) + '</div>' +
@@ -203,6 +220,8 @@
     $('myMana').innerHTML = P ? manaIcon(P, true) : '';
     $('hand').innerHTML = P ? cardsEl(P.hand) : '';
     $('log').innerHTML = V.log.slice().reverse().slice(0, 80).map(l => '<div>' + esc(l.m) + '</div>').join('');
+    const fm = P && (DB[(card(P.hero) || {}).ref] || {}).f, fo = O && (DB[(card(O.hero) || {}).ref] || {}).f;
+    document.body.style.background = 'linear-gradient(to bottom,' + (fo ? FC[fo] + '38' : 'transparent') + ',transparent 38%,transparent 62%,' + (fm ? FC[fm] + '38' : 'transparent') + '),var(--bg)';
     renderPrompt(P, O); renderSide();
   }
   function renderPrompt(P, O) {
@@ -228,7 +247,7 @@
       h = r || !over ? 'En attente de l’adversaire…' : 'Nuit : <b>clique les cartes à garder</b> (' + keep.R.size + '/' + Math.min(P.rl, P.reserve.length) + ' en réserve, ' + keep.L.size + '/' + Math.min(P.ll, P.lm.length) + ' repères). Le reste est défaussé.<div class="row"><button class="pri" data-do="cleanup">Valider</button></div>';
     }
     else h = '…';
-    pr.innerHTML = h;
+    pr.innerHTML = h + (mode !== 'guest' ? '' : '') + '<div class="row undo"><button data-do="undo" title="Annuler ta dernière action">↶ Annuler</button></div>';
   }
   function locate(id) {
     for (let p = 0; p < V.players.length; p++) {
@@ -304,6 +323,8 @@
       const t = e.target;
       const actB = t.closest('[data-act]');
       if (actB) { let a; try { a = JSON.parse(actB.dataset.act); } catch (x) { return; } if (a.type === 'play') { const v = parseInt(($('costIn') || {}).value, 10); if (Number.isFinite(v)) a.cost = v; } dispatch(a); if (a.type === 'play' || a.type === 'toMana' || (a.type === 'move')) sel = null; return; }
+      const dsc = t.closest('[data-disc]');
+      if (dsc && !t.closest('.c[data-id]')) { sideView = 'discard'; renderSide(); return; }
       const chB = t.closest('[data-choose]');
       if (chB) { const v = chB.dataset.choose; dispatch({ type: 'choose', target: v === 'none' ? null : v }); return; }
       const doB = t.closest('[data-do]');
@@ -311,6 +332,7 @@
         const k = doB.dataset.do;
         if (k === 'ready') dispatch({ type: 'ready' });
         else if (k === 'pass') dispatch({ type: 'pass' });
+        else if (k === 'undo') { if (mode === 'guest') net.send({ type: 'undo' }); else { const e = undo(me); if (e) flash(e); push(); } }
         else if (k === 'mana') { const ids = [...pick]; pick = new Set(); dispatch({ type: 'toManaMany', ids }); }
         else if (k === 'rematch') rematch();
         else if (k === 'cleanup') { dispatch({ type: 'cleanup', keepR: [...keep.R], keepL: [...keep.L] }); keep = { R: new Set(), L: new Set() }; }
