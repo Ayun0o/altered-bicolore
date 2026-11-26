@@ -30,6 +30,15 @@
     const { error } = await c.auth.verifyOtp({ email, token: String(token).replace(/\s/g, ''), type: 'email' });
     if (error) throw error;
   }
+  async function signInPwd(email, password) {
+    const c = client(); if (!c) throw new Error('Module de connexion indisponible.');
+    const r = await c.auth.signInWithPassword({ email, password }); if (r.error) throw r.error;
+  }
+  async function signUpPwd(email, password) {
+    const c = client(); if (!c) throw new Error('Module de connexion indisponible.');
+    const r = await c.auth.signUp({ email, password }); if (r.error) throw r.error;
+    if (!r.data.session) { const s = await c.auth.signInWithPassword({ email, password }); if (s.error) throw new Error('Compte créé, mais la confirmation par e-mail est activée dans Supabase : désactive « Confirm email ».'); }
+  }
   async function signOut() { const c = client(); if (c) await c.auth.signOut(); user = null; subs.forEach(f => f(null)); }
 
   // Adaptateur au format « collection / doc / onSnapshot » déjà utilisé par le deckbuilder
@@ -65,5 +74,5 @@
   async function addGame(g) { const c = client(); if (!c || !user) return false; const { error } = await c.from('games').insert({ user_id: user.id, data: g }); return !error; }
   async function games() { const c = client(); if (!c || !user) return null; const { data, error } = await c.from('games').select('data,created_at').eq('user_id', user.id).order('created_at', { ascending: true }).limit(1000); if (error) return null; return (data || []).map(r => r.data); }
 
-  root.AltCloud = { init, signIn, verify, signOut, db, addGame, games, user: () => user, onChange: f => subs.push(f), ready: () => !!client() };
+  root.AltCloud = { init, signIn, verify, signInPwd, signUpPwd, signOut, db, addGame, games, user: () => user, onChange: f => subs.push(f), ready: () => !!client() };
 })(window);
