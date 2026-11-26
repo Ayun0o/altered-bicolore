@@ -126,6 +126,7 @@
       if (n === 'character') return /CHARACTER/.test(typeOf(s, id, db));
       if (n === 'permanent') return /PERMANENT/.test(typeOf(s, id, db));
       if (n === 'token') return !!s.cards[id].tok;
+      if (n === 'completed feat' || n === '[[completed]] feat') return subtypesOf(s, id, db).includes('feat') && !!s.cards[id].completed;
       if (n === 'boosted character') return /CHARACTER/.test(typeOf(s, id, db)) && s.cards[id].boost > 0;
       if (n === 'fleeting character') return /CHARACTER/.test(typeOf(s, id, db)) && s.cards[id].fleeting;
       return subtypesOf(s, id, db).includes(n);
@@ -140,6 +141,11 @@
     if ((m = c.match(/^you control (a|an|one|two|three|four|five|\d+)(?: or more)? (another |other )?(.+)$/))) { const n = nw(m[1]); return controlled(s, p, (m[2] ? 'another ' : '') + m[3], db, self).filter(id => !m[2] || id !== self).length >= n; }
     if ((m = c.match(/^you don't control (?:a|an|any) (.+)$/))) return controlled(s, p, m[1], db, self).length === 0;
     if (/^your opponent is first player$/.test(c)) return s.first !== p;
+    if (/^it's \[\[completed\]\]$/.test(c)) return controlled(s, p, 'completed feat', db, self).length > 0;
+    if ((m = c.match(/^(\w+) cards or more are in your landmarks$/))) return P.lm.length >= nw(m[1]);
+    if ((m = c.match(/^there are (\w+) or more mana orbs in your mana zone$/))) return P.mana.length >= nw(m[1]);
+    if ((m = c.match(/^the total hand cost of cards in your landmarks is \{(\d+)\} or more$/))) return P.lm.reduce((a, id) => a + (s.cards[id].tok ? 0 : num((db[s.cards[id].ref] || {}).c)), 0) >= +m[1];
+    if ((m = c.match(/^you control (\w+) or more \[\[fleeting\]\] characters$/))) return controlled(s, p, 'fleeting character', db, self).length >= nw(m[1]);
     if ((m = c.match(/^i have less than (\w+) boosts?$/))) { const k = s.cards[self]; return !k || k.boost < nw(m[1]); }
     if ((m = c.match(/^neither of my expeditions is in (\{[vmo]\})$/))) return !['H', 'C'].some(x => { const r = regionOf(s, p, x); return r && r.terr.includes(TER[m[1]]); });
     if (/^there's another card in your landmarks$/.test(c)) return P.lm.filter(id => id !== self).length > 0;
@@ -230,6 +236,7 @@
     if ((m = b.match(/^it gains (\d+) boosts? and \[\[(fleeting|anchored|asleep)\]\]$/))) return { k: 'seq', list: [{ k: 'itBoost', n: +m[1] }, { k: 'itFlag', f: m[2] }] };
     if ((m = b.match(/^i gain (\d+) boosts? and \[\[(fleeting|anchored|asleep)\]\]$/))) return { k: 'seq', list: [{ k: 'selfBoostN', n: +m[1] }, { k: 'selfFlag', f: m[2], v: true }] };
     if (/^sacrifice it$/.test(b)) return { k: 'itDiscard' };
+    if (/^complete me$/.test(b)) return { k: 'complete' };
     if (/^you win the game$/.test(b)) return { k: 'win' };
     if ((m = b.match(/^(you may )?discard target (character or permanent|character|permanent) with base cost \{(\d+)\} or less$/))) return { k: 'choose', kind: m[2] === 'character' ? 'char' : m[2] === 'permanent' ? 'perm' : 'any', opt: !!m[1], max: +m[3], act: { k: 'discard' }, label: 'Choisis une cible de coût ' + m[3] + ' ou moins à défausser' };
     if ((m = b.match(/^up to one target character (loses|gains) \[\[(fleeting|asleep|anchored)\]\]$/))) return { k: 'choose', kind: 'char', opt: true, act: { k: m[1] === 'loses' ? 'unflag' : 'flag', f: m[2] }, label: 'Choisis jusqu’à un personnage' };
@@ -475,6 +482,7 @@
       case 'itBoost': { const t = ctx.target && s.cards[ctx.target]; if (t) { t.boost = Math.max(0, t.boost + a.n); log(s, '→ ' + cname(s, ctx.target, db) + ' gagne ' + a.n + ' boost(s).'); } break; }
       case 'selfBoostN': if (c && where(s, self)) { c.boost = Math.max(0, c.boost + a.n); log(s, '→ ' + nm() + (a.n >= 0 ? ' gagne ' : ' perd ') + Math.abs(a.n) + ' boost(s).'); } break;
       case 'noop': break;
+      case 'complete': if (c && !c.completed) { c.completed = true; log(s, '🏅 ' + nm() + ' est accomplie.'); } break;
       case 'win': s.winner = p; s.phase = 'END'; s.step = 'END'; log(s, '🏆 ' + P.name + ' remporte la partie (effet de ' + nm() + ') !'); break;
       case 'resBoost': P.reserve.forEach(id => { if (subtypesOf(s, id, db).some(x => a.subs.includes(x))) s.cards[id].boost += a.n; }); log(s, '→ des cartes de la réserve de ' + P.name + ' gagnent ' + a.n + ' boost(s).'); break;
       case 'resetRes': for (const q of [p, 1 - p]) { const X = s.players[q]; X.reserve.slice().forEach(id => moveTo(s, id, 'discard')); doAction(s, q, self, { k: 'resupply' }, db, ctx); } break;
