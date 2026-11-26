@@ -173,6 +173,7 @@
     if (ch.fb && !(c.fleeting || c.boost > 0)) return false;
     if (ch.tokOnly && !(c.tok && !c.tok.lm)) return false;
     if (ch.exOnly && !c.ex) return false;
+    if (ch.st1 && !c[ch.st1]) return false;
     if (ch.facing && !(L.z === 'exp' && L.p !== me)) return false;
     if (ch.tf && !c.tok && (DB[c.ref] || {}).t !== ch.tf) return false;
     if (ch.kind === 'oppany') return L.p !== me && (L.z === 'exp' || L.z === 'lm');
