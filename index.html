@@ -169,7 +169,7 @@ textarea{width:100%;min-height:140px;font-size:13px}
 
 <dialog id="uDlg">
 <h2 style="margin-bottom:8px">Ajouter un unique</h2>
-<span class="lbl">Code imprimé en bas de la carte (set de base)</span>
+<span class="lbl">Code imprimé en bas de la carte (set de base « BTG » uniquement)</span>
 <div class="row"><input id="uCode" placeholder="ex. BTG-069-U-5171" style="flex:1;min-width:0;text-transform:uppercase"><button id="uFind" class="on">Chercher</button></div>
 <p class="note" style="margin:10px 0 4px">Ou, pour les autres sets : choisis la carte puis tape son numéro d'unique (le nombre après « U- »).</p>
 <input type="search" id="uQ" placeholder="Nom du personnage" style="width:100%;margin:4px 0">
@@ -350,7 +350,7 @@ const U_=window.AltUniques;
 function uShow(c,ref,base){uFound=c;$('uOk').disabled=!c;
  if(c){$('uRes').innerHTML='<div style="display:flex;gap:10px"><img src="img/'+LANG+'/'+c.base+'.webp" style="width:90px;border-radius:6px;outline:2px solid #d8b24a"><div class="small"><b>'+esc(NM(c))+'</b> · <span style="color:var(--'+c.f+')">'+esc(FN[c.f]||'')+'</span><br>Coût '+esc(c.c)+' / '+esc(c.rc)+' · <b style="color:#6fbf3a">'+esc(c.p[0])+'</b> <b style="color:#d08a3a">'+esc(c.p[1])+'</b> <b style="color:#3a8ad0">'+esc(c.p[2])+'</b><br>'+esc(EN()?c.xe:c.x)+(c.e?'<br><i>'+esc(EN()?c.ee:c.e)+'</i>':'')+'</div></div>';return}
  if(!base){$('uRes').innerHTML='<p class="note">Code non reconnu. Format attendu : BTG-069-U-5171.</p>';return}
- const b=BY[base+'_C'];$('uRes').innerHTML='<p class="note">Cette unique n\'est pas (encore) dans la base communautaire. Entre ses valeurs telles qu\'imprimées : ses effets seront ceux de la version commune.</p><div class="row small">Coût <input id="mC" style="width:46px" value="'+esc(b?b.c:'')+'"> / <input id="mRC" style="width:46px" value="'+esc(b?b.rc:'')+'"> · Forêt <input id="mF" style="width:46px" value="'+esc(b&&b.p?b.p[0]:'')+'"> Montagne <input id="mM" style="width:46px" value="'+esc(b&&b.p?b.p[1]:'')+'"> Eau <input id="mO" style="width:46px" value="'+esc(b&&b.p?b.p[2]:'')+'"></div>';
+ const b=BY[base+'_C'];$('uRes').innerHTML='<p class="note">Cette unique n\'est pas (encore) dans la base communautaire. Entre ses valeurs telles qu\'imprimées : ses effets seront ceux de la version commune.</p><div class="row small">Coût <input id="mC" style="width:46px" value="'+esc(b?b.c:'')+'"> / <input id="mRC" style="width:46px" value="'+esc(b?b.rc:'')+'"> · Forêt <input id="mF" style="width:46px" value="'+esc(b&&b.p?b.p[0]:'')+'"> Montagne <input id="mM" style="width:46px" value="'+esc(b&&b.p?b.p[1]:'')+'"> Eau <input id="mO" style="width:46px" value="'+esc(b&&b.p?b.p[2]:'')+'"></div><div class="row small" style="margin-top:6px">Faction de l\'unique <select id="mFac">'+FAC.map(f=>'<option value="'+f+'"'+(b&&b.f===f?' selected':'')+'>'+FN[f]+'</option>').join('')+'</select></div>';
  $('uOk').disabled=!b;uFound=b?{manual:true,ref,b}:null}
 async function uLookup(ref){if(!ref){uShow(null,null,null);return}$('uRes').innerHTML='<p class="note">Recherche…</p>';$('uOk').disabled=true;const c=await U_.fetchRef(ref);uShow(c,ref,U_.familyOf(ref))}
 $('uFind').onclick=()=>uLookup(U_.parseCode($('uCode').value));
@@ -359,7 +359,7 @@ $('addU').onclick=()=>{$('uQ').value='';$('uCode').value='';$('uNum').value='';$
 $('uQ').oninput=uRender;
 $('uCancel').onclick=()=>$('uDlg').close();
 $('uOk').onclick=()=>{if(!uFound)return;let c=uFound;
- if(c.manual){const b=c.b;c={...b,r:c.ref,u:true,base:b.r,y:'U',v:'U',c:$('mC').value.trim(),rc:$('mRC').value.trim(),p:[$('mF').value.trim(),$('mM').value.trim(),$('mO').value.trim()]};delete c._s}
+ if(c.manual){const b=c.b;c={...b,r:c.ref,u:true,base:b.r,y:'U',v:'U',f:$('mFac').value,h:$('mFac').value,c:$('mC').value.trim(),rc:$('mRC').value.trim(),p:[$('mF').value.trim(),$('mM').value.trim(),$('mO').value.trim()]};delete c._s}
  BY[c.r]=c;D().uniques.push({n:c.n,f:c.f,r:c.r,card:c});touch();renderDeck();$('uDlg').close()};
 
 let wDraft=[];function wRender(){$('wheelEd').innerHTML=wDraft.map((f,i)=>'<span class="chip" style="border:1px solid var(--line);border-radius:8px;padding:4px 6px"><button data-wl="'+i+'" aria-label="Vers la gauche">‹</button><span class="fd" style="background:var(--'+f+')"></span>'+FN[f]+'<button data-wr="'+i+'" aria-label="Vers la droite">›</button></span>').join('')}
