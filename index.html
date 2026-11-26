@@ -169,11 +169,14 @@ textarea{width:100%;min-height:140px;font-size:13px}
 
 <dialog id="uDlg">
 <h2 style="margin-bottom:8px">Ajouter un unique</h2>
-<p class="note">Les uniques ne sont pas dans la base : choisis le personnage dont c'est la version unique. Il compte dans la limite d'exemplaires du nom.</p>
-<input type="search" id="uQ" placeholder="Nom du personnage" style="width:100%;margin:8px 0">
-<select id="uPick" size="8" style="width:100%"></select>
-<div class="row" style="margin-top:10px"><span class="lbl" style="margin:0">Faction de l'unique</span><select id="uFac"></select></div>
-<div class="row" style="justify-content:flex-end"><button id="uCancel">Annuler</button><button id="uOk" class="on">Ajouter</button></div>
+<span class="lbl">Code imprimé en bas de la carte (set de base)</span>
+<div class="row"><input id="uCode" placeholder="ex. BTG-069-U-5171" style="flex:1;min-width:0;text-transform:uppercase"><button id="uFind" class="on">Chercher</button></div>
+<p class="note" style="margin:10px 0 4px">Ou, pour les autres sets : choisis la carte puis tape son numéro d'unique (le nombre après « U- »).</p>
+<input type="search" id="uQ" placeholder="Nom du personnage" style="width:100%;margin:4px 0">
+<select id="uPick" size="6" style="width:100%"></select>
+<div class="row" style="margin-top:6px"><span class="lbl" style="margin:0">N° d'unique</span><input id="uNum" inputmode="numeric" placeholder="ex. 5171" style="width:110px"><button id="uFind2">Chercher</button></div>
+<div id="uRes" style="margin-top:10px"></div>
+<div class="row" style="justify-content:flex-end;margin-top:8px"><button id="uCancel">Annuler</button><button id="uOk" class="on" disabled>Ajouter au deck</button></div>
 </dialog>
 
 <dialog id="ioDlg">
@@ -184,7 +187,8 @@ textarea{width:100%;min-height:140px;font-size:13px}
 </dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/cloud.js?v=1795711978"></script>
+<script src="js/uniques.js?v=1795714400"></script>
+<script src="js/cloud.js?v=1795714400"></script>
 <script>
 {
 const FN={AX:'Axiom',BR:'Bravos',LY:'Lyra',MU:'Muna',OR:'Ordis',YZ:'Yzmir'};
@@ -252,7 +256,7 @@ function cardHtml(c){
 
 const BUN=new Map();
 function bundle_unused(r){const p=r.split('_'),k0=p[1]+'_'+p[3],k=LANG+':'+k0;if(!BUN.has(k))BUN.set(k,fetch((EN()?'imgb_en/':'imgb/')+k0+'.json').then(x=>x.ok?x.json():{}).catch(()=>({})));return BUN.get(k)}
-function imgFor(r){return Promise.resolve(/^ALT_[A-Z0-9_]+$/.test(r)?'img/'+LANG+'/'+r+'.webp':'')}
+function imgFor(r){if(BY[r]&&BY[r].u)r=BY[r].base;return Promise.resolve(/^ALT_[A-Z0-9_]+$/.test(r)?'img/'+LANG+'/'+r+'.webp':'')}
 function fillImgs(){document.querySelectorAll('img.art[data-r]:not([src])').forEach(im=>{const r=im.dataset.r;imgFor(r).then(u=>{if(u&&im.dataset.r===r)im.src=u})})}
 function filtered(){
  const q=norm($('q').value.trim()),t=$('fType').value,r=$('fRar').value,s=$('fSet').value,co=$('fCost').value,only=$('onlyLegal').checked;
@@ -341,11 +345,22 @@ $('imp').onclick=()=>{$('ioT').textContent='Importer une liste';$('ioTx').value=
 $('ioClose').onclick=()=>$('ioDlg').close();
 $('shareLink').onclick=async()=>{const u=location.origin+location.pathname.replace(/[^/]*$/,'')+'index.html?deck='+deckCode(D());try{await navigator.clipboard.writeText(u);$('saveNote').textContent='Lien du deck copié : envoie-le, il s\u2019importera chez la personne qui l\u2019ouvre.'}catch(e){$('ioT').textContent='Lien du deck';$('ioTx').value=u;$('ioOk').textContent='OK';$('ioOk').onclick=()=>$('ioDlg').close();$('ioNote').textContent='Copie ce lien.';$('ioDlg').showModal()}};
 
-let uList=[];function uRender(){const q=norm($('uQ').value);const seen=new Set();uList=CARDS.filter(c=>c.t==='CHARACTER'&&(!q||norm(c.n+' '+c.en).includes(q))).filter(c=>{const k=norm(c.n);if(seen.has(k))return false;seen.add(k);return true}).slice(0,80);$('uPick').innerHTML=uList.map((c,i)=>'<option value="'+i+'">'+esc(NM(c))+' ('+esc(FN[c.h])+')</option>').join('')}
-$('addU').onclick=()=>{const d=D(),P=BY[d.hero]?.f;$('uFac').innerHTML=[P,d.sec].filter(Boolean).map(f=>'<option value="'+f+'">'+FN[f]+'</option>').join('')||FAC.map(f=>'<option value="'+f+'">'+FN[f]+'</option>').join('');$('uQ').value='';uRender();$('uDlg').showModal()};
-$('uQ').oninput=uRender;$('uPick').onchange=()=>{const c=uList[+$('uPick').value];if(c&&[...$('uFac').options].some(o=>o.value===c.h))$('uFac').value=c.h};
+let uList=[],uFound=null;function uRender(){const q=norm($('uQ').value);const seen=new Set();uList=CARDS.filter(c=>c.t!=='HERO'&&c.y==='C'&&(!q||norm(c.n+' '+c.en).includes(q))).filter(c=>{const k=U_.familyOf(c.r);if(seen.has(k))return false;seen.add(k);return true}).slice(0,80);$('uPick').innerHTML=uList.map((c,i)=>'<option value="'+i+'">'+esc(NM(c))+' — '+esc(FN[c.h]||'')+' · '+esc(SETN[c.s]||c.s)+'</option>').join('')}
+const U_=window.AltUniques;
+function uShow(c,ref,base){uFound=c;$('uOk').disabled=!c;
+ if(c){$('uRes').innerHTML='<div style="display:flex;gap:10px"><img src="img/'+LANG+'/'+c.base+'.webp" style="width:90px;border-radius:6px;outline:2px solid #d8b24a"><div class="small"><b>'+esc(NM(c))+'</b> · <span style="color:var(--'+c.f+')">'+esc(FN[c.f]||'')+'</span><br>Coût '+esc(c.c)+' / '+esc(c.rc)+' · <b style="color:#6fbf3a">'+esc(c.p[0])+'</b> <b style="color:#d08a3a">'+esc(c.p[1])+'</b> <b style="color:#3a8ad0">'+esc(c.p[2])+'</b><br>'+esc(EN()?c.xe:c.x)+(c.e?'<br><i>'+esc(EN()?c.ee:c.e)+'</i>':'')+'</div></div>';return}
+ if(!base){$('uRes').innerHTML='<p class="note">Code non reconnu. Format attendu : BTG-069-U-5171.</p>';return}
+ const b=BY[base+'_C'];$('uRes').innerHTML='<p class="note">Cette unique n\'est pas (encore) dans la base communautaire. Entre ses valeurs telles qu\'imprimées : ses effets seront ceux de la version commune.</p><div class="row small">Coût <input id="mC" style="width:46px" value="'+esc(b?b.c:'')+'"> / <input id="mRC" style="width:46px" value="'+esc(b?b.rc:'')+'"> · Forêt <input id="mF" style="width:46px" value="'+esc(b&&b.p?b.p[0]:'')+'"> Montagne <input id="mM" style="width:46px" value="'+esc(b&&b.p?b.p[1]:'')+'"> Eau <input id="mO" style="width:46px" value="'+esc(b&&b.p?b.p[2]:'')+'"></div>';
+ $('uOk').disabled=!b;uFound=b?{manual:true,ref,b}:null}
+async function uLookup(ref){if(!ref){uShow(null,null,null);return}$('uRes').innerHTML='<p class="note">Recherche…</p>';$('uOk').disabled=true;const c=await U_.fetchRef(ref);uShow(c,ref,U_.familyOf(ref))}
+$('uFind').onclick=()=>uLookup(U_.parseCode($('uCode').value));
+$('uFind2').onclick=()=>{const c=uList[+$('uPick').value],n=parseInt($('uNum').value,10);if(!c||!n){$('uRes').innerHTML='<p class="note">Choisis la carte et tape son numéro d\'unique.</p>';return}uLookup(U_.familyOf(c.r)+'_U_'+n)};
+$('addU').onclick=()=>{$('uQ').value='';$('uCode').value='';$('uNum').value='';$('uRes').innerHTML='';$('uOk').disabled=true;uFound=null;uRender();$('uDlg').showModal()};
+$('uQ').oninput=uRender;
 $('uCancel').onclick=()=>$('uDlg').close();
-$('uOk').onclick=()=>{const c=uList[+$('uPick').value];if(!c)return;D().uniques.push({n:c.n,f:$('uFac').value});touch();renderDeck();$('uDlg').close()};
+$('uOk').onclick=()=>{if(!uFound)return;let c=uFound;
+ if(c.manual){const b=c.b;c={...b,r:c.ref,u:true,base:b.r,y:'U',v:'U',c:$('mC').value.trim(),rc:$('mRC').value.trim(),p:[$('mF').value.trim(),$('mM').value.trim(),$('mO').value.trim()]};delete c._s}
+ BY[c.r]=c;D().uniques.push({n:c.n,f:c.f,r:c.r,card:c});touch();renderDeck();$('uDlg').close()};
 
 let wDraft=[];function wRender(){$('wheelEd').innerHTML=wDraft.map((f,i)=>'<span class="chip" style="border:1px solid var(--line);border-radius:8px;padding:4px 6px"><button data-wl="'+i+'" aria-label="Vers la gauche">‹</button><span class="fd" style="background:var(--'+f+')"></span>'+FN[f]+'<button data-wr="'+i+'" aria-label="Vers la droite">›</button></span>').join('')}
 $('wheelEd').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;e.stopPropagation();const i=+(b.dataset.wl??b.dataset.wr),j=b.dataset.wl!==undefined?(i+5)%6:(i+1)%6;[wDraft[i],wDraft[j]]=[wDraft[j],wDraft[i]];wRender()});
@@ -357,7 +372,7 @@ $('fmtSave').onclick=async()=>{const n={};for(const [k] of FIELDS){const v=parse
 
 function validFmt(o){if(!o||!Array.isArray(o.wheel)||o.wheel.length!==6||!FAC.every(f=>o.wheel.includes(f)))return null;const n={wheel:o.wheel.slice()};for(const [k] of FIELDS){const v=+o[k];n[k]=Number.isFinite(v)&&v>=0?Math.round(v):DEF[k]}return n}
 function cleanDeck(o){if(!o||typeof o!=='object')return null;const c={};if(o.cards&&typeof o.cards==='object')for(const [r,n] of Object.entries(o.cards))if(BY[r]&&+n>0)c[r]=Math.min(9,Math.round(+n));
- return{name:String(o.name||'Sans nom').slice(0,80),hero:BY[o.hero]?o.hero:'',sec:FAC.includes(o.sec)?o.sec:'',cards:c,uniques:Array.isArray(o.uniques)?o.uniques.filter(u=>u&&FAC.includes(u.f)).map(u=>({n:String(u.n).slice(0,80),f:u.f})):[],updated:+o.updated||0}}
+ return{name:String(o.name||'Sans nom').slice(0,80),hero:BY[o.hero]?o.hero:'',sec:FAC.includes(o.sec)?o.sec:'',cards:c,uniques:Array.isArray(o.uniques)?o.uniques.filter(u=>u&&FAC.includes(u.f)).map(u=>{const card=u.card&&window.AltUniques?AltUniques.sanitize(u.card):null;if(card)BY[card.r]=card;return card?{n:card.n,f:card.f,r:card.r,card}:{n:String(u.n).slice(0,80),f:u.f}}):[],updated:+o.updated||0}}
 
 async function start(){
  try{const r=await fetch('cards.json');CARDS=await r.json()}catch(e){$('sync').textContent='Impossible de charger les cartes.';return}

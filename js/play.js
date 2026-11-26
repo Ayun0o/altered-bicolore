@@ -42,7 +42,10 @@
   function renderPickers() { for (const id of ['pdeck', 'sdeck']) { const box = $(id + 'Pick'); if (box) box.innerHTML = picker(id, $(id).value); } }
   function getDeck(id) {
     const s = STARTERS.find(x => x.id === id); if (s) return { hero: s.hero, cards: s.cards, name: s.name };
-    const d = store.get('alt-bi-decks', {})[id]; return d && d.hero ? { hero: d.hero, cards: d.cards || {}, name: d.name } : null;
+    const d = store.get('alt-bi-decks', {})[id]; if (!d || !d.hero) return null;
+    const cards = Object.assign({}, d.cards || {}), uq = {};
+    for (const u of d.uniques || []) { const c = u.card && window.AltUniques ? AltUniques.sanitize(u.card) : null; if (c) { DB[c.r] = c; uq[c.r] = c; cards[c.r] = 1; } }
+    return { hero: d.hero, cards, name: d.name, uq };
   }
 
   async function init() {
@@ -115,7 +118,7 @@
     } else if (m.type === 'undo') { const err = undo(1); if (err) net.send({ type: 'err', m: err }); push();
     } else if (m.type === 'rematch') rematch();
   }
-  function sanitizeDeck(d) { if (!d || !DB[d.hero]) return null; const c = {}; let n = 0; for (const [r, k] of Object.entries(d.cards || {})) if (DB[r] && DB[r].t !== 'HERO') { const v = Math.max(0, Math.min(9, k | 0)); if (v) { c[r] = v; n += v; } } return n && n <= 80 ? { hero: d.hero, cards: c } : null; }
+  function sanitizeDeck(d) { if (!d || !DB[d.hero]) return null; if (d.uq && window.AltUniques) for (const v of Object.values(d.uq).slice(0, 10)) { const c = AltUniques.sanitize(v); if (c) DB[c.r] = c; } const c = {}; let n = 0; for (const [r, k] of Object.entries(d.cards || {})) if (DB[r] && DB[r].t !== 'HERO') { const v = Math.max(0, Math.min(9, k | 0)); if (v) { c[r] = v; n += v; } } return n && n <= 80 ? { hero: d.hero, cards: c } : null; }
 
   function startJoin(code) {
     const d = needDeck(); if (!d) return;
@@ -124,11 +127,11 @@
     mode = 'guest'; me = 1; $('lobbyMsg').textContent = 'Connexion…';
     net = NET.join(code, m => {
       if (!m) return;
-      if (m.type === 'state') { V = m.v; showGame(); render(); }
+      if (m.type === 'state') { if (m.uq && window.AltUniques) for (const v of Object.values(m.uq)) { const c = AltUniques.sanitize(v); if (c) DB[c.r] = c; } V = m.v; showGame(); render(); }
       else if (m.type === 'err') flash(m.m);
       else if (m.type === 'full') { $('lobbyMsg').innerHTML = '<span class="err">Cette partie a déjà deux joueurs.</span>'; }
     }, (st, x) => {
-      if (st === 'connected') { net.send({ type: 'hello', name: myName('Joueur 2'), deck: { hero: d.hero, cards: d.cards } }); setConn('Connecté'); }
+      if (st === 'connected') { net.send({ type: 'hello', name: myName('Joueur 2'), deck: { hero: d.hero, cards: d.cards, uq: d.uq } }); setConn('Connecté'); }
       else if (st === 'left') setConn('Connexion perdue avec l’hôte.');
       else if (st === 'error') { $('lobbyMsg').innerHTML = '<span class="err">' + esc(x) + '</span>'; setConn('Erreur : ' + x); }
     });
@@ -161,7 +164,7 @@
     const err = applyAct(me, a); if (err) flash(err); push();
   }
   function push() {
-    if (mode === 'host' && net && S.players[1]) net.send({ type: 'state', v: E.view(S, 1) });
+    if (mode === 'host' && net && S.players[1]) { const uq = {}; for (const k in DB) if (DB[k].u) uq[k] = DB[k]; net.send({ type: 'state', v: E.view(S, 1), uq }); }
     V = E.view(S, me); render();
     if (mode === 'ai') aiTick();
   }
@@ -187,7 +190,7 @@
     if (c.tok) { const r = tokRef(c.tok.n); if (r) return '<img loading="lazy" draggable="false" alt="' + esc(tokName(c.tok.n)) + '" src="img/tok/' + r + '_' + LANG + '.webp">' + (c.tok.p ? '<span class="tokst">' + c.tok.p.join('/') + '</span>' : ''); }
     return imgOld(c);
   }
-  function imgOld(c) { return c.tok ? '<div class="tok"><b>' + esc(tokName(c.tok.n)) + '</b><span>' + c.tok.p.join(' / ') + '</span><span class="note">jeton</span></div>' : '<img loading="lazy" draggable="false" alt="' + esc(NM(DB[c.ref])) + '" src="img/' + LANG + '/' + encodeURIComponent(c.ref) + '.webp">'; }
+  function imgOld(c) { return c.tok ? '<div class="tok"><b>' + esc(tokName(c.tok.n)) + '</b><span>' + c.tok.p.join(' / ') + '</span><span class="note">jeton</span></div>' : '<img loading="lazy" draggable="false" alt="' + esc(NM(DB[c.ref])) + '" src="img/' + LANG + '/' + encodeURIComponent((DB[c.ref] && DB[c.ref].u) ? DB[c.ref].base : c.ref) + '.webp">' + ((DB[c.ref] && DB[c.ref].u) ? '<span class="uqtag">U</span>' : ''); }
   const CH = () => V && V.choices && V.choices[0];
   function isTarget(id) {
     const ch = CH(); if (!ch || ch.p !== me) return false;
@@ -233,7 +236,7 @@
     const b = []; if (c.boost) b.push('+' + c.boost); if (c.ctr) for (const [k, v] of Object.entries(c.ctr)) if (v) b.push(v + ' ' + k);
     let stats = '';
     { const L = locate(id), d = DB[c.ref] || {}; const isChar = c.tok ? !c.tok.lm : d.t === 'CHARACTER';
-      if (L && L.z === 'exp' && isChar) { const pw = c.tok ? c.tok.p : (d.p || []); stats = '<div class="pw">' + ['F', 'M', 'W'].map((k, i) => { const base = E.num(pw[i]); const v = base + (c.boost || 0); return '<b class="p' + k + (c.boost ? ' up' : '') + (c.asleep ? ' zz' : '') + '">' + v + '</b>'; }).join('') + '</div>'; } }
+      if (L && (L.z === 'exp' || (d.u && isChar))) { const pw = c.tok ? c.tok.p : (d.p || []); stats = '<div class="pw">' + ['F', 'M', 'W'].map((k, i) => { const base = E.num(pw[i]); const v = base + (c.boost || 0); return '<b class="p' + k + (c.boost ? ' up' : '') + (c.asleep ? ' zz' : '') + '">' + v + '</b>'; }).join('') + '</div>'; } }
     const st = []; if (c.fleeting) st.push(['<img src="img/ui/scan/s_fleeting.svg" alt="">', 'Fugace']); if (c.anchored) st.push(['<img src="img/ui/scan/s_anchored.svg" alt="">', 'Ancré']); if (c.asleep) st.push(['<img src="img/ui/scan/s_asleep.svg" alt="">', 'Endormi']); if (c.completed) st.push(['🏅', 'Accomplie']);
     const k = pick.has(id), tossed = keep.R.has(id) || keep.L.has(id);
     const P = V.players[me]; const drag = P && c.owner === me && (P.hand.includes(id) || P.reserve.includes(id));
@@ -506,17 +509,19 @@
     document.addEventListener('drop', e => { const z = e.target.closest && e.target.closest('[data-drop]'); if (!z) return; e.preventDefault(); z.style.outline = ''; const id = e.dataTransfer.getData('text/plain'); if (id) playTo(id, z.dataset.drop); });
   }
   const zoomEl = document.createElement('div'); zoomEl.id = 'zoomCard'; document.body.appendChild(zoomEl);
+  function zoomHtml(x) { const d = DB[x.ref] || {}; if (!d.u) return '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(x.ref) + '.webp">';
+    return '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(d.base) + '.webp"><div class="uqz"><b>' + esc(NM(d)) + ' — unique</b><span>Coût ' + esc(d.c) + ' / ' + esc(d.rc) + ' · <i class="F">' + esc(d.p[0]) + '</i> <i class="M">' + esc(d.p[1]) + '</i> <i class="W">' + esc(d.p[2]) + '</i></span><span>' + esc(LANG === 'en' ? d.xe : d.x) + '</span>' + (d.e ? '<span><i>' + esc(LANG === 'en' ? d.ee : d.e) + '</i></span>' : '') + '</div>'; }
   function hideZoom() { zoomEl.style.display = 'none'; }
   function bindZoom() {
     document.addEventListener('mouseover', e => {
       if (sel && !DRAG) { const z = e.target.closest && e.target.closest('[data-drop]'); const zk = z ? z.dataset.drop : null; if (zk !== PREVZ) { PREVZ = zk; if (zk) { const c = card(sel); if (c && V.players[me] && (V.players[me].hand.includes(sel) || V.players[me].reserve.includes(sel))) previewPlay(sel, zk); } else clearPreview(); } }
       const c = e.target.closest && e.target.closest('.c[data-id]'); if (!c || !V) return;
       const x = card(c.dataset.id); if (!x || x.tok) { hideZoom(); return; }
-      zoomEl.innerHTML = '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(x.ref) + '.webp">'; zoomEl.style.display = 'block';
+      zoomEl.innerHTML = zoomHtml(x); zoomEl.style.display = 'block';
     });
     // Téléphone : appui long sur une carte = zoom, on relâche = ça se ferme
     let lpT = null;
-    document.addEventListener('touchstart', e => { const c = e.target.closest && e.target.closest('.c[data-id]'); if (!c || !V) return; clearTimeout(lpT); lpT = setTimeout(() => { const x = card(c.dataset.id); if (!x || x.tok) return; zoomEl.innerHTML = '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(x.ref) + '.webp">'; zoomEl.style.display = 'block'; zoomEl.classList.add('touch'); }, 320); }, { passive: true });
+    document.addEventListener('touchstart', e => { const c = e.target.closest && e.target.closest('.c[data-id]'); if (!c || !V) return; clearTimeout(lpT); lpT = setTimeout(() => { const x = card(c.dataset.id); if (!x || x.tok) return; zoomEl.innerHTML = zoomHtml(x); zoomEl.style.display = 'block'; zoomEl.classList.add('touch'); }, 320); }, { passive: true });
     const endLP = () => { clearTimeout(lpT); if (zoomEl.classList.contains('touch')) { zoomEl.classList.remove('touch'); hideZoom(); } };
     document.addEventListener('touchend', endLP, { passive: true }); document.addEventListener('touchcancel', endLP, { passive: true }); document.addEventListener('touchmove', () => clearTimeout(lpT), { passive: true });
     document.addEventListener('contextmenu', e => { if (e.target.closest && e.target.closest('.c[data-id]') && zoomEl.classList.contains('touch')) e.preventDefault(); });
