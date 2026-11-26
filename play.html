@@ -568,6 +568,17 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
  #myMana .manaico{width:66px;height:66px}
  #myMana .manaico b{font-size:28px}#myMana .manaico span{font-size:14px}
 }
+
+/* Tutoriel */
+.tut-hl{position:relative;z-index:70!important;box-shadow:0 0 0 3px #f5c518,0 0 18px 6px #f5c51888!important;border-radius:10px;animation:tutp 1.6s ease-in-out infinite}
+@keyframes tutp{50%{box-shadow:0 0 0 3px #f5c518,0 0 28px 10px #f5c51855}}
+#tutBox{position:fixed;z-index:90;left:50%;transform:translateX(-50%);width:min(420px,92vw);background:#17181c;border:2px solid #f5c518;border-radius:14px;padding:12px 14px;color:#f3f0e6;box-shadow:0 10px 40px #000c;font-size:14px;line-height:1.45}
+#tutBox.top{top:12px}#tutBox.bot{bottom:110px}
+#tutBox h4{margin:0 0 4px;font-size:15px;color:#f5c518}
+#tutBox .tr{display:flex;justify-content:space-between;align-items:center;margin-top:10px;gap:8px}
+#tutBox .tn{font-size:12px;opacity:.6}
+#tutBox button{min-height:30px;padding:3px 12px}
+#tutBox .wait{font-size:12px;color:#f5c518;font-style:italic}
 </style>
 </head>
 <body>
@@ -588,6 +599,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 <p id="lobbyMsg" class="note"></p>
 </div>
 <button id="bSolo2" style="width:100%;margin-top:-4px">▶ Lancer une partie d'essai</button>
+<button id="bTuto" style="width:100%;margin-top:6px">🎓 Tutoriel : apprendre à jouer</button>
 <p class="note">La plupart des effets des cartes s'appliquent tout seuls ; les rares effets situationnels se règlent avec les boutons de chaque carte.</p>
 </div>
 <div class="lcol">
@@ -654,5 +666,47 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 </script>
 <script>document.getElementById('bSolo2').onclick=()=>document.getElementById('bSolo').click();</script>
 <script>(function(){const t=document.getElementById('toolsBox');try{if(localStorage.getItem('alt-bi-tools')==='0')t.open=false}catch(e){}t.addEventListener('toggle',()=>{try{localStorage.setItem('alt-bi-tools',t.open?'1':'0')}catch(e){}})})();</script>
+<script>
+(function(){
+ const $=id=>document.getElementById(id), MOB=()=>matchMedia('(max-width:900px)').matches;
+ const pr=()=>($('prompt')||{}).textContent||'';
+ const S=[
+  {t:'Bienvenue !',x:'Le but : faire avancer tes deux expéditions, <b>Héros</b> et <b>Compagnon</b>, sur la piste de Tumulte, jusqu\'à ce qu\'elles se rejoignent. Ton adversaire essaie de faire pareil.',el:()=>$('adv')},
+  {t:'Ton mana',x:'Pour commencer, <b>touche 3 cartes de ta main</b> : elles deviennent ton mana pour la partie. Puis clique <b>Valider</b>.',el:()=>$('hand'),until:()=>!/Mise en place/.test(pr()),waitTxt:'Choisis 3 cartes puis Valide…'},
+  {t:'L’orbe de mana',x:'Elle montre ton mana <b>disponible / total</b>. Chaque matin, tu peux ajouter une carte de ta main à ton mana. Clique l’orbe pour voir tes cartes en mana.',el:()=>$('myMana'),when:()=>/toi de jouer|Matin|Midi/.test(pr())},
+  {t:'Le coût des cartes',x:'En haut à gauche de chaque carte : le <b>rond bleu</b> est son coût depuis la main, le rond juste en dessous son coût depuis la <b>Réserve</b>. Les cartes que tu peux payer ont un <b>fin liseré blanc</b>.',el:()=>document.querySelector('#hand .c'),when:()=>/toi de jouer/.test(pr()),waitTxt:'Attends que ce soit à toi de jouer…'},
+  {t:'Jouer une carte',x:'Glisse une carte sur ton expédition <b>Héros</b> ou <b>Compagnon</b> (ou touche-la puis touche l’expédition). Joue une carte maintenant !',el:()=>$('myExps'),when:()=>/toi de jouer/.test(pr()),until:()=>document.querySelectorAll('#myExps .zone.exp .c[data-id]').length>0,waitTxt:'Joue une carte…'},
+  {t:'Les terrains',x:'Les pastilles <b>forêt / montagne / eau</b> additionnent la force de ton expédition. Au <b>Crépuscule</b>, ton expédition avance si elle est plus forte que celle d’en face sur un terrain de sa région (les pastilles en couleur sont celles qui comptent ; en doré, tu gagnes).',el:()=>document.querySelector('#myExps .tot')},
+  {t:'Passer',x:'Chacun joue une carte à son tour. Quand tu ne veux plus jouer, clique <b>Passer</b> (ou appuie sur Espace). La journée continue quand les deux joueurs ont passé.',el:()=>$('prompt')},
+  {t:'La Réserve',x:'La nuit, tes personnages retournent dans ta <b>Réserve</b>. Tu pourras les rejouer plus tard pour leur coût de Réserve. '+(MOB()?'Sur téléphone, le bouton <b>Rés.</b> à gauche de ta main affiche ta Réserve.':'Elle est juste sous ton expédition Héros.'),el:()=>MOB()?($('rsvTog')||document.querySelector('#myStrip .sres')):document.querySelector('#myStrip .sres')},
+  {t:'Le lexique',x:'Un mot-clé ou un symbole t’échappe ? Ouvre <b>📖 Lexique</b> dans les Outils'+(MOB()?' (languette ‹ à droite de l’écran)':'')+'. Bonne partie !',el:()=>MOB()?$('sideTab'):document.querySelector('[data-tool=lex]')}
+ ];
+ let i=-1,box=null,hl=null,tm=null;
+ function clear(){if(hl)hl.classList.remove('tut-hl');hl=null}
+ function end(){clear();clearInterval(tm);tm=null;if(box)box.remove();box=null;try{localStorage.setItem('alt-bi-tuto','1')}catch(e){}}
+ function show(){
+  const st=S[i];if(!st)return end();
+  const ready=!st.when||st.when();
+  clear();const el=ready&&st.el&&st.el();
+  if(el){hl=el;el.classList.add('tut-hl');el.scrollIntoView({block:'center',behavior:'smooth'})}
+  const r=el?el.getBoundingClientRect():null;
+  box.className=r&&r.top<innerHeight*.45?'bot':'top';
+  const waiting=!ready||(st.until&&!st.until());
+  box.innerHTML='<h4>'+st.t+'</h4><div>'+(ready?st.x:'')+'</div>'+(waiting?'<div class="wait">'+(ready?(st.waitTxt||''):(st.waitTxt||'Un instant…'))+'</div>':'')+
+   '<div class="tr"><span class="tn">'+(i+1)+' / '+S.length+'</span><span><button id="tutQ">Quitter</button> '+(waiting?'':'<button id="tutN" class="pri">'+(i===S.length-1?'Terminer':'Suivant')+'</button>')+'</span></div>';
+  $('tutQ').onclick=end;const n=$('tutN');if(n)n.onclick=()=>{i++;show()};
+  box.dataset.w=waiting?'1':'';box.dataset.r=ready?'1':'';
+ }
+ function start(){
+  const ai=$('soloAI');if(ai)ai.checked=true;$('bSolo').click();
+  box=document.createElement('div');box.id='tutBox';document.body.appendChild(box);i=0;
+  setTimeout(show,900);
+  tm=setInterval(()=>{if(!box)return;const st=S[i];if(!st)return;const ready=!st.when||st.when(),waiting=!ready||(st.until&&!st.until());
+   if((box.dataset.w==='1')!==waiting||(box.dataset.r==='1')!==ready){if(st.until&&ready&&!waiting&&box.dataset.w==='1'){i++;}show()}
+   else if(hl&&!document.body.contains(hl)){show()}},500);
+ }
+ $('bTuto').onclick=start;
+})();
+</script>
 </body>
 </html>
