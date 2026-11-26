@@ -514,7 +514,7 @@
         let acts;
         if (x.length === 1 && (x[0].k === 'choose' || x[0].k === 'payMana' || x[0].k === 'chooseCtr' || x[0].k === 'spendBoost')) { const f = Object.assign({}, x[0]); if (f.k === 'choose') { f.opt = false; f.act = Object.assign({}, f.act, { then: (f.act.then ? [].concat(f.act.then) : []).concat(y) }); } else f.then = (f.then || []).concat(y); acts = [f]; }
         else if (!x.some(a => a.k === 'choose')) acts = x.concat(y);
-        if (acts) return [{ k: 'options', n: 1, opts: [{ label: 'Oui : ' + my[1].slice(0, 48), acts }, { label: 'Non', acts: [] }] }];
+        if (acts) return [{ k: 'options', n: 1, opts: [{ label: 'Oui : ' + ({ 'exhaust me': 'm’épuiser', 'sacrifice me': 'me sacrifier' }[my[1].toLowerCase()] || my[1].slice(0, 48)) + ' → ' + my[2].slice(0, 40), acts }, { label: 'Non', acts: [] }] }];
       }
     }
     let mi = lb.match(/^(.*?)\.\s+if you do,\s+(.*)$/i);
@@ -531,7 +531,8 @@
     const nm = () => c ? cname(s, self, db) : '';
     switch (a.k) {
       case 'resupply': { if (!P.deck.length && P.discard.length) { P.deck = P.discard.splice(0); shuffle(P.deck, Math.random); } const id = P.deck.shift(); if (id) { P.reserve.push(id); if (a.ex) s.cards[id].ex = true; log(s, '→ ' + P.name + ' se ravitaille' + (a.ex ? ' (carte épuisée)' : '') + ' : ' + cname(s, id, db) + '.'); } break; }
-      case 'selfFlag': if (c && expOf(s, self)) { c[a.f] = a.v; log(s, '→ ' + nm() + (a.v ? ' devient ' : ' perd ') + ({ anchored: 'ancré', asleep: 'endormi', fleeting: 'fugace' })[a.f] + '.'); } break;
+      case 'selfFlag': if (c && a.f === 'ex' && where(s, self)) { c.ex = a.v !== false; log(s, '→ ' + nm() + (c.ex ? ' s’épuise.' : ' se redresse.')); break; }
+      if (c && expOf(s, self)) { c[a.f] = a.v; log(s, '→ ' + nm() + (a.v ? ' devient ' : ' perd ') + ({ anchored: 'ancré', asleep: 'endormi', fleeting: 'fugace' })[a.f] + '.'); } break;
       case 'selfBoost': { const w = c && where(s, self); if (c && w && (w.z === 'exp' || w.z === 'reserve')) { const before = c.boost; c.boost = a.max != null ? Math.min(a.max, c.boost + a.n) : c.boost + a.n; if (c.boost !== before) log(s, '→ ' + nm() + ' gagne ' + (c.boost - before) + ' boost(s).'); } break; }
       case 'itBoost': { const t = ctx.target && s.cards[ctx.target]; if (t && expOf(s, ctx.target)) { t.boost += a.n; log(s, '→ ' + cname(s, ctx.target, db) + ' gagne ' + a.n + ' boost(s).'); } break; }
       case 'myExpFwd': { const e = ctx.e || expOf(s, self); if (e) { const np = P.pos[e] + (e === 'H' ? 1 : -1); if (np >= 0 && np <= LAST) { const r = s.adv[np]; if (!r.up) s.adv.forEach(x => { if (x.card === r.card) x.up = true; }); P.pos[e] = np; log(s, '→ l’expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + ' de ' + P.name + ' avance.'); } } break; }
@@ -613,7 +614,8 @@
       case 'expFwd': { const e = a.e === 'C' ? 'C' : 'H'; const np = P.pos[e] + (e === 'H' ? 1 : -1); if (np >= 0 && np <= LAST) { const r = s.adv[np]; if (!r.up) s.adv.forEach(x => { if (x.card === r.card) x.up = true; }); P.pos[e] = np; log(s, '→ l’expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + ' de ' + P.name + ' avance.'); } break; }
       case 'ascend': { const e = a.e === 'C' ? 'C' : 'H'; (P.asc = P.asc || {})[e] = true; log(s, '→ l’expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + ' de ' + P.name + ' s’élève.'); break; }
       case 'lmToken': { const id = 't' + (s.nid++); s.cards[id] = { id, ref: '__token', owner: p, boost: 0, ex: false, fleeting: false, anchored: false, asleep: false, tok: { n: a.n, p: null, lm: true } }; P.lm.push(id); log(s, '→ ' + P.name + ' crée un jeton ' + a.n + ' dans ses repères.'); break; }
-      case 'options': s.choices.push({ p, kind: 'option', opt: false, opts: a.opts, left: a.n, label: a.n > 1 ? 'Choisis ' + a.n + ' options (une à la fois)' : 'Choisis une option', src: self }); break;
+      case 'options': if (a.opts[0] && a.opts[0].acts[0] && a.opts[0].acts[0].k === 'selfFlag' && a.opts[0].acts[0].f === 'ex' && c && c.ex) { log(s, '→ ' + nm() + ' est déjà épuisée : effet impossible.'); break; }
+        s.choices.push({ p, kind: 'option', opt: false, opts: a.opts, left: a.n, label: a.n > 1 ? 'Choisis ' + a.n + ' options (une à la fois)' : 'Choisis une option', src: self }); break;
       case 'drawAll': for (let q = 0; q < 2; q++) draw(s, q); log(s, '→ chaque joueur pioche une carte.'); break;
       case 'drawOpp': draw(s, 1 - p); log(s, '→ ' + s.players[1 - p].name + ' pioche une carte.'); break;
       case 'selfReserve': if (c && where(s, self)) { moveTo(s, self, 'reserve'); log(s, '→ ' + nm() + ' va en réserve.'); } break;

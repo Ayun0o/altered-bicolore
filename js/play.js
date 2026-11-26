@@ -419,7 +419,7 @@
     if (L.z === 'discard') { b('Vers la main', { type: 'move', id: sel, to: 'hand' }); b('Vers la réserve', { type: 'move', id: sel, to: 'reserve' }); b('Sur le deck', { type: 'move', id: sel, to: 'deck', top: true }); }
     if (L.z === 'hero' && mine) b('Épuiser / redresser', { type: 'flag', id: sel, f: 'ex' });
     const info = d ? '<p class="small" style="margin:6px 0"><b>' + esc(NM(d)) + '</b> · coût ' + esc(String(d.c ?? '').replace(/#/g, '')) + ' / ' + esc(String(d.rc ?? '').replace(/#/g, '')) + (mine ? '' : ' · <i>carte adverse</i>') + '</p>' : '<p class="small"><b>Jeton ' + esc(tokName(c.tok.n)) + '</b></p>';
-    D.innerHTML = '<div class="detimg">' + (c.tok ? img(c) : '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(c.ref) + '.webp">') + '</div>' + info + costBox + '<div class="acts" style="margin-top:6px">' + A.join('') + '</div>';
+    D.innerHTML = '<div class="detimg">' + (c.tok ? img(c) : '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(c.ref) + '.webp">') + '</div>' + costBox + '<div class="acts" style="margin-top:6px">' + A.join('') + '</div>';
   }
 
   function playable(id) { const P = V && V.players[me]; return !!(P && V.step === 'AFTERNOON' && V.turn === me && (P.hand.includes(id) || P.reserve.includes(id))); }
