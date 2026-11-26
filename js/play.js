@@ -111,7 +111,7 @@
 
   function startSolo() {
     const a = needDeck(); if (!a) return; const b = getDeck($('sdeck').value) || a;
-    mode = 'solo'; me = 0; decksUsed = [a, b]; names = [myName(), 'Adversaire (toi aussi)'];
+    mode = 'solo'; me = 0; decksUsed = [a, b]; names = [(myName() && myName() !== 'Joueur') ? myName() : 'Joueur 1', 'Joueur 2'];
     S = E.newGame({}); E.addPlayer(S, 0, names[0], a, DB); E.addPlayer(S, 1, names[1], b, DB); E.advance(S, DB);
     $('bSwitch').classList.remove('hidden'); setConn('Partie d’essai');
     showGame(); push();
@@ -244,7 +244,7 @@
       return '<div class="zone exp e' + e + (mine ? ' mine' : '') + (will ? ' willz' : '') + '"' + (mine ? ' data-drop="' + e + '"' : '') + '><h3 class="xh"><span class="xstats"><span class="tot" id="tot-' + p + e + '">' + tot + '</span>' + badge + (asc ? '<span class="asc" title="Expédition élevée">⇑</span>' : '') + '</span><span class="xname">' + (e === 'H' ? 'Héros' : 'Compagnon') + '</span><span class="xarr"><button class="mini" data-pos="' + p + ',' + e + ',' + (e === 'C' ? 1 : -1) + '" title="' + (e === 'C' ? 'Avancer' : 'Reculer') + ' l’expédition">◀</button><button class="mini" data-pos="' + p + ',' + e + ',' + (e === 'C' ? -1 : 1) + '" title="' + (e === 'C' ? 'Reculer' : 'Avancer') + ' l’expédition">▶</button></span></h3><div class="cards">' + cardsEl(X.exp[e]) + '</div></div>';
     };
     const hn = '<span class="hname" style="color:' + (FC[(DB[(card(X.hero) || {}).ref] || {}).f] || 'inherit') + '">' + esc(X.name) + '</span>';
-    return zone('H') + '<div class="herocol' + (mine ? ' mine' : '') + '">' + (mine ? hn : '') + (X.hero ? cardEl(X.hero) : '') + (mine ? '' : hn) + '</div>' + zone('C');
+    return zone('H') + '<div class="herocol' + (mine ? ' mine' : '') + '">' + (mine ? hn : '') + '<div class="herowrap">' + (X.hero ? cardEl(X.hero) : '') + (V.first === p ? '<img class="fptok" src="img/ui/scan/first.webp" alt="" title="Premier joueur">' : '') + '</div>' + (mine ? '' : hn) + '</div>' + zone('C');
   }
   const slots = n => n > 0 ? '<i class="slot"></i>'.repeat(Math.min(n, 4)) : '';
   const backs = (n, cls) => { n = Math.min(n, 12); return Array.from({ length: n }, (x, i) => '<i class="' + cls + '" style="transform:rotate(' + ((i - (n - 1) / 2) * 6) + 'deg)"></i>').join(''); };
@@ -449,6 +449,12 @@
       const x = card(c.dataset.id); if (!x || x.tok) { hideZoom(); return; }
       zoomEl.innerHTML = '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(x.ref) + '.webp">'; zoomEl.style.display = 'block';
     });
+    // Téléphone : appui long sur une carte = zoom, on relâche = ça se ferme
+    let lpT = null;
+    document.addEventListener('touchstart', e => { const c = e.target.closest && e.target.closest('.c[data-id]'); if (!c || !V) return; clearTimeout(lpT); lpT = setTimeout(() => { const x = card(c.dataset.id); if (!x || x.tok) return; zoomEl.innerHTML = '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(x.ref) + '.webp">'; zoomEl.style.display = 'block'; zoomEl.classList.add('touch'); }, 320); }, { passive: true });
+    const endLP = () => { clearTimeout(lpT); if (zoomEl.classList.contains('touch')) { zoomEl.classList.remove('touch'); hideZoom(); } };
+    document.addEventListener('touchend', endLP, { passive: true }); document.addEventListener('touchcancel', endLP, { passive: true }); document.addEventListener('touchmove', () => clearTimeout(lpT), { passive: true });
+    document.addEventListener('contextmenu', e => { if (e.target.closest && e.target.closest('.c[data-id]') && zoomEl.classList.contains('touch')) e.preventDefault(); });
     document.addEventListener('mouseout', e => { const c = e.target.closest && e.target.closest('.c[data-id]'); if (c && !(e.relatedTarget && c.contains(e.relatedTarget))) hideZoom(); });
   }
 
