@@ -292,7 +292,7 @@
     const res = '<div class="sres"><span class="lbl">Réserve<span class="mx"> (max ' + X.rl + ')</span></span><div class="cards rz">' + (X.reserve.length ? cardsEl(X.reserve) : '') + slots(X.rl - X.reserve.length) + '</div></div>';
     const lm = '<div class="slm"><span class="lbl">Repères<span class="mx"> (max ' + X.ll + ')</span></span><div class="cards rz">' + (X.lm.length ? cardsEl(X.lm) : '') + slots(X.ll - X.lm.length) + '</div></div>';
     const disc = '<div class="discz" data-disc="' + p + '" title="Voir la défausse"><span class="lbl">Défausse (' + X.discard.length + ')</span><span class="dico">🗑 ' + X.discard.length + '</span><div class="cards rz">' + (top ? cardEl(top) : '<i class="slot"></i>') + '</div></div>';
-    const deck = '<div class="deckz"><span class="lbl">Deck<span class="dn"> ' + (X.deckCount || 0) + '</span></span><div class="deckpile" title="Cartes restantes dans le deck"><b>' + (X.deckCount || 0) + '</b></div></div>';
+    const deck = '<div class="deckz"><span class="lbl">Deck</span><span class="dchip" title="Cartes restantes dans le deck"><i></i>' + (X.deckCount || 0) + '</span><div class="deckpile" title="Cartes restantes dans le deck"><b>' + (X.deckCount || 0) + '</b></div></div>';
     const mid = p !== me ? '<div class="ofan" title="Cartes en main de l’adversaire : ' + (X.handCount || 0) + '">' + backs(X.handCount || 0, 'fback') + '</div>' : '<div></div>';
     return '<div class="strip2"><div class="sL">' + deck + res + '</div>' + mid + '<div class="sR">' + lm + disc + '</div></div>';
   }
@@ -558,9 +558,11 @@
   const MOB = () => matchMedia('(max-width:900px)').matches;
   { const h = document.querySelector('.hand'); if (h && window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty('--handh', h.offsetHeight + 'px')).observe(h); }
 
+  let PEEK = null, PEEKSTEP = null;
   function selPreview() {
-    const x = sel && V && MOB() ? card(sel) : null, L = x && locate(sel);
-    if (x && !x.tok && L && L.p === me && (L.z === 'hand' || L.z === 'reserve')) { zoomEl.innerHTML = zoomHtml(x); zoomEl.classList.remove('touch'); zoomEl.classList.add('selz'); zoomEl.style.display = 'block'; }
+    if (V && V.step !== PEEKSTEP) { PEEK = null; PEEKSTEP = V.step; }
+    const sid = sel || PEEK, x = sid && V && MOB() ? card(sid) : null, L = x && locate(sid);
+    if (x && !x.tok && L && L.p === me && ['hand', 'reserve', 'lm'].includes(L.z)) { zoomEl.innerHTML = zoomHtml(x); zoomEl.classList.remove('touch'); zoomEl.classList.add('selz'); zoomEl.style.display = 'block'; }
     else if (zoomEl.classList.contains('selz')) { zoomEl.classList.remove('selz'); zoomEl.style.display = 'none'; }
   }
   function bindZoom() {
@@ -628,12 +630,12 @@
         if (isTarget(id)) { dispatch({ type: 'choose', target: id }); return; }
         if ((V.step === 'SETUP_MANA' || V.step === 'EXPAND') && L && L.p === me && L.z === 'hand' && !V.ready[me]) {
           const lim = V.step === 'SETUP_MANA' ? 3 - V.players[me].mana.length : 1;
-          if (pick.has(id)) pick.delete(id); else { if (lim === 1) pick.clear(); if (pick.size < lim) pick.add(id); }
+          if (pick.has(id)) { pick.delete(id); PEEK = null; } else { if (lim === 1) pick.clear(); if (pick.size < lim) pick.add(id); PEEK = id; }
           render(); return;
         }
         if (V.step === 'CLEANUP' && L && L.p === me && !V.ready[me] && (L.z === 'reserve' || L.z === 'lm')) {
           const P = V.players[me], set = L.z === 'reserve' ? keep.R : keep.L, lim = L.z === 'reserve' ? Math.max(0, P.reserve.length - P.rl) : Math.max(0, P.lm.length - P.ll);
-          if (set.has(id)) set.delete(id); else { if (lim === 1) set.clear(); if (set.size < lim) set.add(id); }
+          if (set.has(id)) { set.delete(id); PEEK = null; } else { if (lim === 1) set.clear(); if (set.size < lim) set.add(id); PEEK = id; }
           render(); return;
         }
         sel = (sel === id && MOB()) ? null : id; sideView = 'card'; render();

@@ -388,7 +388,7 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 @keyframes drawn{0%{transform:translate(-60px,-40px) rotate(-8deg) scale(.7);opacity:0}60%{opacity:1}100%{transform:none;opacity:1}}
 @media(prefers-reduced-motion:no-preference){.hand .c.drawn{animation:drawn .45s cubic-bezier(.2,.8,.3,1) both}}
 .ofan2,.dico{display:none}
-.lbl .dn{display:none}
+.dchip{display:none}
 @media(max-width:900px){
  .side{position:fixed;top:0;right:0;bottom:0;width:min(320px,86vw);height:100dvh!important;z-index:60;border-top:0!important;border-left:1px solid var(--line)!important;box-shadow:-8px 0 30px #0004;transform:translateX(105%);transition:transform .22s ease;overflow:auto}
  body.sideopen .side{transform:none}
@@ -402,7 +402,15 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
  .zone .slot,.cards.rz .slot{display:none}
  .lbl .mx{display:none}
  .strip2 .deckz .deckpile{display:none!important}
- .lbl .dn{display:inline;font-weight:700;color:var(--ink)}
+ .deckz>.lbl{display:none!important}
+ .dchip{display:inline-flex;align-items:center;gap:6px;font-size:13px;font-weight:600;background:#0005;border-radius:9px;padding:3px 8px 3px 6px}
+ .dchip i{display:block;width:12px;aspect-ratio:360/502;border-radius:2px;background:url(img/ui/scan/cardback.webp) center/cover;box-shadow:1px 1px 0 #3a3022,2px 2px 0 #c8c0aa,3px 3px 0 #8f856e}
+ .discz .dico{font-size:13px}
+ .zone.exp.eH .xstats{grid-column:1!important;justify-self:start!important;margin:0 0 0 2px!important}
+ .zone.exp.eC .xstats{grid-column:3!important;justify-self:end!important;margin:0 2px 0 0!important}
+ .herocol:not(.mine){display:flex;flex-direction:column;align-items:center;justify-content:flex-end}
+ .herocol:not(.mine) .ofan2{order:-2;margin:0 0 3px}
+ .herocol:not(.mine) .hname{order:-1}
  .strip2 .deckz{flex:none;width:auto!important;min-width:0}
  .strip2 .sL,.strip2 .sR{gap:8px!important}
  .strip2 .sL{justify-content:flex-start!important}
@@ -421,7 +429,7 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
  .discz .cards,.discz>.lbl{display:none!important}
  .discz .dico{display:inline-flex;align-items:center;gap:3px;font-size:13px;font-weight:600;background:#0005;border-radius:9px;padding:3px 8px;cursor:pointer}
  body.sideopen #zoomCard.selz{display:none!important}
- #zoomCard.selz{position:fixed;left:6px;right:auto;top:max(6px,env(safe-area-inset-top));transform:none;width:min(40vw,190px);z-index:45;pointer-events:none}
+ #zoomCard.selz{position:fixed;left:50%;right:auto;top:max(6px,env(safe-area-inset-top));transform:translateX(-50%);width:min(46vw,220px);z-index:45;pointer-events:none}
  .actionbox{position:relative}
  .actionbox .row{justify-content:flex-end}
 }
@@ -501,7 +509,7 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 <script src="js/engine.js?v=1795716790"></script>
 <script src="js/ai.js?v=1795716790"></script>
 <script src="js/net.js?v=1795716790"></script>
-<script src="js/play.js?v=1795724354"></script>
+<script src="js/play.js?v=1795724661"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
  t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');
