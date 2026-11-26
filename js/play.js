@@ -169,6 +169,11 @@
     if (ch.kind === 'charres') return (L.z === 'exp' || L.z === 'reserve') && isChar;
     if (ch.kind === 'myres') return L.z === 'reserve' && L.p === me && (!ch.notSelf || id !== ch.src);
     if (ch.kind === 'reschar') return L.z === 'reserve' && isChar;
+    if (ch.kind === 'myctr') return L.p === me && c.ctr && Object.values(c.ctr).some(v => v >= (ch.act.n || 1));
+    if (ch.fb && !(c.fleeting || c.boost > 0)) return false;
+    if (ch.tokOnly && !(c.tok && !c.tok.lm)) return false;
+    if (ch.exOnly && !c.ex) return false;
+    if (ch.tf && !c.tok && (DB[c.ref] || {}).t !== ch.tf) return false;
     if (ch.kind === 'oppany') return L.p !== me && (L.z === 'exp' || L.z === 'lm');
     if (ch.kind === 'readyable') return (L.z === 'reserve' && c.ex) || ((L.z === 'exp' || L.z === 'lm') && c.ex);
     if (ch.kind === 'augm' || ch.kind === 'anyres') return ['exp', 'reserve', 'lm'].includes(L.z) && (c.boost > 0 || (c.ctr && Object.values(c.ctr).some(v => v > 0)));
