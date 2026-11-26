@@ -307,6 +307,16 @@ button.mini{min-height:24px;padding:0 7px;font-size:11px}
 .manaico .spk{animation:twinkle 6.4s ease-in-out infinite;inset:-7px;transform:rotate(18deg)}.manaico .spk::before{width:5px;height:5px}
 .manaico .spk.s2{animation:twinkle 7.6s ease-in-out 2.6s infinite;inset:-4px;transform:rotate(58deg)}.manaico .spk.s2::before{width:2.5px;height:2.5px}
 #myMana{bottom:16px}
+
+.herocol:not(.mine) .herowrap .c{transform:none}
+.herocol:not(.mine) .herowrap .c.ex{transform:rotate(45deg) scale(.86)}
+.fptok{display:none}
+/* Jeton « passer » : face bleue = peut jouer, face dorée = a passé */
+.pass{position:absolute;right:-12px;bottom:4px;width:36px;height:36px;perspective:200px;z-index:3;pointer-events:none}
+.pass img{position:absolute;inset:0;width:100%;height:100%;border-radius:50%;backface-visibility:hidden;box-shadow:0 2px 6px #000c;transition:transform .5s cubic-bezier(.4,.2,.2,1)}
+.pass .pb{transform:rotateY(180deg)}
+.pass.done .pf{transform:rotateY(-180deg)}.pass.done .pb{transform:rotateY(0)}
+@media(max-width:900px){.pass{width:26px;height:26px;right:-8px}}
 </style>
 </head>
 <body>
@@ -353,8 +363,8 @@ button.mini{min-height:24px;padding:0 7px;font-size:11px}
 </section>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/engine.js?v=1795701221"></script>
-<script src="js/net.js?v=1795701221"></script>
-<script src="js/play.js?v=1795701221"></script>
+<script src="js/engine.js?v=1795701843"></script>
+<script src="js/net.js?v=1795701843"></script>
+<script src="js/play.js?v=1795701843"></script>
 </body>
 </html>
