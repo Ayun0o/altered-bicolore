@@ -1184,5 +1184,18 @@
   }
 
   function supportBody(d) { const cl = clauses({ xe: ((d && d.ee) || '') + '  ' + ((d && d.xe) || '') }).find(x => /^\{d\}\s*:/i.test(x)); return cl ? { text: cl, auto: !!parseBody(cl.replace(/^\{d\}\s*:\s*/i, '')) } : null; }
-  root.AlteredEngine = { supportBody, parseBody, clauses, newGame, addPlayer, advance, act, view, totals, kw, num, distance, readyMana, LAST };
+  // Coût réel le plus bas pour jouer une carte de la main ou de la réserve (null si injouable : épuisée en réserve)
+  function playCost(s, p, id, db) {
+    const P = s.players[p], c = s.cards[id], d = c && db[c.ref]; if (!P || !d) return null;
+    const fromRes = P.reserve.includes(id); if (!fromRes && !P.hand.includes(id)) return null; if (fromRes && c.ex) return null;
+    const tmatch = t => t === 'card' || (t === 'character' && d.t === 'CHARACTER') || (t === 'spell' && d.t === 'SPELL') || (t === 'permanent' && /PERMANENT/.test(d.t));
+    let best = Infinity;
+    for (const e of ['H', 'C']) {
+      const base = Math.max(0, num(fromRes ? d.rc : d.c) - selfDiscount(s, p, id, db, e));
+      const di = (P.disc || []).findIndex(x => tmatch(x.t));
+      best = Math.min(best, di >= 0 ? Math.max(Math.min(base, P.disc[di].min || 0), base - P.disc[di].n) : base);
+    }
+    return best;
+  }
+  root.AlteredEngine = { playCost, supportBody, parseBody, clauses, newGame, addPlayer, advance, act, view, totals, kw, num, distance, readyMana, LAST };
 })(typeof window !== 'undefined' ? window : globalThis);

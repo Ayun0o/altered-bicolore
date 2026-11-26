@@ -413,6 +413,11 @@
     document.body.style.background = 'var(--bg)';
     const mainEl = document.querySelector('#game .main'); if (mainEl) mainEl.style.background = 'linear-gradient(to bottom,' + (fo ? FC[fo] + '30' : 'transparent') + ' 0%,' + (fo ? FC[fo] + '99' : 'transparent') + ' 26%,transparent 46%,transparent 54%,' + (fm ? FC[fm] + '99' : 'transparent') + ' 74%,' + (fm ? FC[fm] + '30' : 'transparent') + ' 100%),var(--bg)';
     renderPrompt(P, O); renderSide();
+    { const P2 = V.players[me], my = V.step === 'AFTERNOON' && V.turn === me && P2 && !(V.passed && V.passed[me]) && !CH() && E.playCost;
+      const av = my ? E.readyMana(P2) : 0;
+      document.querySelectorAll('.c[data-id]').forEach(el => { const id = el.dataset.id; let ok = false;
+        if (my && (P2.hand.includes(id) || P2.reserve.includes(id))) { const k = E.playCost(V, me, id, DB); ok = k != null && k <= av; }
+        el.classList.toggle('can', ok); }); }
     animate(); recordStats(); selPreview();
     if (window.scrollY !== _sy) window.scrollTo(0, _sy); if (_mn && _mn.scrollTop !== _mt) _mn.scrollTop = _mt;
   }
