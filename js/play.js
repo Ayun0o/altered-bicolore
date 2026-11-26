@@ -206,7 +206,7 @@
   const PH = { SETUP_MANA: 'Mise en place', MORNING: 'Matin', EXPAND: 'Matin', NOON: 'Midi', AFTERNOON: 'Après-midi', DUSK: 'Crépuscule', NIGHT: 'Nuit', CLEANUP: 'Nuit', END: 'Fin de partie' };
   function manaIcon(X, mine) {
     const r = X.mana.filter(m => !m.ex).length;
-    return '<div class="manabox' + (mine ? ' mine' : '') + '" title="Mana disponible / total"><div class="manaico"><b>' + r + '</b><span>/' + X.mana.length + '</span></div>' +
+    return '<div class="manabox' + (mine ? ' mine' : '') + '" title="Mana disponible / total"><div class="manaico"' + (mine ? ' data-manaview="1" title="Voir les cartes en mana"' : '') + '><i class="spk"></i><i class="spk s2"></i><i class="spk s3"></i><b>' + r + '</b><span>/' + X.mana.length + '</span></div>' +
       (mine ? '<div class="orbs">' + X.mana.map((m, i) => '<span class="orb' + (m.ex ? ' ex' : '') + '" data-orb="' + i + '" title="Épuiser / redresser"></span>').join('') + '</div>' : '') + '</div>';
   }
   function totPills(t, terr, winT, base) {
@@ -240,11 +240,13 @@
       const badge = V.tie ? '' : (winT.length && blocked ? '<span class="nowill" title="Bloquée par un Défenseur">🛡</span>' : '');
       return '<div class="zone exp e' + e + (mine ? ' mine' : '') + (will ? ' willz' : '') + '"' + (mine ? ' data-drop="' + e + '"' : '') + '><h3>' + (e === 'H' ? 'Héros' : 'Compagnon') + ' <span class="tot" id="tot-' + p + e + '">' + tot + '</span>' + badge + (asc ? '<span class="asc" title="Expédition élevée">⇑</span>' : '') + '<span class="sp"></span><button class="mini" data-pos="' + p + ',' + e + ',' + (e === 'C' ? 1 : -1) + '" title="' + (e === 'C' ? 'Avancer' : 'Reculer') + ' l’expédition">◀</button><button class="mini" data-pos="' + p + ',' + e + ',' + (e === 'C' ? -1 : 1) + '" title="' + (e === 'C' ? 'Reculer' : 'Avancer') + ' l’expédition">▶</button></h3><div class="cards">' + cardsEl(X.exp[e]) + '</div></div>';
     };
-    return zone('H') + '<div class="herocol">' + (X.hero ? cardEl(X.hero) : '') + '<span class="hname" style="color:' + (FC[(DB[(card(X.hero) || {}).ref] || {}).f] || 'inherit') + '">' + esc(X.name) + '</span></div>' + zone('C');
+    return zone('H') + '<div class="herocol">' + (!mine ? '<div class="ohand" title="Cartes en main de l’adversaire : ' + (X.handCount || 0) + '">' + backs(X.handCount || 0, 'mback') + '</div>' : '') + (X.hero ? cardEl(X.hero) : '') + '<span class="hname" style="color:' + (FC[(DB[(card(X.hero) || {}).ref] || {}).f] || 'inherit') + '">' + esc(X.name) + '</span></div>' + zone('C');
   }
+  const slots = n => n > 0 ? '<i class="slot"></i>'.repeat(Math.min(n, 4)) : '';
+  const backs = (n, cls) => Array.from({ length: Math.min(n, 12) }, () => '<i class="' + cls + '"></i>').join('');
   function strip(X, p) {
     const top = X.discard[X.discard.length - 1];
-    return '<div class="strip"><div><span class="lbl">Réserve (max ' + X.rl + ')</span><div class="cards sm">' + cardsEl(X.reserve) + '</div></div><div><span class="lbl">Repères (max ' + X.ll + ')</span><div class="cards sm">' + cardsEl(X.lm) + '</div></div><span class="sp"></span><div class="discz" data-disc="' + p + '" title="Voir la défausse"><span class="lbl">Défausse (' + X.discard.length + ')</span><div class="cards sm">' + (top ? cardEl(top) : '<span class="note empty">vide</span>') + '</div></div></div>';
+    return '<div class="strip"><div><span class="lbl">Réserve (max ' + X.rl + ')</span><div class="cards sm">' + (X.reserve.length ? cardsEl(X.reserve) : '') + slots(X.rl - X.reserve.length) + '</div></div><div><span class="lbl">Repères (max ' + X.ll + ')</span><div class="cards sm">' + (X.lm.length ? cardsEl(X.lm) : '') + slots(X.ll - X.lm.length) + '</div></div><span class="sp"></span><div class="discz" data-disc="' + p + '" title="Voir la défausse"><span class="lbl">Défausse (' + X.discard.length + ')</span><div class="cards sm">' + (top ? cardEl(top) : '<span class="note empty">vide</span>') + '</div></div></div>';
   }
   const SH = '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2 20 5v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z" fill="currentColor"/><path d="M12 6l1.6 3.3 3.6.5-2.6 2.5.6 3.6L12 14.2 8.8 15.9l.6-3.6-2.6-2.5 3.6-.5z" fill="#fff"/></svg>';
   const PAW = '<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="11" fill="currentColor"/><g fill="#fff"><ellipse cx="12" cy="15.5" rx="4" ry="3.2"/><circle cx="7" cy="10.5" r="1.8"/><circle cx="10.2" cy="7.5" r="1.8"/><circle cx="13.8" cy="7.5" r="1.8"/><circle cx="17" cy="10.5" r="1.8"/></g></svg>';
@@ -290,7 +292,7 @@
     $('adv').innerHTML = track();
     $('myExps').innerHTML = P ? expRow(me) : '';
     $('myStrip').innerHTML = P ? strip(P, me) : '';
-    $('myInfo').innerHTML = P ? 'deck ' + (P.deckCount || 0) + ' · défausse ' + P.discard.length : '';
+    $('myInfo').innerHTML = P ? '<div class="deckpile" title="Cartes restantes dans ton deck"><b>' + (P.deckCount || 0) + '</b></div>' : '';
     $('myMana').innerHTML = P ? manaIcon(P, true) : '';
     $('hand').innerHTML = P ? cardsEl(P.hand) : '';
     $('log').innerHTML = V.log.slice().reverse().slice(0, 80).map(l => '<div>' + esc(l.m) + '</div>').join('');
@@ -364,6 +366,7 @@
   }
   function renderSide() {
     const D = $('detail');
+    if (sideView === 'mana') { const P = V.players[me]; const ids = P ? P.mana.map(m => m.id).filter(id => V.cards[id] && V.cards[id].ref !== '__mana') : []; const extra = P ? P.mana.length - ids.length : 0; D.innerHTML = '<div class="row" style="justify-content:space-between"><b>Mes cartes en mana (' + (P ? P.mana.length : 0) + ')</b><button data-do="closeSide">Fermer</button></div><div class="cards sm" style="margin-top:8px">' + cardsEl(ids) + '</div>' + (extra ? '<p class="note">+ ' + extra + ' mana sans carte (ajouté avec l’outil).</p>' : ''); return; }
     if (sideView === 'discard') { D.innerHTML = '<div class="row" style="justify-content:space-between"><b>Défausses</b><button data-do="closeSide">Fermer</button></div>' + V.players.map(X => X ? '<span class="lbl" style="margin-top:8px">' + esc(X.name) + '</span><div class="cards sm">' + cardsEl(X.discard) + '</div>' : '').join(''); return; }
     if (sideView === 'token') {
       D.innerHTML = '<b>Créer un jeton</b><div style="display:grid;gap:6px;margin-top:6px"><select id="tkPre">' + TOKENS.map((t, i) => '<option value="' + i + '">' + esc(LANG === 'en' ? t.en : t.fr) + ' — ' + esc(LANG === 'en' ? t.type : t.typefr) + ' ' + t.p.join('/') + '</option>').join('') + '<option value="custom">Autre jeton…</option></select>' +
@@ -451,12 +454,14 @@
       if (tool) {
         const k = tool.dataset.tool;
         if (k === 'draw') dispatch({ type: 'draw', n: 1 }); else if (k === 'resupply') dispatch({ type: 'resupply' }); else if (k === 'shuffle') dispatch({ type: 'shuffle' });
+        else if (k === 'manaAdd') dispatch({ type: 'manaAdd' }); else if (k === 'manaDel') dispatch({ type: 'manaDel' });
         else if (k === 'token') { sideView = 'token'; renderSide(); } else if (k === 'discard') { sideView = 'discard'; renderSide(); }
         else if (k === 'lang') { LANG = LANG === 'en' ? 'fr' : 'en'; try { localStorage.setItem('alt-bi-lang', LANG); } catch (x) { } render(); }
         return;
       }
       const pos = t.closest('[data-pos]');
       if (pos) { const [p, ex, n] = pos.dataset.pos.split(','); dispatch({ type: 'pos', p: +p, e: ex, n: +n }); return; }
+      if (t.closest('[data-manaview]')) { sideView = 'mana'; renderSide(); return; }
       const orb = t.closest('[data-orb]');
       if (orb) { dispatch({ type: 'manaEx', i: +orb.dataset.orb }); return; }
       const dz = t.closest('[data-drop]');

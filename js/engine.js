@@ -1057,6 +1057,8 @@
       case 'boost': if (!c) return 'Carte invalide'; c.boost = Math.max(0, c.boost + (a.n || 1)); log(s, P.name + ' : ' + name(a.id) + ' ' + (a.n > 0 ? '+' : '') + a.n + ' boost (' + c.boost + ').'); break;
       case 'flag': if (!c || !['fleeting', 'anchored', 'asleep', 'ex'].includes(a.f)) return 'Invalide'; c[a.f] = !c[a.f]; log(s, P.name + ' : ' + name(a.id) + ' ' + fl(a.f) + (c[a.f] ? ' activé' : ' retiré') + '.'); break;
       case 'manaEx': { const m = P.mana[a.i]; if (!m) return 'Invalide'; m.ex = !m.ex; break; }
+      case 'manaAdd': { const id = 'mana' + (s.nid++); s.cards[id] = { id, ref: '__mana', owner: p, boost: 0, ex: false }; P.mana.push({ id, ex: false }); log(s, P.name + ' gagne un mana (outil).'); break; }
+      case 'manaDel': { const m = P.mana.pop(); if (!m) return 'Plus de mana.'; if (s.cards[m.id] && s.cards[m.id].ref !== '__mana') P.discard.push(m.id); else delete s.cards[m.id]; log(s, P.name + ' perd un mana (outil).'); break; }
       case 'draw': { const n = Math.max(1, Math.min(10, a.n || 1)); for (let i = 0; i < n; i++) draw(s, p); log(s, P.name + ' pioche ' + n + ' carte(s).'); break; }
       case 'resupply': { if (!P.deck.length && P.discard.length) { P.deck = P.discard.splice(0); shuffle(P.deck, Math.random); } const id = P.deck.shift(); if (id) { P.reserve.push(id); log(s, P.name + ' se ravitaille : ' + name(id) + ' va en réserve.'); } break; }
       case 'shuffle': shuffle(P.deck, Math.random); log(s, P.name + ' mélange son deck.'); break;
