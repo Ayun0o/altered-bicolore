@@ -419,7 +419,7 @@
       document.querySelectorAll('.c[data-id]').forEach(el => { const id = el.dataset.id; let ok = false;
         if (my && (P2.hand.includes(id) || P2.reserve.includes(id))) { const k = E.playCost(V, me, id, DB); ok = k != null && k <= av; }
         el.classList.toggle('can', ok); }); }
-    animate(); recordStats(); selPreview();
+    animate(); recordStats(); selPreview(); quickAct();
     if (window.scrollY !== _sy) window.scrollTo(0, _sy); if (_mn && _mn.scrollTop !== _mt) _mn.scrollTop = _mt;
   }
 
@@ -524,6 +524,17 @@
     }
     return null;
   }
+  function supTxt(d) { const t = String((LANG === 'en' ? d.ee : d.e) || '').replace(/#/g, '').replace(/^.*?\{D\}\s*:\s*/i, '').replace(/\s*\([^)]*\)\s*$/, '').trim(); return t || 'capacité de Soutien'; }
+  // Petit bouton ▶ sur la carte sélectionnée quand elle a une capacité activable (Soutien en réserve, {T} du héros)
+  function quickAct() {
+    document.querySelectorAll('.qact').forEach(x => x.remove());
+    if (!sel || !V) return; const c = card(sel), d = c && DB[c.ref], L = c && locate(sel); if (!d || !L || L.p !== me) return;
+    let act = null, tip = '';
+    if (L.z === 'reserve' && !c.ex) { const sb = E.supportBody(d); if (sb) { act = { type: 'support', id: sel }; tip = 'Activer : me défausser → ' + supTxt(d); } }
+    else if (L.z === 'hero' && !c.ex && /\{T\}\s*[,:]/i.test(d.xe || '')) { act = { type: 'heroT' }; tip = 'Activer la capacité du héros'; }
+    if (!act) return;
+    document.querySelectorAll('.c[data-id="' + sel + '"]').forEach(el => { const b = document.createElement('button'); b.className = 'qact'; b.title = tip; b.textContent = '▶'; b.dataset.act = JSON.stringify(act); el.appendChild(b); });
+  }
   function renderSide() {
     const D = $('detail');
     if (sideView === 'mana') { const P = V.players[me]; const ids = P ? P.mana.map(m => m.id).filter(id => V.cards[id] && V.cards[id].ref !== '__mana') : []; const extra = P ? P.mana.length - ids.length : 0; D.innerHTML = '<div class="row" style="justify-content:space-between"><b>Mes cartes en mana (' + (P ? P.mana.length : 0) + ')</b><button data-do="closeSide">Fermer</button></div><div class="cards sm" style="margin-top:8px">' + cardsEl(ids) + '</div>' + (extra ? '<p class="note">+ ' + extra + ' mana sans carte (ajouté avec l’outil).</p>' : ''); return; }
@@ -556,7 +567,7 @@
     }
     if (mine && L.z === 'hero' && d && /\{T\}\s*[,:]/i.test(d.xe || '')) b('Activer la capacité {T} du héros' + (c.ex ? ' (déjà épuisé)' : ''), { type: 'heroT' }, 1);
     if (mine && L.z === 'lm' && d && c.completed && /^\[\[Completed\]\]\s*,\s*\{T\}/i.test(d.ee || '')) b('Activer la capacité {T} de la Prouesse' + (c.ex ? ' (déjà épuisée)' : ''), { type: 'heroT', id: sel }, 1);
-    if (mine && L.z === 'reserve' && d) { const sb = E.supportBody(d); if (sb) b('Capacité de réserve (me défausser)' + (sb.auto ? '' : ' — effet manuel'), { type: 'support', id: sel }, 1); }
+    if (mine && L.z === 'reserve' && d) { const sb = E.supportBody(d); if (sb) b('Me défausser : ' + supTxt(d) + (sb.auto ? '' : ' (effet manuel)'), { type: 'support', id: sel }, 1); }
     if (mine && L.z === 'hand') { b('Mettre en mana', { type: 'toMana', id: sel, free: !['SETUP_MANA', 'EXPAND'].includes(V.step) }); b('Vers la réserve', { type: 'move', id: sel, to: 'reserve' }); b('Défausser', { type: 'move', id: sel, to: 'discard' }); b('Sur le deck', { type: 'move', id: sel, to: 'deck', top: true }); b('Sous le deck', { type: 'move', id: sel, to: 'deck' }); }
     if (L.z === 'exp') { b('+1 boost', { type: 'boost', id: sel, n: 1 }); b('−1 boost', { type: 'boost', id: sel, n: -1 }); b('Fugace', { type: 'flag', id: sel, f: 'fleeting' }); b('Ancré', { type: 'flag', id: sel, f: 'anchored' }); b('Endormi', { type: 'flag', id: sel, f: 'asleep' }); b('Épuisé', { type: 'flag', id: sel, f: 'ex' }); b('Autre expédition', { type: 'move', id: sel, to: 'exp', e: L.e === 'H' ? 'C' : 'H' }); b('Vers la réserve', { type: 'move', id: sel, to: 'reserve' }); b('Vers la main', { type: 'move', id: sel, to: 'hand' }); b('Défausser', { type: 'move', id: sel, to: 'discard' }); }
     if (L.z === 'reserve') { b('Épuiser / redresser', { type: 'flag', id: sel, f: 'ex' }); b('Défausser', { type: 'move', id: sel, to: 'discard' }); b('Vers la main', { type: 'move', id: sel, to: 'hand' }); }
