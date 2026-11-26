@@ -257,6 +257,31 @@ button.mini{min-height:24px;padding:0 7px;font-size:11px}
 @media(max-width:900px){.strip2{grid-template-columns:minmax(0,1fr) 56px minmax(0,1fr)}.cards.rz .c,.cards.rz .slot{width:44px}.hand{grid-template-columns:auto minmax(0,1fr)}.handleft{margin-bottom:4px;gap:6px}}
 .main{padding-bottom:150px}
 .hand{background:linear-gradient(transparent,#1d1f22d9 45%)}
+
+/* Ligne réserve / repères : symétrique autour du centre, deck à gauche, défausse à droite */
+.strip2 .sL{justify-content:space-between;padding:0 44px 0 38px}
+.strip2 .sR{justify-content:space-between;padding:0 38px 0 44px}
+.strip2 .slm{text-align:right}.strip2 .slm .cards{justify-content:flex-end}
+.strip2 .discz{text-align:right}.strip2 .discz .cards{justify-content:flex-end}
+.strip2 .deckz .deckpile{width:66px;margin-top:2px}
+.herocol.mine{justify-content:flex-start}
+@media(max-width:900px){.strip2 .sL{padding:0 8px 0 4px}.strip2 .sR{padding:0 4px 0 8px}.strip2 .deckz .deckpile{width:44px}}
+/* Carte épuisée : elle se couche sur le côté */
+.c{transition:transform .28s cubic-bezier(.3,.8,.3,1),filter .28s}
+.c.ex{transform:rotate(90deg) scale(.74)}
+.c.ex::after{transform:rotate(-90deg);bottom:45%}
+.hand .c.ex{transform:none}
+/* Orbe de mana : étincelles irrégulières, lentes, et traînées de mana */
+.manaico .spk{animation:twinkle 6.4s ease-in-out infinite;inset:-6px;transform:rotate(-38deg)}
+.manaico .spk::before{width:6px;height:6px}
+.manaico .spk.s2{animation:twinkle 7.3s ease-in-out 1.7s infinite;inset:-3px;transform:rotate(71deg)}.manaico .spk.s2::before{width:3px;height:3px}
+.manaico .spk.s3{animation:twinkle 5.9s ease-in-out 3.9s infinite;inset:-11px;transform:rotate(166deg)}.manaico .spk.s3::before{width:4px;height:4px}
+.manaico .spk.s4{animation:twinkle 8.1s ease-in-out 5.2s infinite;inset:-8px;transform:rotate(242deg)}.manaico .spk.s4::before{width:2px;height:2px}
+.manaico{overflow:visible}
+.manaico .streak{position:absolute;inset:3px;border-radius:50%;overflow:hidden;pointer-events:none}
+.manaico .streak::before{content:'';position:absolute;left:-60%;top:30%;width:70%;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,#d6f0ffcc,transparent);transform:rotate(-24deg);animation:streak 9s ease-in-out infinite}
+@keyframes streak{0%,70%{left:-70%;opacity:0}75%{opacity:1}92%{left:110%;opacity:.8}100%{left:110%;opacity:0}}
+@media(prefers-reduced-motion:reduce){.manaico .streak::before{animation:none;opacity:0}}
 </style>
 </head>
 <body>
@@ -303,8 +328,8 @@ button.mini{min-height:24px;padding:0 7px;font-size:11px}
 </section>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/engine.js?v=1795700074"></script>
-<script src="js/net.js?v=1795700074"></script>
-<script src="js/play.js?v=1795700074"></script>
+<script src="js/engine.js?v=1795700774"></script>
+<script src="js/net.js?v=1795700774"></script>
+<script src="js/play.js?v=1795700774"></script>
 </body>
 </html>

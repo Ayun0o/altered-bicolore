@@ -209,7 +209,7 @@
   const PH = { SETUP_MANA: 'Mise en place', MORNING: 'Matin', EXPAND: 'Matin', NOON: 'Midi', AFTERNOON: 'Après-midi', DUSK: 'Crépuscule', NIGHT: 'Nuit', CLEANUP: 'Nuit', END: 'Fin de partie' };
   function manaIcon(X, mine) {
     const r = X.mana.filter(m => !m.ex).length;
-    return '<div class="manabox' + (mine ? ' mine' : '') + '" title="Mana disponible / total"><div class="manaico"' + (mine ? ' data-manaview="1" title="Voir les cartes en mana"' : '') + '><i class="spk"></i><i class="spk s2"></i><i class="spk s3"></i><b>' + r + '</b><span>/' + X.mana.length + '</span></div>' +
+    return '<div class="manabox' + (mine ? ' mine' : '') + '" title="Mana disponible / total"><div class="manaico"' + (mine ? ' data-manaview="1" title="Voir les cartes en mana"' : '') + '><i class="spk"></i><i class="spk s2"></i><i class="spk s3"></i><i class="spk s4"></i><i class="streak"></i><b>' + r + '</b><span>/' + X.mana.length + '</span></div>' +
       (mine ? '<div class="orbs">' + X.mana.map((m, i) => '<span class="orb' + (m.ex ? ' ex' : '') + '" data-orb="' + i + '" title="Épuiser / redresser"></span>').join('') + '</div>' : '') + '</div>';
   }
   function totPills(t, terr, winT, base) {
@@ -243,7 +243,8 @@
       const badge = V.tie ? '' : (winT.length && blocked ? '<span class="nowill" title="Bloquée par un Défenseur">🛡</span>' : '');
       return '<div class="zone exp e' + e + (mine ? ' mine' : '') + (will ? ' willz' : '') + '"' + (mine ? ' data-drop="' + e + '"' : '') + '><h3 class="xh"><span class="xstats"><span class="tot" id="tot-' + p + e + '">' + tot + '</span>' + badge + (asc ? '<span class="asc" title="Expédition élevée">⇑</span>' : '') + '</span><span class="xname">' + (e === 'H' ? 'Héros' : 'Compagnon') + '</span><span class="xarr"><button class="mini" data-pos="' + p + ',' + e + ',' + (e === 'C' ? 1 : -1) + '" title="' + (e === 'C' ? 'Avancer' : 'Reculer') + ' l’expédition">◀</button><button class="mini" data-pos="' + p + ',' + e + ',' + (e === 'C' ? -1 : 1) + '" title="' + (e === 'C' ? 'Reculer' : 'Avancer') + ' l’expédition">▶</button></span></h3><div class="cards">' + cardsEl(X.exp[e]) + '</div></div>';
     };
-    return zone('H') + '<div class="herocol">' + (X.hero ? cardEl(X.hero) : '') + '<span class="hname" style="color:' + (FC[(DB[(card(X.hero) || {}).ref] || {}).f] || 'inherit') + '">' + esc(X.name) + '</span></div>' + zone('C');
+    const hn = '<span class="hname" style="color:' + (FC[(DB[(card(X.hero) || {}).ref] || {}).f] || 'inherit') + '">' + esc(X.name) + '</span>';
+    return zone('H') + '<div class="herocol' + (mine ? ' mine' : '') + '">' + (mine ? hn : '') + (X.hero ? cardEl(X.hero) : '') + (mine ? '' : hn) + '</div>' + zone('C');
   }
   const slots = n => n > 0 ? '<i class="slot"></i>'.repeat(Math.min(n, 4)) : '';
   const backs = (n, cls) => { n = Math.min(n, 12); return Array.from({ length: n }, (x, i) => '<i class="' + cls + '" style="transform:rotate(' + ((i - (n - 1) / 2) * 6) + 'deg)"></i>').join(''); };
@@ -251,9 +252,10 @@
     const top = X.discard[X.discard.length - 1];
     const res = '<div class="sres"><span class="lbl">Réserve (max ' + X.rl + ')</span><div class="cards rz">' + (X.reserve.length ? cardsEl(X.reserve) : '') + slots(X.rl - X.reserve.length) + '</div></div>';
     const lm = '<div class="slm"><span class="lbl">Repères (max ' + X.ll + ')</span><div class="cards rz">' + (X.lm.length ? cardsEl(X.lm) : '') + slots(X.ll - X.lm.length) + '</div></div>';
-    const disc = '<div class="discz" data-disc="' + p + '" title="Voir la défausse"><span class="lbl">Défausse (' + X.discard.length + ')</span><div class="cards sm">' + (top ? cardEl(top) : '<span class="note empty">vide</span>') + '</div></div>';
+    const disc = '<div class="discz" data-disc="' + p + '" title="Voir la défausse"><span class="lbl">Défausse (' + X.discard.length + ')</span><div class="cards rz">' + (top ? cardEl(top) : '<i class="slot"></i>') + '</div></div>';
+    const deck = '<div class="deckz"><span class="lbl">Deck</span><div class="deckpile" title="Cartes restantes dans le deck"><b>' + (X.deckCount || 0) + '</b></div></div>';
     const mid = p !== me ? '<div class="ofan" title="Cartes en main de l’adversaire : ' + (X.handCount || 0) + '">' + backs(X.handCount || 0, 'fback') + '</div>' : '<div></div>';
-    return '<div class="strip2"><div class="sL">' + res + '</div>' + mid + '<div class="sR">' + lm + disc + '</div></div>';
+    return '<div class="strip2"><div class="sL">' + deck + res + '</div>' + mid + '<div class="sR">' + lm + disc + '</div></div>';
   }
 
   const SH = '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2 20 5v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z" fill="currentColor"/><path d="M12 6l1.6 3.3 3.6.5-2.6 2.5.6 3.6L12 14.2 8.8 15.9l.6-3.6-2.6-2.5 3.6-.5z" fill="#fff"/></svg>';
@@ -315,7 +317,7 @@
     $('adv').innerHTML = track();
     $('myExps').innerHTML = P ? expRow(me) : '';
     $('myStrip').innerHTML = P ? strip(P, me) : '';
-    $('myInfo').innerHTML = P ? '<div class="deckpile" title="Cartes restantes dans ton deck"><b>' + (P.deckCount || 0) + '</b></div>' : '';
+    $('myInfo').innerHTML = '';
     $('myMana').innerHTML = P ? manaIcon(P, true) : '';
     $('hand').innerHTML = P ? cardsEl(P.hand) : '';
     $('log').innerHTML = V.log.slice().reverse().slice(0, 80).map(l => logLine(l.m)).join('');
