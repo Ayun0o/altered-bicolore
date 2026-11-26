@@ -197,10 +197,13 @@
   function cardEl(id) {
     const c = card(id); if (!c) return '<div class="c"><div class="tok">?</div></div>';
     const b = []; if (c.boost) b.push('+' + c.boost); if (c.ctr) for (const [k, v] of Object.entries(c.ctr)) if (v) b.push(v + ' ' + k);
+    let stats = '';
+    { const L = locate(id), d = DB[c.ref] || {}; const isChar = c.tok ? !c.tok.lm : d.t === 'CHARACTER';
+      if (L && L.z === 'exp' && isChar) { const pw = c.tok ? c.tok.p : (d.p || []); stats = '<div class="pw">' + ['F', 'M', 'W'].map((k, i) => { const base = E.num(pw[i]); const v = base + (c.boost || 0); return '<b class="p' + k + (c.boost ? ' up' : '') + (c.asleep ? ' zz' : '') + '">' + v + '</b>'; }).join('') + '</div>'; } }
     const st = []; if (c.fleeting) st.push(['<img src="img/ui/scan/s_fleeting.webp" alt="">', 'Fugace']); if (c.anchored) st.push(['<img src="img/ui/scan/s_anchored.webp" alt="">', 'Ancré']); if (c.asleep) st.push(['<img src="img/ui/scan/s_asleep.webp" alt="">', 'Endormi']); if (c.completed) st.push(['🏅', 'Accomplie']);
     const k = pick.has(id), tossed = keep.R.has(id) || keep.L.has(id);
     const P = V.players[me]; const drag = P && c.owner === me && (P.hand.includes(id) || P.reserve.includes(id));
-    return '<div class="c' + (c.ex ? ' ex' : '') + (sel === id || k ? ' sel' : '') + (tossed ? ' toss' : '') + (isTarget(id) ? ' tgt' : '') + (GLOW.has(id) ? ' trig' : '') + '" data-id="' + esc(id) + '"' + (drag ? ' draggable="true"' : '') + '>' + img(c) + (st.length ? '<div class="st">' + st.map(x => '<i title="' + x[1] + '">' + x[0] + '</i>').join('') + '</div>' : '') + (b.length ? '<div class="bd">' + b.map(x => '<b' + (/^\+/.test(x) ? ' class="bst"' : '') + '>' + esc(x) + '</b>').join('') + '</div>' : '') + '</div>';
+    return '<div class="c' + (c.ex ? ' ex' : '') + (sel === id || k ? ' sel' : '') + (tossed ? ' toss' : '') + (isTarget(id) ? ' tgt' : '') + (GLOW.has(id) ? ' trig' : '') + '" data-id="' + esc(id) + '"' + (drag ? ' draggable="true"' : '') + '>' + img(c) + stats + (st.length ? '<div class="st">' + st.map(x => '<i title="' + x[1] + '">' + x[0] + '</i>').join('') + '</div>' : '') + (b.length ? '<div class="bd">' + b.map(x => '<b' + (/^\+/.test(x) ? ' class="bst"' : '') + '>' + esc(x) + '</b>').join('') + '</div>' : '') + '</div>';
   }
   const cardsEl = ids => ids.map(cardEl).join('') || '<span class="note empty">—</span>';
   const PH = { SETUP_MANA: 'Mise en place', MORNING: 'Matin', EXPAND: 'Matin', NOON: 'Midi', AFTERNOON: 'Après-midi', DUSK: 'Crépuscule', NIGHT: 'Nuit', CLEANUP: 'Nuit', END: 'Fin de partie' };
@@ -278,6 +281,21 @@
       [1, 3, 5].map(tcard).join('') +
       '<div class="tcard start"><div class="tcimg" style="background-image:url(img/ui/scan/card_start_C.webp)"></div>' + zone(7, 'S Sc') + '</div>';
   }
+  function logLine(m) {
+    let cls = 'lg';
+    if (/^Jour \d+/.test(m)) cls += ' day';
+    else if (/^(Matin|Midi|Après-midi|Crépuscule|Nuit|Arène|Fin de partie|🏆)/.test(m)) cls += ' phase';
+    else if (/^\s*→/.test(m)) cls += ' fx';
+    else if (/^🎲/.test(m)) cls += ' dice';
+    let t = esc(m);
+    const names = V.players.map((X, p) => X ? [esc(X.name), p] : null).filter(Boolean).sort((a, b) => b[0].length - a[0].length);
+    const ph = []; names.forEach(([n, p], i) => { if (!n) return; t = t.split(n).join('\u0000' + i + '\u0000'); ph[i] = '<b class="' + (p === me ? 'who-me' : 'who-op') + '">' + n + '</b>'; });
+    t = t.replace(/\u0000(\d+)\u0000/g, (x, i) => ph[+i]);
+    if (/^\s*→/.test(m)) t = t.replace(/^\s*→\s*/, '');
+    const mine = V.players[me] && m.indexOf(V.players[me].name) === 0, theirs = V.players[1 - me] && m.indexOf(V.players[1 - me].name) === 0;
+    if (cls === 'lg') cls += mine ? ' me' : theirs ? ' op' : '';
+    return '<div class="' + cls + '">' + t + '</div>';
+  }
   function render() {
     if (!V) return;
     if (V.step !== lastStep) { pick = new Set(); lastStep = V.step; }
@@ -295,7 +313,7 @@
     $('myInfo').innerHTML = P ? '<div class="deckpile" title="Cartes restantes dans ton deck"><b>' + (P.deckCount || 0) + '</b></div>' : '';
     $('myMana').innerHTML = P ? manaIcon(P, true) : '';
     $('hand').innerHTML = P ? cardsEl(P.hand) : '';
-    $('log').innerHTML = V.log.slice().reverse().slice(0, 80).map(l => '<div>' + esc(l.m) + '</div>').join('');
+    $('log').innerHTML = V.log.slice().reverse().slice(0, 80).map(l => logLine(l.m)).join('');
     const fm = P && (DB[(card(P.hero) || {}).ref] || {}).f, fo = O && (DB[(card(O.hero) || {}).ref] || {}).f;
     document.body.style.background = 'var(--bg)';
     const mainEl = document.querySelector('#game .main'); if (mainEl) mainEl.style.background = 'linear-gradient(to bottom,' + (fo ? FC[fo] + '30' : 'transparent') + ' 0%,' + (fo ? FC[fo] + '99' : 'transparent') + ' 26%,transparent 46%,transparent 54%,' + (fm ? FC[fm] + '99' : 'transparent') + ' 74%,' + (fm ? FC[fm] + '30' : 'transparent') + ' 100%),var(--bg)';
