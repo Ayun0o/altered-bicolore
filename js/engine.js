@@ -36,7 +36,7 @@
     rnd = rnd || Math.random;
     const P = { name: name || ('Joueur ' + (idx + 1)), hero: null, deck: [], hand: [], reserve: [], lm: [], discard: [], mana: [], exp: { H: [], C: [] }, pos: { H: 0, C: LAST }, rl: 2, ll: 2 };
     const h = db[deck.hero];
-    if (h) { P.hero = mk(s, deck.hero, idx); P.rl = h.rl ?? 2; P.ll = h.ll ?? 2; }
+    if (h) { P.hero = mk(s, deck.hero, idx); P.rl = h.rl ?? 2; P.ll = h.ll ?? 2; const bm = (h.xe || '').match(/I begin the game with (\d+) (\w+) counters/i); if (bm) s.cards[P.hero].ctr = { [bm[2].toLowerCase()]: +bm[1] }; if (/up to three cards in your Landmarks/i.test(h.xe || '')) P.ll = 3; }
     for (const [ref, n] of Object.entries(deck.cards || {})) for (let i = 0; i < n; i++) if (db[ref]) P.deck.push(mk(s, ref, idx));
     shuffle(P.deck, rnd);
     s.players[idx] = P;
@@ -141,6 +141,8 @@
     if ((m = c.match(/^you control (a|an|one|two|three|four|five|\d+)(?: or more)? (another |other )?(.+)$/))) { const n = nw(m[1]); return controlled(s, p, (m[2] ? 'another ' : '') + m[3], db, self).filter(id => !m[2] || id !== self).length >= n; }
     if ((m = c.match(/^you don't control (?:a|an|any) (.+)$/))) return controlled(s, p, m[1], db, self).length === 0;
     if (/^your opponent is first player$/.test(c)) return s.first !== p;
+    if ((m = c.match(/^i have (\d+) or more (\w+) counters$/))) { const k = s.cards[self]; return !!k && ((k.ctr || {})[m[2]] || 0) >= +m[1]; }
+    if (/^you control a feat$/.test(c)) return controlled(s, p, 'feat', db, self).length > 0;
     if (/^my expedition is ascended$/.test(c)) return !!e && !!(P.asc && P.asc[e]);
     if (/^i'm facing only one character$/.test(c)) return !!e && O.exp[e].filter(id => /CHARACTER/.test(typeOf(s, id, db))).length === 1;
     if (/^i'm in a single-terrain region$/.test(c)) { if (!e) return false; const r = regionOf(s, p, e); return !!r && r.terr.length === 1; }
@@ -252,6 +254,16 @@
     if ((m = b.match(/^it gains (\d+) boosts? and \[\[(fleeting|anchored|asleep)\]\]$/))) return { k: 'seq', list: [{ k: 'itBoost', n: +m[1] }, { k: 'itFlag', f: m[2] }] };
     if ((m = b.match(/^i gain (\d+) boosts? and \[\[(fleeting|anchored|asleep)\]\]$/))) return { k: 'seq', list: [{ k: 'selfBoostN', n: +m[1] }, { k: 'selfFlag', f: m[2], v: true }] };
     if (/^sacrifice it$/.test(b)) return { k: 'itDiscard' };
+    if ((m = b.match(/^draw a card and i gain (\d+) (\w+) counters?$/))) return { k: 'seq', list: [{ k: 'draw', n: 1 }, { k: 'ctr', n: +m[1], name: m[2] }] };
+    if ((m = b.match(/^it gains \[\[(asleep|anchored|fleeting)\]\]$/))) return { k: 'itFlag', f: m[1] };
+    if ((m = b.match(/^it gains (\d+) boosts?$/))) return { k: 'itBoost', n: +m[1] };
+    if ((m = b.match(/^your (hero|companion) expedition \[ascends\]$/))) return { k: 'ascend', e: m[1] === 'hero' ? 'H' : 'C' };
+    if ((m = b.match(/^create an? \[(.+?) (\d+)\/(\d+)\/(\d+)\](?: ([a-z]+))? token in target opponent's (hero|companion) expedition(, then draw a card)?$/))) { const tok = { n: m[1].replace(/\b\w/g, c => c.toUpperCase()), p: [+m[2], +m[3], +m[4]], type: m[5] || '' }; const L = [{ k: 'tokenAt', rel: 1, e: m[6] === 'hero' ? 'H' : 'C', tok }]; if (m[7]) L.push({ k: 'draw', n: 1 }); return { k: 'seq', list: L }; }
+    if ((m = b.match(/^create an? \[(.+?) (\d+)\/(\d+)\/(\d+)\](?: ([a-z]+))? token in your (hero|companion) expedition$/))) return { k: 'token', tok: { n: m[1].replace(/\b\w/g, c => c.toUpperCase()), p: [+m[2], +m[3], +m[4]], type: m[5] || '' }, where: m[6] === 'hero' ? 'H' : 'C' };
+    if ((m = b.match(/^the next character you play this turn with hand cost \{(\d+)\} or less gains \[\[(anchored|asleep)\]\]$/))) return { k: 'nextFlag', f: m[2], max: +m[1] };
+    if (/^ready target permanent in play or target card in reserve$/.test(b)) return { k: 'choose', kind: 'readyable', act: { k: 'flag', f: 'ex', v: false, ready: true }, label: 'Choisis une carte à redresser' };
+    if (/^draw a card, then discard a card from your hand$/.test(b)) return { k: 'seq', list: [{ k: 'draw', n: 1 }, { k: 'choose', kind: 'hand', act: { k: 'discard' }, label: 'Défausse une carte de ta main' }] };
+    if ((m = b.match(/^i gain (\d+) (\w+) counters?\. then, if i have (\d+) or more \w+ counters, (.+)$/))) { const y = parseBody(m[4]); if (y) return { k: 'seq', list: [{ k: 'ctr', n: +m[1], name: m[2] }, { k: 'if', c: 'i have ' + m[3] + ' or more ' + m[2] + ' counters', t: y, o: [] }] }; }
     if (/^ready me$/.test(b)) return { k: 'selfFlag', f: 'ex', v: false };
     if (/^exhaust all cards in reserve$/.test(b)) return { k: 'exAllRes' };
     if ((m = b.match(/^(?:characters|each ([a-z]+)) in your reserve gains? (\d+) boosts?$/))) return m[1] ? { k: 'resBoost', subs: [SING(m[1])], n: +m[2] } : { k: 'resBoostAll', n: +m[2] };
@@ -527,7 +539,7 @@
       case 'token': {
         let es = a.where === 'both' ? ['H', 'C'] : a.where === 'H' ? ['H'] : a.where === 'C' ? ['C'] : a.where === 'other' ? [(expOf(s, self) || 'C') === 'H' ? 'C' : 'H'] : [a.e || ctx.e || expOf(s, self) || 'H'];
         if (a.count > 1) es = Array(a.count).fill(es[0]);
-        for (const e of es) { const id = 't' + (s.nid++); s.cards[id] = { id, ref: '__token', owner: p, boost: 0, ex: false, fleeting: false, anchored: false, asleep: false, tok: { n: a.tok.n, p: a.tok.p.slice(), type: a.tok.type || '' } }; P.exp[e].push(id); ev(s, { k: 'join', p, id, e }); }
+        for (const e of es) { const id = 't' + (s.nid++); s.cards[id] = { id, ref: '__token', owner: p, boost: 0, ex: false, fleeting: false, anchored: false, asleep: false, tok: { n: a.tok.n, p: a.tok.p.slice(), type: a.tok.type || '' } }; ev(s, { k: 'tokc', p, id }); P.exp[e].push(id); ev(s, { k: 'join', p, id, e }); }
         log(s, '→ ' + P.name + ' crée ' + (es.length > 1 ? 'des jetons ' : 'un jeton ') + a.tok.n + ' ' + a.tok.p.join('/') + '.'); break;
       }
       case 'choose': { const ch = { p, kind: a.kind, opt: !!a.opt || a.kind === 'yesno', max: a.max ?? null, status: !!a.status, notSelf: !!a.notSelf, min: a.min ?? null, maxStat: a.maxStat ?? null, fb: !!a.fb, st1: a.st1 || null, otherExp: !!a.otherExp, facing: !!a.facing, nonFleet: !!a.nonFleet, ascOnly: !!a.ascOnly, tokOnly: !!a.tokOnly, exOnly: !!a.exOnly, tf: a.tf || null, terr: a.terr || null, grp: a.grp || null, act: a.act, label: a.label, src: self }; if (hasTargets(s, ch, db)) s.choices.push(ch); else log(s, '→ aucune cible possible, effet ignoré.'); break; }
@@ -731,6 +743,10 @@
     { k: 'pass', re: /^when you pass first$/, who: (s, e, P, id, w) => w.p === e.p && e.first },
     { k: 'pass', re: /^when an opponent passes$/, who: (s, e, P, id, w) => w.p !== e.p },
     { k: 'char', re: /^when you play a character$/, who: (s, e, P, id, w) => w.p === e.p && id !== e.id },
+    { k: 'char', re: /^when you play a character with hand cost greater than or equal to my number of (\w+) counters$/, who: (s, e, P, id, w, db, head) => { const n = head.match(/number of (\w+) counters/)[1]; const k = s.cards[id]; return w.p === e.p && num((db[s.cards[e.id].ref] || {}).c) >= ((k.ctr || {})[n] || 0); } },
+    { k: 'char', re: /^when you play an? ([a-z]+)$/, who: (s, e, P, id, w, db, head) => { const st = SING(head.match(/play an? ([a-z]+)$/)[1]); return w.p === e.p && id !== e.id && st !== 'character' && subtypesOf(s, e.id, db).includes(st); } },
+    { k: 'perm', re: /^when you play a permanent with hand cost \{(\d+)\} or more$/, who: (s, e, P, id, w, db, head) => w.p === e.p && num((db[s.cards[e.id].ref] || {}).c) >= +head.match(/\{(\d+)\}/)[1] },
+    { k: 'tokc', re: /^when you create a token character$/, who: (s, e, P, id, w) => w.p === e.p },
     { k: 'char', re: /^when an opponent plays a character$/, who: (s, e, P, id, w) => w.p !== e.p },
     { k: 'char', re: /^when you play another character with a base statistic of (\d+)$/, who: (s, e, P, id, w, db, head) => { const n = +head.match(/(\d+)$/)[1]; const pw = (db[s.cards[e.id].ref] || {}).p || []; return w.p === e.p && id !== e.id && pw.some(x => num(x) === n); } },
     { k: 'spell', re: /^when you play a spell with base cost \{(\d+)\} or more$/, who: (s, e, P, id, w, db, head) => { const n = +head.match(/\{(\d+)\}/)[1]; return w.p === e.p && num((db[s.cards[e.id].ref] || {}).c) >= n; } },
@@ -744,12 +760,13 @@
     while (s.ev && s.ev.length && guard++ < 60) {
       const e = s.ev.shift();
       const ids = [];
-      for (const X of s.players) ids.push(...X.exp.H, ...X.exp.C, ...X.lm, ...X.reserve);
+      for (const X of s.players) ids.push(...(X.hero ? [X.hero] : []), ...X.exp.H, ...X.exp.C, ...X.lm, ...X.reserve);
       if (['leave', 'sac', 'handRes'].includes(e.k) && !ids.includes(e.id)) ids.push(e.id);
       for (const id of ids) {
         const c = s.cards[id]; if (!c || c.tok) continue;
         const d = db[c.ref]; if (!d) continue;
         const w = where(s, id) || { p: c.owner, z: 'gone' };
+        if (w.z === 'hero' && s.day === 1 && /ignore my abilit/i.test(d.xe || '')) continue;
         const src = ['leave', 'sac', 'handRes'].includes(e.k) && id === e.id ? (d.xe || '') : (w.z === 'reserve' ? (c.ex ? '' : (d.ee || '')) : (d.xe || ''));
         for (const cl of clauses({ xe: src })) {
           const m = cl.replace(/^\{i\}\s*/i, '').match(/^(when[^—-]+?)\s*[—-]\s*(.*)$/i); if (!m) continue;
@@ -828,6 +845,7 @@
       const P = s.players[p];
       for (const id of [P.hero, ...P.lm, ...P.exp.H, ...P.exp.C]) {
         const c = id && s.cards[id]; if (!c || c.tok) continue;
+        if (id === P.hero && s.day === 1 && /ignore my abilit/i.test((db[c.ref] || {}).xe || '')) continue;
         for (const cl of clauses(db[c.ref])) {
           const m = cl.match(RE); if (!m) continue;
           const acts = parseBody(m[1]);
@@ -1019,9 +1037,13 @@
         else if (d.t === 'LANDMARK_PERMANENT' || d.t === 'PERMANENT') moveTo(s, a.id, 'lm');
         else if (d.t === 'SPELL') { const nf = P.noFleet; P.noFleet = false; if ((fromRes || k.fleeting) && !nf) moveTo(s, a.id, 'discard'); else { moveTo(s, a.id, 'reserve'); if (k.cooldown) c.ex = true; } }
         log(s, P.name + ' joue ' + name(a.id) + (fromRes ? ' depuis la réserve' : '') + ' (' + cost + ' mana)' + (d.t === 'CHARACTER' || d.t === 'EXPEDITION_PERMANENT' ? ' dans l’expédition ' + (a.e === 'C' ? 'Compagnon' : 'Héros') : '') + '.');
+        { const hx = ((db[(s.cards[P.hero] || {}).ref] || {}).xe || '').toLowerCase();
+          if (d.t === 'CHARACTER' && /the first character you play each afternoon gains 1 boost/.test(hx) && s.step === 'AFTERNOON' && P.firstCharDay !== s.day) { P.firstCharDay = s.day; c.boost += 1; log(s, '→ héros : premier personnage de l’après-midi, ' + cname(s, a.id, db) + ' gagne 1 boost.'); }
+          if (d.t === 'SPELL' && /spells you play with hand cost \{1\} or less have \[\[fleeting\]\]/.test(hx) && num(d.c) <= 1) c.fleeting = true; }
         if (d.t === 'CHARACTER') { const fi = (P.nf || []).findIndex(x => x.max == null || num(d.c) <= x.max); if (fi >= 0) { c[P.nf[fi].f] = true; P.nf.splice(fi, 1); } }
         if (d.t === 'CHARACTER') { const bi = (P.nb || []).findIndex(x => x.t === 'character' || x.t === 'card'); if (bi >= 0) { c.boost += P.nb[bi].n; log(s, '→ ' + name(a.id) + ' gagne ' + P.nb[bi].n + ' boost(s).'); P.nb.splice(bi, 1); } }
         if (d.t === 'CHARACTER') { ev(s, { k: 'join', p, id: a.id, e: a.e === 'C' ? 'C' : 'H' }); ev(s, { k: 'char', p, id: a.id }); }
+        if (/PERMANENT/.test(d.t)) ev(s, { k: 'perm', p, id: a.id });
         if (d.t === 'SPELL') ev(s, { k: 'spell', p, id: a.id });
         s.played = (s.played || 0) + 1;
         const fx = onPlay(s, p, a.id, fromRes, db);
@@ -1057,6 +1079,18 @@
       case 'boost': if (!c) return 'Carte invalide'; c.boost = Math.max(0, c.boost + (a.n || 1)); log(s, P.name + ' : ' + name(a.id) + ' ' + (a.n > 0 ? '+' : '') + a.n + ' boost (' + c.boost + ').'); break;
       case 'flag': if (!c || !['fleeting', 'anchored', 'asleep', 'ex'].includes(a.f)) return 'Invalide'; c[a.f] = !c[a.f]; log(s, P.name + ' : ' + name(a.id) + ' ' + fl(a.f) + (c[a.f] ? ' activé' : ' retiré') + '.'); break;
       case 'manaEx': { const m = P.mana[a.i]; if (!m) return 'Invalide'; m.ex = !m.ex; break; }
+      case 'heroT': {
+        const hid = P.hero, hc = s.cards[hid], hd = hc && db[hc.ref]; if (!hd) return 'Pas de héros.';
+        if (hc.ex) return 'Ton héros est déjà épuisé.';
+        const mm = (hd.xe || '').match(/\{T\}\s*(?:,\s*([^:]+?))?\s*:\s*([^]*?)(?:\s{2,}|$)/i); if (!mm) return 'Ce héros n’a pas de capacité {T}.';
+        let body = mm[2].replace(/\s*\([^)]*\)/g, '');
+        if (/you can only activate this if you are (the )?first player/i.test(body) && s.first !== p) return 'Seulement si tu es premier joueur.';
+        body = body.replace(/\s*you can only activate this if you are (the )?first player\.?/i, '').replace(/\s*this costs \{\d+\} more[^.]*\.?/i, '').trim();
+        const cost = mm[1] ? parseBody(mm[1]) : [], acts = parseBody(body);
+        hc.ex = true; log(s, P.name + ' active son héros ' + cname(s, hid, db) + '.');
+        if (!acts || cost === null) { log(s, '⚠ effet du héros à appliquer à la main.'); break; }
+        cost.concat(acts).forEach(x => doAction(s, p, hid, x, db, {})); break;
+      }
       case 'manaAdd': { const id = 'mana' + (s.nid++); s.cards[id] = { id, ref: '__mana', owner: p, boost: 0, ex: false }; P.mana.push({ id, ex: false }); log(s, P.name + ' gagne un mana (outil).'); break; }
       case 'manaDel': { const m = P.mana.pop(); if (!m) return 'Plus de mana.'; if (s.cards[m.id] && s.cards[m.id].ref !== '__mana') P.discard.push(m.id); else delete s.cards[m.id]; log(s, P.name + ' perd un mana (outil).'); break; }
       case 'draw': { const n = Math.max(1, Math.min(10, a.n || 1)); for (let i = 0; i < n; i++) draw(s, p); log(s, P.name + ' pioche ' + n + ' carte(s).'); break; }
