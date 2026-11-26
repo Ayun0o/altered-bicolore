@@ -141,6 +141,13 @@
     if ((m = c.match(/^you control (a|an|one|two|three|four|five|\d+)(?: or more)? (another |other )?(.+)$/))) { const n = nw(m[1]); return controlled(s, p, (m[2] ? 'another ' : '') + m[3], db, self).filter(id => !m[2] || id !== self).length >= n; }
     if ((m = c.match(/^you don't control (?:a|an|any) (.+)$/))) return controlled(s, p, m[1], db, self).length === 0;
     if (/^your opponent is first player$/.test(c)) return s.first !== p;
+    if (/^(?:one or more|at least one) of your expeditions (?:is|are) ascended$/.test(c)) return !!(P.asc && (P.asc.H || P.asc.C));
+    if (/^(?:one or more of your expeditions (?:is|are)|any of your expeditions is) \[in contact\]$/.test(c)) return P.pos.H === O.pos.H || P.pos.C === O.pos.C;
+    if (/^there's an exhausted card in your reserve$/.test(c)) return P.reserve.some(id => s.cards[id].ex);
+    if ((m = c.match(/^there are (\w+) or more exhausted cards in reserve$/))) return s.players.reduce((a, X) => a + X.reserve.filter(id => s.cards[id].ex).length, 0) >= nw(m[1]);
+    if (/^you control an exhausted permanent$/.test(c)) return [...P.exp.H, ...P.exp.C, ...P.lm].some(id => /PERMANENT/.test(typeOf(s, id, db)) && s.cards[id].ex);
+    if (/^there are no tokens in your landmarks$/.test(c)) return !P.lm.some(id => s.cards[id].tok);
+    if (/^there are no other cards in your hand$/.test(c)) return P.hand.filter(id => id !== self).length === 0;
     if (/^it's \[\[completed\]\]$/.test(c)) return controlled(s, p, 'completed feat', db, self).length > 0;
     if ((m = c.match(/^(\w+) cards or more are in your landmarks$/))) return P.lm.length >= nw(m[1]);
     if ((m = c.match(/^there are (\w+) or more mana orbs in your mana zone$/))) return P.mana.length >= nw(m[1]);
@@ -198,6 +205,7 @@
     if (/^card in your hand$/.test(what)) return P.hand.length;
     if (/^card in your reserve$/.test(what)) return P.reserve.length;
     if (/^card in your landmarks$/.test(what)) return P.lm.length;
+    if (/^expedition \[in contact\] that you control$/.test(what)) return (P.pos.H === O.pos.H ? 1 : 0) + (P.pos.C === O.pos.C ? 1 : 0);
     if (/^exhausted card in reserve$/.test(what)) return s.players.reduce((a, X) => a + X.reserve.filter(id => s.cards[id].ex).length, 0);
     if ((m = what.match(/^expedition in (\{[vmo]\})$/))) return s.players.reduce((a, X, q) => a + ['H', 'C'].filter(x => { const r = regionOf(s, q, x); return r && r.terr.includes(TER[m[1]]); }).length, 0);
     if ((m = what.match(/^(other )?(.+?) you control$/))) return controlled(s, p, m[2], db, self).filter(id => !m[1] || id !== self).length;
@@ -728,6 +736,21 @@
     return { manual, auto };
   }
   // Effets « À Midi » simples des cartes en jeu. Renvoie true s'il reste des effets à faire à la main.
+  // Réductions de coût inscrites sur la carte elle-même (« I cost {N} less if… », « Play me for {N} less per… »)
+  function selfDiscount(s, p, id, db, e) {
+    const c = s.cards[id], d = db[c.ref]; let red = 0; const P = s.players[p];
+    for (const cl of clauses(d)) {
+      const l = cl.toLowerCase().replace(/\.$/, ''); let m;
+      if (!(m = l.match(/^(?:i cost|play me for) \{(\d+)\} less (.*)$/))) continue;
+      const n = +m[1], rest = m[2]; let k;
+      if (/^to play in an expedition with no characters$/.test(rest)) { if (!P.exp[e].some(x => /CHARACTER/.test(typeOf(s, x, db)))) red += n; continue; }
+      if (/^for each of your ascended expeditions$/.test(rest)) { red += n * ((P.asc && P.asc.H ? 1 : 0) + (P.asc && P.asc.C ? 1 : 0)); continue; }
+      if (/^per other card you played this turn$/.test(rest)) { red += n * (P.playedTurn || 0); continue; }
+      if ((k = rest.match(/^per (.+)$/))) { const v = countPer(s, p, id, k[1], db, { e }); if (v != null) red += n * v; continue; }
+      if ((k = rest.match(/^if (.+)$/))) { try { if (evalCond(s, p, id, k[1], db, { e }) === true) red += n; } catch (x) { } continue; }
+    }
+    return red;
+  }
   function noonAuto(s, db, ph) {
     ph = ph || 'noon'; const PH = { noon: 'Midi', dusk: 'Crépuscule', night: 'Nuit' }[ph]; const RE = new RegExp('^at ' + ph + '\\s*[—-]\\s*(.*)$', 'i');
     let manual = false;
@@ -913,7 +936,7 @@
         if (fromRes && c.ex) return 'Cette carte est épuisée en réserve.';
         const tmatch = t => t === 'card' || (t === 'character' && d.t === 'CHARACTER') || (t === 'spell' && d.t === 'SPELL') || (t === 'permanent' && /PERMANENT/.test(d.t));
         const di = (P.disc || []).findIndex(x => tmatch(x.t));
-        const base = num(fromRes ? d.rc : d.c);
+        const base = Math.max(0, num(fromRes ? d.rc : d.c) - selfDiscount(s, p, a.id, db, a.e === 'C' ? 'C' : 'H'));
         const cost = Number.isFinite(a.cost) ? Math.max(0, a.cost) : (di >= 0 ? Math.max(Math.min(base, P.disc[di].min || 0), base - P.disc[di].n) : base);
         const usedDisc = !Number.isFinite(a.cost) && di >= 0;
         if (readyMana(P) < cost) return 'Pas assez de mana (' + readyMana(P) + ' / ' + cost + ').';
