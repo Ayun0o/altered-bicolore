@@ -184,7 +184,7 @@ textarea{width:100%;min-height:140px;font-size:13px}
 </dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/cloud.js"></script>
+<script src="js/cloud.js?v=1795704521"></script>
 <script>
 {
 const FN={AX:'Axiom',BR:'Bravos',LY:'Lyra',MU:'Muna',OR:'Ordis',YZ:'Yzmir'};
@@ -408,8 +408,8 @@ $('acctBtn').onclick=()=>{const C=window.AltCloud,u=C&&C.user();
  if(!C||!C.ready()){$('acctBody').innerHTML='<p class="note">Le module de connexion n\'a pas pu se charger. Vérifie ta connexion internet.</p>'}
  else if(u){$('acctT').textContent='Mon compte';$('acctBody').innerHTML='<p>Connecté avec <b>'+esc(u.email||'')+'</b>.</p><p class="note">Tes decks et tes statistiques sont enregistrés sur ton compte : connecte-toi avec la même adresse sur ton téléphone ou un autre ordinateur pour les retrouver.</p><div class="row"><button id="acctOut">Se déconnecter</button></div>';
   $('acctOut').onclick=async()=>{await C.signOut();location.reload()}}
- else{$('acctT').textContent='Se connecter';$('acctBody').innerHTML='<p class="note">Entre ton adresse e-mail : tu reçois un lien de connexion (pas de mot de passe). Tes decks de ce navigateur seront ajoutés à ton compte.</p><div class="row"><input id="acctMail" type="email" placeholder="ton@email.fr" style="flex:1"><button class="on" id="acctGo">Recevoir le lien</button></div><p class="note" id="acctMsg"></p>';
-  $('acctGo').onclick=async()=>{const m=$('acctMail').value.trim();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){$('acctMsg').textContent='Adresse e-mail invalide.';return}$('acctMsg').textContent='Envoi…';try{await C.signIn(m);$('acctMsg').innerHTML='<b>C\'est parti !</b> Ouvre l\'e-mail reçu et clique le lien : tu reviendras ici, connecté. (Regarde aussi les spams.)'}catch(e){$('acctMsg').textContent='Échec : '+(e&&e.message||e)}}}
+ else{$('acctT').textContent='Se connecter';$('acctBody').innerHTML='<div class="row"><input id="acctMail" type="email" placeholder="ton@email.fr" style="flex:1;min-width:0"><button class="on" id="acctGo">Recevoir le code</button></div><div class="row hidden" id="acctRow" style="margin-top:8px"><input id="acctCode" inputmode="numeric" autocomplete="one-time-code" placeholder="Code reçu par e-mail" maxlength="10" style="flex:1;min-width:0;letter-spacing:3px"><button class="on" id="acctVer">Valider</button></div><p class="note" id="acctMsg">Pas de mot de passe : tu reçois un code par e-mail, à taper ici (tu peux lire l’e-mail sur ton téléphone). Ensuite cet appareil reste connecté.</p>';
+  $('acctGo').onclick=async()=>{const m=$('acctMail').value.trim();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){$('acctMsg').textContent='Adresse e-mail invalide.';return}$('acctMsg').textContent='Envoi…';try{await C.signIn(m);$('acctRow').classList.remove('hidden');$('acctCode').focus();$('acctMsg').innerHTML='<b>Code envoyé !</b> Tape le code de l’e-mail ci-dessus (regarde aussi les spams). Le lien de l’e-mail marche aussi, mais seulement sur l’appareil où tu l’ouvres.'}catch(e){$('acctMsg').textContent='Échec : '+((e&&e.message)||e)}};$('acctVer').onclick=async()=>{const m=$('acctMail').value.trim(),k=$('acctCode').value.trim();if(!k){return}$('acctMsg').textContent='Vérification…';try{await C.verify(m,k);location.reload()}catch(e){$('acctMsg').textContent='Code incorrect ou expiré. Redemande un code.'}};}
  $('acctDlg').showModal()};
 $('acctClose').onclick=()=>$('acctDlg').close();
 start();
