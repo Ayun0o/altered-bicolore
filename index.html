@@ -96,7 +96,7 @@ textarea{width:100%;min-height:140px;font-size:13px}
 <h1>Altered bicolore</h1>
 <span id="deckDots" style="display:inline-flex;gap:4px"></span><select id="deckSel" aria-label="Deck"></select>
 <button id="newDeck">Nouveau deck</button>
-<a href="play.html"><button tabindex="-1" class="on">Jouer en ligne</button></a>
+<a id="playLink" href="play.html"><button tabindex="-1" class="on">▶ Jouer en ligne</button></a>
 <button id="fmtBtn">Format</button>
 <button id="langBtn" aria-label="Langue des cartes"></button>
 <a class="mobtoggle" href="#deckpanel"><button tabindex="-1">Voir le deck</button></a>
@@ -120,6 +120,7 @@ textarea{width:100%;min-height:140px;font-size:13px}
 <label><span class="lbl">Héros (faction principale)</span><select id="dHero" style="width:100%"></select></label>
 <label><span class="lbl">Faction secondaire</span><select id="dSec" style="width:100%"></select></label>
 <div><span class="lbl">État du deck</span><a href="#deckpanel" id="miniStat" class="ministat"></a></div>
+<div style="grid-column:1/-1"><button id="addU" class="on" style="background:none;border:1px dashed var(--line);color:inherit">＋ Ajouter un unique</button></div>
 </div>
 </section>
 <div class="filters"><label class="chip"><input type="checkbox" id="onlyLegal" checked> Afficher seulement le pool du deck (décoche pour tout voir)</label></div>
@@ -134,7 +135,6 @@ textarea{width:100%;min-height:140px;font-size:13px}
 <div class="curve" id="curve"></div><div class="curvel" id="curvel"></div>
 <div class="dl" id="dlist"></div>
 <div class="row" style="margin-top:14px">
-<button id="addU">Ajouter un unique</button>
 <button id="exp">Copier la liste</button>
 <button id="shareLink">Copier le lien du deck</button>
 <button id="imp">Importer</button>
@@ -313,6 +313,7 @@ $('newCancel').onclick=()=>$('newDlg').close();
 $('newList').addEventListener('click',e=>{const b=e.target.closest('[data-start]');if(!b)return;const k=b.dataset.start;$('newDlg').close();if(k==='empty')makeDeck('Nouveau deck');else{const s=STARTERS.find(x=>x.id===k);if(s)makeDeck('Mon deck '+(FN[BY[s.hero]?.f]||'')+' (base départ)',s)}});
 $('newDeck').onclick=()=>{$('newList').innerHTML='<button data-start="empty" style="text-align:left"><b>Deck vide</b><br><span class="note">Choisis ton héros et tes cartes toi-même</span></button>'+STARTERS.map(s=>{const f=BY[s.hero]?.f;return '<button data-start="'+esc(s.id)+'" style="display:flex;gap:8px;align-items:center;text-align:left"><span class="fd" style="width:14px;height:14px;background:var(--'+f+')"></span><span><b>'+esc(s.name)+'</b><br><span class="note">'+esc(FN[f]||'')+' · '+esc(NM(BY[s.hero]))+' · 39 cartes</span></span></button>'}).join('');$('newDlg').showModal()};
 $('newDeck').dataset.old='1';const _oldNew=()=>{const id='d'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);decks[id]=newDeckObj('Nouveau deck');cur=id;touch();renderAll();$('dName').focus();$('dName').select()};
+$('playLink').addEventListener('click',()=>{try{$('playLink').href='play.html?deck='+deckCode(D())}catch(e){}});
 let delArm=false;$('del').onclick=()=>{if(!delArm){delArm=true;$('del').textContent='Confirmer la suppression';setTimeout(()=>{delArm=false;$('del').textContent='Supprimer'},4000);return}
  delArm=false;$('del').textContent='Supprimer';const id=cur;delete decks[id];dirty.add(id);if(!Object.keys(decks).length){const n='d'+Date.now().toString(36);decks[n]=newDeckObj('Mon premier deck');dirty.add(n)}cur=Object.keys(decks)[0];touch();renderAll()};
 ['q','fType','fRar','fSet','fCost','fSort','onlyLegal'].forEach(id=>$(id).addEventListener('input',()=>{shown=60;renderGrid()}));
