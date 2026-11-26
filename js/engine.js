@@ -225,6 +225,16 @@
         else if (!a.free) return 'Pas maintenant (seulement au matin).';
         moveTo(s, a.id, 'mana'); log(s, P.name + ' met une carte en mana.'); break;
       }
+      case 'toManaMany': {
+        const ids = Array.isArray(a.ids) ? a.ids.filter((id, i, arr) => arr.indexOf(id) === i) : [];
+        if (!ids.every(id => s.cards[id] && s.cards[id].owner === p && P.hand.includes(id))) return 'Choisis des cartes de ta main.';
+        if (s.step === 'SETUP_MANA') { if (ids.length !== 3 - P.mana.length) return 'Choisis exactement ' + (3 - P.mana.length) + ' carte(s).'; }
+        else if (s.step === 'EXPAND') { if (s.ready[p]) return 'Tu as déjà fait ton choix ce matin.'; if (ids.length > 1) return 'Une seule carte au matin.'; }
+        else return 'Pas maintenant.';
+        for (const id of ids) moveTo(s, id, 'mana');
+        if (ids.length) log(s, P.name + ' met ' + ids.length + ' carte(s) en mana.');
+        s.ready[p] = true; break;
+      }
       case 'play': {
         if (s.step !== 'AFTERNOON') return 'On ne joue des cartes que l’après-midi.';
         if (s.turn !== p) return 'Ce n’est pas ton tour.';

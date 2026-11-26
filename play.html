@@ -57,7 +57,10 @@ a{color:var(--acc)}
 .orb{width:24px;height:24px;border-radius:50%;background:var(--acc);border:2px solid var(--panel);cursor:pointer}
 .orb.ex{background:var(--soft)}
 .hand{position:fixed;left:0;right:300px;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding:6px 12px;overflow-x:auto;z-index:4}
-.hand .cards{flex-wrap:nowrap}
+.hand .cards{flex-wrap:nowrap;justify-content:center}
+.hand h3{justify-content:center}
+#zoomCard{position:fixed;left:50%;bottom:150px;transform:translateX(-50%);width:300px;display:none;pointer-events:none;z-index:20;filter:drop-shadow(0 8px 24px rgba(0,0,0,.45))}#zoomCard img{width:100%;border-radius:14px;display:block}
+.c[draggable]{cursor:grab}
 .hand .c{width:92px;flex:none}
 .det img{width:100%;border-radius:10px}
 .acts{display:flex;flex-wrap:wrap;gap:6px}
@@ -111,8 +114,8 @@ a{color:var(--acc)}
 </section>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/engine.js?v=1795654078"></script>
-<script src="js/net.js?v=1795654078"></script>
-<script src="js/play.js?v=1795654078"></script>
+<script src="js/engine.js?v=1795654320"></script>
+<script src="js/net.js?v=1795654320"></script>
+<script src="js/play.js?v=1795654320"></script>
 </body>
 </html>

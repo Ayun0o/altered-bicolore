@@ -7,7 +7,7 @@
   const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } } };
   let LANG = 'fr'; try { LANG = localStorage.getItem('alt-bi-lang') === 'en' ? 'en' : 'fr'; } catch (e) { }
 
-  let STARTERS = [], DB = {}, mode = null, S = null, V = null, me = 0, net = null, sel = null, sideView = 'card', keep = { R: new Set(), L: new Set() }, decksUsed = [], names = [];
+  let STARTERS = [], DB = {}, mode = null, S = null, V = null, me = 0, net = null, sel = null, sideView = 'card', keep = { R: new Set(), L: new Set() }, pick = new Set(), decksUsed = [], names = [];
   const NM = d => d ? (LANG === 'en' ? d.en : d.n) : '?';
   const TX = d => d ? (LANG === 'en' ? d.xe : d.x) : '';
   const TL = { F: 'Forêt', M: 'Montagne', W: 'Eau' };
@@ -140,14 +140,17 @@
   function cardEl(id, extra) {
     const c = card(id); if (!c) return '<div class="c"><div class="tok">?</div></div>';
     const b = []; if (c.boost) b.push('+' + c.boost); if (c.fleeting) b.push('fugace'); if (c.anchored) b.push('ancré'); if (c.asleep) b.push('endormi');
-    const k = keep.R.has(id) || keep.L.has(id);
-    return '<div class="c' + (c.ex ? ' ex' : '') + (sel === id || k ? ' sel' : '') + '" data-id="' + esc(id) + '"' + (extra || '') + '>' + img(c) + (b.length ? '<div class="bd">' + b.map(x => '<b>' + esc(x) + '</b>').join('') + '</div>' : '') + '</div>';
+    const k = keep.R.has(id) || keep.L.has(id) || pick.has(id);
+    const P = V.players[me]; const drag = P && c.owner === me && (P.hand.includes(id) || P.reserve.includes(id));
+    return '<div class="c' + (c.ex ? ' ex' : '') + (sel === id || k ? ' sel' : '') + '" data-id="' + esc(id) + '"' + (drag ? ' draggable="true"' : '') + (extra || '') + '>' + img(c) + (b.length ? '<div class="bd">' + b.map(x => '<b>' + esc(x) + '</b>').join('') + '</div>' : '') + '</div>';
   }
   const cardsEl = ids => ids.map(id => cardEl(id)).join('') || '<span class="note">—</span>';
   const PH = { SETUP_MANA: 'Mise en place', MORNING: 'Matin', EXPAND: 'Matin', NOON: 'Midi', AFTERNOON: 'Après-midi', DUSK: 'Crépuscule', NIGHT: 'Nuit', CLEANUP: 'Nuit', END: 'Fin de partie' };
 
+  let lastStep = null;
   function render() {
     if (!V) return;
+    if (V.step !== lastStep) { pick = new Set(); lastStep = V.step; }
     const P = V.players[me], O = V.players[1 - me];
     $('phase').textContent = 'Jour ' + V.day + ' · ' + (PH[V.step] || V.step) + (V.tie ? ' · Arène' : '');
     $('turnInfo').textContent = !O ? 'En attente du deuxième joueur…' : 'Premier joueur : ' + V.players[V.first].name + (V.step === 'AFTERNOON' ? ' · Au tour de ' + V.players[V.turn].name : '');
@@ -179,7 +182,7 @@
       const t = E.totals(V, p, e, DB), ot = V.players[o] ? E.totals(V, o, e, DB) : { F: 0, M: 0, W: 0 };
       const reg = V.adv[X.pos[e]]; const terr = reg ? reg.terr : [];
       const tot = ['F', 'M', 'W'].map(k => '<span class="' + (terr.includes(k) && t[k] > ot[k] && t[k] > 0 ? 'win' : '') + '" title="' + TL[k] + (terr.includes(k) ? ' (terrain de la région)' : '') + '"><span class="ter ' + k + '">' + TL[k][0] + '</span>' + t[k] + '</span>').join('');
-      return '<div class="zone"><h3>' + (p === me ? 'Mon expédition ' : 'Expédition adverse ') + (e === 'H' ? 'Héros' : 'Compagnon') + ' <span class="tot">' + tot + '</span><span style="margin-left:auto"></span><button class="small" data-pos="' + p + ',' + e + ',-1" title="Reculer">◀</button><button class="small" data-pos="' + p + ',' + e + ',1" title="Avancer">▶</button></h3><div class="cards">' + cardsEl(X.exp[e]) + '</div></div>';
+      return '<div class="zone"' + (p === me ? ' data-drop="' + e + '"' : '') + '><h3>' + (p === me ? 'Mon expédition ' : 'Expédition adverse ') + (e === 'H' ? 'Héros' : 'Compagnon') + ' <span class="tot">' + tot + '</span><span style="margin-left:auto"></span><button class="small" data-pos="' + p + ',' + e + ',-1" title="Reculer">◀</button><button class="small" data-pos="' + p + ',' + e + ',1" title="Avancer">▶</button></h3><div class="cards">' + cardsEl(X.exp[e]) + '</div></div>';
     }).join('');
   }
 
@@ -188,10 +191,10 @@
     if (!O || !P) { pr.classList.add('hidden'); return; }
     const r = V.ready[me];
     if (V.step === 'END') h = '<b>' + esc(V.players[V.winner].name) + ' gagne la partie !</b> <button class="pri" data-do="rematch">Revanche</button>';
-    else if (V.step === 'SETUP_MANA') h = r ? 'En attente de l’adversaire…' : 'Mise en place : choisis 3 cartes de ta main à mettre en mana (clique une carte → « Mettre en mana »). ' + P.mana.length + '/3 <button class="pri" data-do="ready"' + (P.mana.length < 3 ? ' disabled' : '') + '>Valider</button>';
-    else if (V.step === 'EXPAND') h = r ? 'En attente de l’adversaire…' : 'Matin : tu peux mettre une carte de ta main en mana (clique une carte → « Mettre en mana »). <button data-do="ready">Ne rien mettre</button>';
+    else if (V.step === 'SETUP_MANA') { const need = 3 - P.mana.length; h = r ? 'En attente de l’adversaire…' : 'Mise en place : <b>clique ' + need + ' cartes de ta main</b> à mettre en mana (' + pick.size + '/' + need + '). <button class="pri" data-do="mana"' + (pick.size !== need ? ' disabled' : '') + '>Valider</button>'; }
+    else if (V.step === 'EXPAND') h = r ? 'En attente de l’adversaire…' : 'Matin : <b>clique une carte de ta main</b> pour la mettre en mana (facultatif). <button class="pri" data-do="mana">' + (pick.size ? 'Mettre en mana' : 'Ne rien mettre') + '</button>';
     else if (V.pending && ['noon', 'dusk', 'night'].includes(V.pending)) h = r ? 'En attente de l’adversaire…' : ({ noon: 'Midi', dusk: 'Crépuscule', night: 'Nuit' })[V.pending] + ' : des cartes en jeu ont un effet à ce moment. Applique-les avec les outils, puis <button class="pri" data-do="ready">Continuer</button>';
-    else if (V.step === 'AFTERNOON') h = V.turn === me ? '<b>À toi de jouer.</b> Joue une carte de ta main ou de ta réserve, ou <button class="pri" data-do="pass">Passer</button>' + (V.passed[1 - me] ? ' <span class="note">(l’adversaire a passé : tu peux jouer plusieurs cartes)</span>' : '') : (V.passed[me] ? 'Tu as passé. L’adversaire termine sa journée…' : 'Tour de l’adversaire…');
+    else if (V.step === 'AFTERNOON') h = V.turn === me ? '<b>À toi de jouer.</b> Glisse une carte de ta main ou de ta réserve sur une de tes expéditions (ou clique la carte, puis l’expédition). <button class="pri" data-do="pass">Passer</button>' + (V.passed[1 - me] ? ' <span class="note">(l’adversaire a passé : tu peux jouer plusieurs cartes)</span>' : '') : (V.passed[me] ? 'Tu as passé. L’adversaire termine sa journée…' : 'Tour de l’adversaire…');
     else if (V.step === 'CLEANUP') {
       const over = P.reserve.length > P.rl || P.lm.length > P.ll;
       h = r || !over ? 'En attente de l’adversaire…' : 'Nuit : garde au plus ' + P.rl + ' carte(s) en réserve et ' + P.ll + ' repère(s). Clique les cartes à garder (' + keep.R.size + '/' + Math.min(P.rl, P.reserve.length) + ' en réserve, ' + keep.L.size + '/' + Math.min(P.ll, P.lm.length) + ' repères), le reste sera défaussé. <button class="pri" data-do="cleanup">Valider</button>';
@@ -235,8 +238,36 @@
     D.innerHTML = (c.tok ? img(c) : '<img alt="" src="img/' + LANG + '/' + encodeURIComponent(c.ref) + '.webp">') + info + (TX(d) ? '<p class="small note" style="margin:0 0 8px">' + esc(TX(d).replace(/[#\[\]]/g, '')) + '</p>' : '') + costBox + '<div class="acts" style="margin-top:6px">' + A.join('') + '</div>';
   }
 
+  function playable(id) { const P = V && V.players[me]; return !!(P && V.step === 'AFTERNOON' && V.turn === me && (P.hand.includes(id) || P.reserve.includes(id))); }
+  function playTo(id, zone) {
+    const c = card(id), d = c && DB[c.ref]; if (!d) return;
+    if (!playable(id)) { flash(V.step === 'AFTERNOON' ? 'Ce n’est pas ton tour.' : 'On joue les cartes l’après-midi.'); return; }
+    const body = d.t === 'CHARACTER' || d.t === 'EXPEDITION_PERMANENT';
+    const a = { type: 'play', id };
+    if (body) a.e = zone === 'C' ? 'C' : 'H';
+    const ci = $('costIn'); if (ci && sel === id) { const v = parseInt(ci.value, 10); if (Number.isFinite(v)) a.cost = v; }
+    sel = null; dispatch(a);
+  }
+  function bindDrag() {
+    document.addEventListener('dragstart', e => { const c = e.target.closest && e.target.closest('.c[draggable]'); if (!c) return; e.dataTransfer.setData('text/plain', c.dataset.id); e.dataTransfer.effectAllowed = 'move'; hideZoom(); });
+    document.addEventListener('dragover', e => { const z = e.target.closest && e.target.closest('[data-drop]'); if (!z) return; e.preventDefault(); z.style.outline = '2px dashed var(--acc)'; });
+    document.addEventListener('dragleave', e => { const z = e.target.closest && e.target.closest('[data-drop]'); if (z) z.style.outline = ''; });
+    document.addEventListener('drop', e => { const z = e.target.closest && e.target.closest('[data-drop]'); if (!z) return; e.preventDefault(); z.style.outline = ''; const id = e.dataTransfer.getData('text/plain'); if (id) playTo(id, z.dataset.drop); });
+  }
+  const zoomEl = document.createElement('div'); zoomEl.id = 'zoomCard'; document.body.appendChild(zoomEl);
+  function hideZoom() { zoomEl.style.display = 'none'; }
+  function bindZoom() {
+    document.addEventListener('mouseover', e => {
+      const c = e.target.closest && e.target.closest('.c[data-id]'); if (!c || !V) return;
+      const x = card(c.dataset.id); if (!x || x.tok) { hideZoom(); return; }
+      zoomEl.innerHTML = '<img alt="" src="img/' + LANG + '/' + encodeURIComponent(x.ref) + '.webp">'; zoomEl.style.display = 'block';
+    });
+    document.addEventListener('mouseout', e => { const c = e.target.closest && e.target.closest('.c[data-id]'); if (c && !(e.relatedTarget && c.contains(e.relatedTarget))) hideZoom(); });
+  }
+
   // ---------- Événements ----------
   function bindGame() {
+    bindDrag(); if (window.matchMedia && matchMedia('(hover: hover)').matches) bindZoom();
     document.addEventListener('click', e => {
       const t = e.target;
       const actB = t.closest('[data-act]');
@@ -246,6 +277,7 @@
         const k = doB.dataset.do;
         if (k === 'ready') dispatch({ type: 'ready' });
         else if (k === 'pass') dispatch({ type: 'pass' });
+        else if (k === 'mana') { const ids = [...pick]; pick = new Set(); dispatch({ type: 'toManaMany', ids }); }
         else if (k === 'rematch') rematch();
         else if (k === 'cleanup') { dispatch({ type: 'cleanup', keepR: [...keep.R], keepL: [...keep.L] }); keep = { R: new Set(), L: new Set() }; }
         else if (k === 'closeSide') { sideView = 'card'; renderSide(); }
@@ -264,9 +296,16 @@
       if (pos) { const [p, ex, n] = pos.dataset.pos.split(','); dispatch({ type: 'pos', p: +p, e: ex, n: +n }); return; }
       const orb = t.closest('[data-orb]');
       if (orb) { dispatch({ type: 'manaEx', i: +orb.dataset.orb }); return; }
+      const dz = t.closest('[data-drop]');
+      if (dz && !t.closest('.c[data-id]') && !t.closest('button') && sel && playable(sel)) { playTo(sel, dz.dataset.drop); return; }
       const ce = t.closest('.c[data-id]');
       if (ce && V) {
         const id = ce.dataset.id, L = locate(id);
+        if ((V.step === 'SETUP_MANA' || V.step === 'EXPAND') && L && L.p === me && L.z === 'hand' && !V.ready[me]) {
+          const lim = V.step === 'SETUP_MANA' ? 3 - V.players[me].mana.length : 1;
+          if (pick.has(id)) pick.delete(id); else { if (lim === 1) pick.clear(); if (pick.size < lim) pick.add(id); }
+          render(); return;
+        }
         if (V.step === 'CLEANUP' && L && L.p === me && !V.ready[me] && (L.z === 'reserve' || L.z === 'lm')) {
           const set = L.z === 'reserve' ? keep.R : keep.L, lim = L.z === 'reserve' ? V.players[me].rl : V.players[me].ll;
           if (set.has(id)) set.delete(id); else if (set.size < lim) set.add(id);
