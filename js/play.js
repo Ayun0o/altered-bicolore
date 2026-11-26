@@ -495,7 +495,8 @@
       h = r || !over ? 'En attente de l’adversaire…' : 'Nuit : <b>clique les cartes à défausser</b>' + (nR ? ' — réserve ' + keep.R.size + '/' + nR : '') + (nL ? ' — repères ' + keep.L.size + '/' + nL : '') + '.<div class="row"><button class="pri" data-do="cleanup"' + (ok ? '' : ' disabled') + '>Défausser</button></div>';
     }
     else h = '…';
-    pr.innerHTML = h + (mode !== 'guest' ? '' : '') + '<div class="row undo"><button data-do="undo" title="Annuler ta dernière action">↶ Annuler</button></div>';
+    pr.innerHTML = h;
+    { const rows = [...pr.children].filter(e => e.classList.contains('row')); if (rows.length) { const tx = document.createElement('div'); tx.className = 'ptx'; const bt = document.createElement('div'); bt.className = 'pbtn'; [...pr.childNodes].forEach(n => (rows.includes(n) ? bt : tx).appendChild(n)); pr.append(tx, bt); } }
   }
   function locate(id) {
     for (let p = 0; p < V.players.length; p++) {

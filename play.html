@@ -432,10 +432,9 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
  .discz .dico{display:inline-flex;align-items:center;gap:3px;font-size:13px;font-weight:600;background:#0005;border-radius:9px;padding:3px 8px;cursor:pointer}
  body.sideopen #zoomCard.selz{display:none!important}
  #zoomCard.selz{position:fixed;left:50%;right:auto;top:max(6px,env(safe-area-inset-top));transform:translateX(-50%);width:min(46vw,220px);z-index:45;pointer-events:none}
- .actionbox{position:relative;display:block!important;padding:6px 8px 6px 74px!important;min-height:66px;font-size:13px;line-height:1.35}
+ .actionbox{position:relative;display:block!important;padding:6px 8px 6px 74px!important;min-height:52px;font-size:13px;line-height:1.35}
  .actionbox .hint{display:none}
- .hand .cards#hand{pointer-events:none}
- .hand .cards#hand .c{pointer-events:auto}
+ .hand .cards#hand{width:fit-content;max-width:100%;justify-self:center;justify-content:flex-start!important;overflow-x:auto}
  #rsvTog{min-height:0;padding:4px 7px;font-size:11px;font-weight:600;border-radius:9px;display:flex;flex-direction:column;align-items:center;gap:3px;background:#000a;color:#fff;border-color:#fff3;line-height:1.1}
  #rsvTog.on{background:var(--acc,#3b82f6);border-color:transparent}
  #rsvTog .rmini{display:flex}
@@ -443,12 +442,13 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
  #rsvTog .rmini i:first-child{margin-left:0}
  #hand.rsv{background:linear-gradient(#3b82f622,transparent);border-radius:10px}
  .actionbox .row{display:flex;justify-content:flex-end;gap:6px;margin:4px 0 0}
- .actionbox .row.undo{position:absolute;right:8px;bottom:6px;margin:0}
- .actionbox .row:not(.undo){float:right;margin:0 0 2px 8px}
+ .actionbox .row{margin:0!important}
+ .actionbox:has(.pbtn){display:flex!important;flex-direction:row!important;align-items:center;gap:8px}
+ .actionbox .ptx{flex:1;min-width:0}
+ .actionbox .pbtn{flex:none;display:flex;flex-direction:column;gap:4px;align-items:flex-end}
  .actionbox .note{display:block;margin-top:2px;font-size:12px}
  .actionbox button{min-height:30px;padding:3px 12px}
  .actionbox .undo button{min-height:24px}
- .actionbox::after{content:"";display:block;clear:both;height:26px}
  .actionbox .row{justify-content:flex-end}
 }
 @media(hover:none){.hand .c:hover{transform:none}}
@@ -512,7 +512,7 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 <aside class="side" id="side">
 <div id="detail" class="det"></div>
 <div class="zone"><h3>Outils</h3><div class="acts">
-<button data-tool="draw">Piocher 1</button><button data-tool="resupply">Ravitailler</button><button data-tool="shuffle">Mélanger le deck</button><button data-tool="token">Créer un jeton</button>
+<button data-do="undo" title="Annuler ta dernière action">↶ Annuler</button><button data-tool="draw">Piocher 1</button><button data-tool="resupply">Ravitailler</button><button data-tool="shuffle">Mélanger le deck</button><button data-tool="token">Créer un jeton</button>
 <button data-tool="manaAdd">Mana +1</button><button data-tool="manaDel">Mana −1</button><button data-tool="discard">Voir défausses</button><button data-tool="lang">FR / EN</button><button data-tool="sfx" title="Activer / couper les sons">🔊 Sons</button>
 </div></div>
 <div class="zone logz"><h3>Journal</h3><div class="log" id="log"></div></div>
@@ -527,12 +527,12 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 <script src="js/engine.js?v=1795716790"></script>
 <script src="js/ai.js?v=1795716790"></script>
 <script src="js/net.js?v=1795716790"></script>
-<script src="js/play.js?v=1795725227"></script>
+<script src="js/play.js?v=1795725363"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
  t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');
  if(log)new MutationObserver(()=>{if(!b.classList.contains('sideopen'))t.classList.add('new')}).observe(log,{childList:true});
- document.getElementById('side').addEventListener('click',e=>{const x=e.target.closest('button[data-tool]');if(x&&matchMedia('(max-width:900px)').matches)setTimeout(()=>b.classList.remove('sideopen'),150)});
+ document.getElementById('side').addEventListener('click',e=>{const x=e.target.closest('button[data-tool],button[data-do]');if(x&&matchMedia('(max-width:900px)').matches)setTimeout(()=>b.classList.remove('sideopen'),150)});
 })();
 </script>
 </body>
