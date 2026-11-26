@@ -143,6 +143,7 @@
     if (/^my expedition is ahead$/.test(c)) { if (!e) return false; const d = x => e === 'H' ? x.pos.H : LAST - x.pos.C; return d(P) > d(O); }
     if ((m = c.match(/^i have (\w+) or more boosts?$/))) { const k = s.cards[self]; return !!k && k.boost >= nw(m[1]); }
     if (/^i'm boosted$/.test(c)) { const k = s.cards[self]; return !!k && k.boost > 0; }
+    if (/^i have no boosts?$/.test(c)) { const k = s.cards[self]; return !k || k.boost === 0; }
     if (/^your hand is empty$/.test(c)) return P.hand.length === 0;
     if ((m = c.match(/^(?:there are )?(\w+) or more cards (?:are )?in your discard pile$/))) return P.discard.length >= nw(m[1]);
     if ((m = c.match(/^(?:there are )?(\w+) or more cards (?:are )?in your reserve$/))) return P.reserve.length >= nw(m[1]);
@@ -185,6 +186,26 @@
     if ((m = b.match(/^(.+?) unless (.+)$/)) && condKnown(m[2])) { const t = parseBody(m[1]); if (t) return { k: 'if', c: m[2], t: [], o: t }; }
     if ((m = b.match(/^i gain (\d+) boosts? per (.+?)(?:, up to a max of (\d+))?$/)) && perKnown(m[2])) return { k: 'boostPer', n: +m[1], per: m[2], max: m[3] ? +m[3] : null };
     if (/^\[resupply\]$/.test(b)) return { k: 'resupply' };
+    if (/^exhaust me$/.test(b)) return { k: 'selfFlag', f: 'ex', v: true };
+    if (/^\[after you\]$/.test(b)) return { k: 'afterYou' };
+    if ((m = b.match(/^create an? \[(aerolith|manaseed)\] token in target player's landmarks$/))) { const n = m[1] === 'aerolith' ? 'Aerolith' : 'Manaseed'; return { k: 'options', n: 1, opts: [{ label: 'Dans tes repères', acts: [{ k: 'lmToken', n }] }, { label: 'Dans les repères adverses', acts: [{ k: 'lmTokenOpp', n }] }] }; }
+    if ((m = b.match(/^create an? \[(aerolith|manaseed)\] token in each player's landmarks$/))) { const n = m[1] === 'aerolith' ? 'Aerolith' : 'Manaseed'; return { k: 'seq', list: [{ k: 'lmToken', n }, { k: 'lmTokenOpp', n }] }; }
+    if ((m = b.match(/^target character you control(?: with hand cost \{(\d+)\} or less)? gains \[\[?(anchored|asleep|fleeting)\]?\]$/))) return { k: 'choose', kind: 'mychar', max: m[1] ? +m[1] : null, act: { k: 'flag', f: m[2] }, label: 'Choisis un de tes personnages qui devient ' + ({ anchored: 'ancré', asleep: 'endormi', fleeting: 'fugace' })[m[2]] };
+    if ((m = b.match(/^target character you control gains (\d+) boosts?$/))) return { k: 'choose', kind: 'mychar', act: { k: 'boost', n: +m[1] }, label: 'Choisis un de tes personnages qui gagne ' + m[1] + ' boost(s)' };
+    if ((m = b.match(/^distribute (\w+) boosts? among (?:any|up to \w+) target characters?(?: in play or in reserve)?$/))) { const n = nw(m[1]); return { k: 'seq', list: Array.from({ length: n }, (x, i) => ({ k: 'choose', kind: 'charres', act: { k: 'boost', n: 1 }, label: 'Répartis tes boosts : choisis un personnage (' + (i + 1) + '/' + n + ')' })) }; }
+    if ((m = b.match(/^target character in play or in reserve gains (\d+) boosts?$/))) return { k: 'choose', kind: 'charres', act: { k: 'boost', n: +m[1] }, label: 'Choisis un personnage (en jeu ou en réserve) qui gagne ' + m[1] + ' boost(s)' };
+    if ((m = b.match(/^each character in target expedition gains (\d+) boosts?$/))) return { k: 'choose', kind: 'exp', act: { k: 'expBoost', n: +m[1] }, label: 'Quelle expédition reçoit ' + m[1] + ' boost(s) par personnage ?' };
+    if ((m = b.match(/^each character in my expedition gains (\d+) boosts?$/))) return { k: 'expBoostMine', n: +m[1] };
+    if ((m = b.match(/^up to (two|three) target characters each gain (\d+) boosts?$/))) return { k: 'seq', list: Array.from({ length: nw(m[1]) }, (x, i) => ({ k: 'choose', kind: 'char', opt: true, act: { k: 'boost', n: +m[2] }, label: 'Choisis un personnage qui gagne ' + m[2] + ' boost(s) (' + (i + 1) + '/' + nw(m[1]) + ')' })) };
+    if (/^(you may )?put a card from your reserve in your mana zone$/.test(b)) return { k: 'choose', kind: 'myres', opt: /^you may/.test(b), act: { k: 'toMana' }, label: 'Choisis une carte de ta réserve à mettre en mana' };
+    if ((m = b.match(/^create an? \[(.+?) (\d+)\/(\d+)\/(\d+)\](?: (.+?) token)? in a hero expedition$/))) return { k: 'token', tok: { n: m[1].replace(/\b\w/g, c => c.toUpperCase()), p: [+m[2], +m[3], +m[4]], type: m[5] || '' }, where: 'H' };
+    if (/^draw a card, then put a card from your hand in reserve$/.test(b)) return { k: 'seq', list: [{ k: 'draw', n: 1 }, { k: 'choose', kind: 'hand', act: { k: 'toReserve' }, label: 'Mets une carte de ta main en réserve' }] };
+    if (/^each of your expeditions \[ascends\]$/.test(b)) return { k: 'seq', list: [{ k: 'ascend', e: 'H' }, { k: 'ascend', e: 'C' }] };
+    if (/^(you may )?return another card from your reserve to your hand$/.test(b)) return { k: 'choose', kind: 'myres', opt: /^you may/.test(b), notSelf: true, act: { k: 'toHand' }, label: 'Choisis une autre carte de ta réserve à reprendre en main' };
+    if (/^discard target \[\[fleeting\]\], \[\[anchored\]\] or \[\[asleep\]\] character$/.test(b)) return { k: 'choose', kind: 'char', status: true, act: { k: 'discard' }, label: 'Choisis un personnage fugace, ancré ou endormi à défausser' };
+    if (/^the next spell you play this turn loses \[\[fleeting\]\]$/.test(b)) return { k: 'noFleet' };
+    if ((m = b.match(/^the next character(?: with base cost \{(\d+)\} or less)? you play this turn gains \[\[(anchored|asleep)\]\]$/))) return { k: 'nextFlag', f: m[2], max: m[1] ? +m[1] : null };
+    if ((m = b.match(/^\[sabotage\] after rest$/))) return { k: 'afterRest', act: { k: 'choose', kind: 'reserve', opt: true, act: { k: 'discard' }, label: 'Sabotage (après le repos) : choisis une carte dans une réserve' } };
     if (/^\[exhausted resupply\]$/.test(b)) return { k: 'resupply', ex: true };
     if ((m = b.match(/^i gain \[\[?(anchored|asleep|fleeting)\]?\]$/))) return { k: 'selfFlag', f: m[1], v: true };
     if ((m = b.match(/^i lose \[\[?(anchored|asleep|fleeting)\]?\]$/))) return { k: 'selfFlag', f: m[1], v: false };
@@ -195,7 +216,7 @@
     if (/^\[sabotage\]$/.test(b)) return { k: 'choose', kind: 'reserve', opt: true, act: { k: 'discard' }, label: 'Sabotage : choisis une carte dans une réserve à défausser' };
     if ((m = b.match(/^target character (?:with hand cost \{(\d+)\} or less )?gains (\d+) boosts?$/))) return { k: 'choose', kind: 'char', max: m[1] ? +m[1] : null, act: { k: 'boost', n: +m[2] }, label: 'Choisis un personnage qui gagne ' + m[2] + ' boost(s)' + (m[1] ? ' (coût de main ' + m[1] + ' ou moins)' : '') };
     if ((m = b.match(/^target character (?:with hand cost \{(\d+)\} or less )?gains \[\[?(anchored|asleep|fleeting)\]?\]$/))) return { k: 'choose', kind: 'char', max: m[1] ? +m[1] : null, act: { k: 'flag', f: m[2] }, label: 'Choisis un personnage qui devient ' + ({ anchored: 'ancré', asleep: 'endormi', fleeting: 'fugace' })[m[2]] + (m[1] ? ' (coût de main ' + m[1] + ' ou moins)' : '') };
-    if ((m = b.match(/^pay \{(\d+)\} less for the next character you play this turn, down to a minimum of \{(\d+)\}$/))) return { k: 'disc', t: 'character', n: +m[1], min: +m[2] };
+    if ((m = b.match(/^pay \{(\d+)\} less for the next (character|spell|permanent|card) you play this turn, down to a minimum of \{(\d+)\}$/))) return { k: 'disc', t: m[2], n: +m[1], min: +m[3] };
     if (/^exhaust target card in reserve$/.test(b)) return { k: 'choose', kind: 'reserve', act: { k: 'flag', f: 'ex' }, label: 'Choisis une carte en réserve à épuiser' };
     if (/^send target character to reserve$/.test(b)) return { k: 'choose', kind: 'char', act: { k: 'toReserve' }, label: 'Choisis un personnage à renvoyer en réserve' };
     if ((m = b.match(/^create (?:a|an) \[(.+?) (\d+)\/(\d+)\/(\d+)\] (.+?) token in (target expedition|my expedition|each of your expeditions)$/))) {
@@ -203,7 +224,7 @@
       if (m[6] === 'target expedition') return { k: 'choose', kind: 'exp', act: { k: 'token', tok }, label: 'Dans quelle expédition créer le jeton ' + tok.n + ' ?' };
       return { k: 'token', tok, where: m[6] === 'my expedition' ? 'mine' : 'both' };
     }
-    if ((m = b.match(/^(you may )?send (?:to reserve )?target character (?:with hand cost \{(\d+)\} or less )?(?:to reserve)?$/))) return { k: 'choose', kind: 'char', opt: !!m[1], max: m[2] ? +m[2] : null, act: { k: 'toReserve' }, label: 'Choisis un personnage à renvoyer en réserve' + (m[2] ? ' (coût de main ' + m[2] + ' ou moins)' : '') };
+    if ((m = b.match(/^(you may )?send (?:to reserve )?target character(?: with hand cost \{(\d+)\} or less)?(?: to reserve)?$/))) return { k: 'choose', kind: 'char', opt: !!m[1], max: m[2] ? +m[2] : null, act: { k: 'toReserve' }, label: 'Choisis un personnage à renvoyer en réserve' + (m[2] ? ' (coût de main ' + m[2] + ' ou moins)' : '') };
     if (/^each player draws a card$/.test(b)) return { k: 'drawAll', n: 1 };
     if (/^target opponent draws a card$/.test(b)) return { k: 'drawOpp', n: 1 };
     if (/^put a card from your hand in reserve$/.test(b)) return { k: 'choose', kind: 'hand', act: { k: 'toReserve' }, label: 'Mets une carte de ta main en réserve' };
@@ -238,6 +259,12 @@
     return null;
   }
   function parseBody(body) {
+    const rb = body.toLowerCase().replace(/\u00a0/g, ' ').replace(/\s*\([^)]*\)/g, '').trim();
+    if (/^roll a die\./.test(rb)) {
+      const outs = []; const re = /on a (\d)(\+|-(\d))?, ([^]*?)(?=\.\s*on a \d|\.?$)/g; let mm;
+      while ((mm = re.exec(rb.replace(/^roll a die\.\s*/, '')))) { const lo = +mm[1], hi = mm[2] === '+' ? 6 : mm[3] ? +mm[3] : lo; const acts = parseBody(mm[4]); if (!acts) return null; outs.push({ lo, hi, acts }); }
+      if (outs.length) return [{ k: 'dice', outs }];
+    }
     if (/^if .+\. otherwise, /i.test(body.trim())) { const one = parseAction(body); if (one) return [one]; }
     const parts = body.split(/\.\s+/).map(x => x.trim()).filter(Boolean);
     const acts = parts.map(parseAction);
@@ -260,9 +287,15 @@
         for (const e of es) { const id = 't' + (s.nid++); s.cards[id] = { id, ref: '__token', owner: p, boost: 0, ex: false, fleeting: false, anchored: false, asleep: false, tok: { n: a.tok.n, p: a.tok.p.slice(), type: a.tok.type || '' } }; P.exp[e].push(id); ev(s, { k: 'join', p, id, e }); }
         log(s, '→ ' + P.name + ' crée ' + (es.length > 1 ? 'des jetons ' : 'un jeton ') + a.tok.n + ' ' + a.tok.p.join('/') + '.'); break;
       }
-      case 'choose': { const ch = { p, kind: a.kind, opt: !!a.opt || a.kind === 'yesno', max: a.max ?? null, act: a.act, label: a.label, src: self }; if (hasTargets(s, ch, db)) s.choices.push(ch); else log(s, '→ aucune cible possible, effet ignoré.'); break; }
+      case 'choose': { const ch = { p, kind: a.kind, opt: !!a.opt || a.kind === 'yesno', max: a.max ?? null, status: !!a.status, notSelf: !!a.notSelf, act: a.act, label: a.label, src: self }; if (hasTargets(s, ch, db)) s.choices.push(ch); else log(s, '→ aucune cible possible, effet ignoré.'); break; }
       case 'chooseOpp': if (s.players[1 - p].hand.length) s.choices.push({ p: 1 - p, kind: a.kind, opt: false, act: a.act, label: a.label, src: self }); break;
       case 'seq': a.list.forEach(x => doAction(s, p, self, x, db, ctx)); break;
+      case 'afterYou': { if (s.step === 'AFTERNOON' && s.turn === p && !s.passed[1 - p]) { s.turn = 1 - p; log(s, '→ « Après vous » : ' + P.name + ' termine son tour sans passer.'); } break; }
+      case 'expBoost': case 'expBoostMine': { const e = a.k === 'expBoostMine' ? (expOf(s, self) || ctx.e) : (a.e === 'C' ? 'C' : 'H'); if (e) { const tp = a.k === 'expBoost' && a.opp ? 1 - p : p; s.players[tp].exp[e].forEach(id => { if (/CHARACTER/.test(typeOf(s, id, db))) s.cards[id].boost += a.n; }); log(s, '→ chaque personnage de l’expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + ' gagne ' + a.n + ' boost(s).'); } break; }
+      case 'noFleet': P.noFleet = true; log(s, '→ le prochain sort de ' + P.name + ' ne sera pas fugace.'); break;
+      case 'nextFlag': (P.nf = P.nf || []).push({ f: a.f, max: a.max }); log(s, '→ le prochain personnage de ' + P.name + ' sera ' + (a.f === 'anchored' ? 'ancré' : 'endormi') + '.'); break;
+      case 'afterRest': (s.afterRest = s.afterRest || []).push({ p, self, act: a.act }); log(s, '→ effet prévu après le repos de cette nuit.'); break;
+      case 'dice': { const r = 1 + Math.floor(Math.random() * 6); log(s, '🎲 ' + P.name + ' lance un dé : ' + r + '.'); const o = a.outs.find(x => r >= x.lo && r <= x.hi); if (o) o.acts.forEach(x => doAction(s, p, self, x, db, ctx)); break; }
       case 'if': { const r = evalCond(s, p, self, a.c, db, ctx); log(s, '→ condition « ' + a.c + ' » : ' + (r ? 'remplie' : 'non remplie') + '.'); (r ? a.t : a.o).forEach(x => doAction(s, p, self, x, db, ctx)); break; }
       case 'boostPer': { const n = (countPer(s, p, self, a.per, db, ctx) || 0) * a.n; const k = s.cards[self]; if (k && n > 0) { const before = k.boost; k.boost = a.max != null ? Math.min(a.max, k.boost + n) : k.boost + n; log(s, '→ ' + nm() + ' gagne ' + (k.boost - before) + ' boost(s).'); } break; }
       case 'oppBack': { const e = expOf(s, self); if (e) { const O = s.players[1 - p]; const np = O.pos[e] - (e === 'H' ? 1 : -1); O.pos[e] = Math.max(0, Math.min(LAST, np)); log(s, '→ l’expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + ' de ' + O.name + ' recule.'); } break; }
@@ -288,6 +321,9 @@
     if (ch.kind === 'perm') return s.players.some(X => [...X.exp.H, ...X.exp.C, ...X.lm].some(id => { const c = s.cards[id]; return isPerm(c) && (ch.max == null || num(db[c.ref].c) <= ch.max); }));
     if (ch.kind === 'any') return s.players.some(X => [...X.exp.H, ...X.exp.C, ...X.lm].length);
     if (ch.kind === 'ownchar') { const e = expOf(s, ch.src); return !!e && s.players[ch.p].exp[e].length > 0; }
+    if (ch.kind === 'mychar') return ['H', 'C'].some(e => s.players[ch.p].exp[e].some(id => /CHARACTER/.test(typeOf(s, id, db)) && (ch.max == null || s.cards[id].tok || num(db[s.cards[id].ref].c) <= ch.max)));
+    if (ch.kind === 'charres') return s.players.some(X => [...X.exp.H, ...X.exp.C, ...X.reserve].some(id => /CHARACTER/.test(typeOf(s, id, db))));
+    if (ch.kind === 'myres') return s.players[ch.p].reserve.some(id => !ch.notSelf || id !== ch.src);
     if (ch.kind === 'hand') return s.players[ch.p].hand.length > 0;
     if (ch.kind === 'reserve') return s.players.some(X => X.reserve.length);
     if (ch.kind === 'char') return s.players.some(X => ['H', 'C'].some(e => X.exp[e].some(id => { const c = s.cards[id]; return c.tok || ((db[c.ref] || {}).t === 'CHARACTER' && (ch.max == null || num(db[c.ref].c) <= ch.max)); })));
@@ -311,6 +347,10 @@
     const c = s.cards[target]; const w = c && where(s, target); if (!w) return 'Cible invalide';
     if (ch.kind === 'reserve' && w.z !== 'reserve') return 'Choisis une carte dans une réserve.';
     if (ch.kind === 'char' && !(w.z === 'exp' && (c.tok || (db[c.ref] || {}).t === 'CHARACTER'))) return 'Choisis un personnage en expédition.';
+    if (ch.status && !(c.fleeting || c.anchored || c.asleep)) return 'Ce personnage n’est ni fugace, ni ancré, ni endormi.';
+    if (ch.kind === 'mychar' && !(w.z === 'exp' && w.p === ch.p && /CHARACTER/.test(typeOf(s, target, db)))) return 'Choisis un de tes personnages en expédition.';
+    if (ch.kind === 'charres' && !((w.z === 'exp' || w.z === 'reserve') && /CHARACTER/.test(typeOf(s, target, db)))) return 'Choisis un personnage en jeu ou en réserve.';
+    if (ch.kind === 'myres' && !(w.z === 'reserve' && w.p === ch.p && (!ch.notSelf || target !== ch.src))) return 'Choisis une carte de ta réserve.';
     if (ch.kind === 'hand' && !(w.z === 'hand' && w.p === ch.p)) return 'Choisis une carte de ta main.';
     if (ch.kind === 'perm' && !(!c.tok && /PERMANENT/.test((db[c.ref] || {}).t || '') && (w.z === 'exp' || w.z === 'lm'))) return 'Choisis un permanent en jeu.';
     if (ch.kind === 'any' && !(w.z === 'exp' || w.z === 'lm')) return 'Choisis un personnage ou un permanent en jeu.';
@@ -318,6 +358,7 @@
     if (ch.max !== null && ch.max !== undefined && !c.tok && num((db[c.ref] || {}).c) > ch.max) return 'Coût de main trop élevé (max ' + ch.max + ').';
     const nm = cname(s, target, db);
     if (a.k === 'switch') { const ne = w.e === 'H' ? 'C' : 'H'; s.players[w.p].exp[w.e].splice(w.i, 1); s.players[w.p].exp[ne].push(target); log(s, '→ ' + nm + ' change d’expédition.'); return null; }
+    if (a.k === 'toMana') { moveTo(s, target, 'mana'); log(s, '→ une carte passe de la réserve au mana.'); return null; }
     if (a.k === 'toHand') { moveTo(s, target, 'hand'); log(s, '→ ' + nm + ' retourne dans la main de son propriétaire.'); return null; }
     if (a.k === 'discard') { moveTo(s, target, 'discard'); log(s, '→ ' + (ch.kind === 'hand' ? 'une carte de la main de ' + s.players[w.p].name : nm) + ' est défaussée.'); }
     else if (a.k === 'boost') { c.boost += a.n; log(s, '→ ' + nm + ' gagne ' + a.n + ' boost(s).'); }
@@ -451,12 +492,14 @@
         case 'DUSK':
           if (triggerPresent(s, db, 'dusk') && !(s.ready[0] && s.ready[1])) { if (s.pending !== 'dusk') { s.pending = 'dusk'; log(s, 'Crépuscule : appliquez les effets « Au Crépuscule », puis validez.'); } return; }
           s.pending = null; s.ready = [false, false];
-          for (const X of s.players) { X.disc = []; X.nb = []; }
+          for (const X of s.players) { X.disc = []; X.nb = []; X.nf = []; X.noFleet = false; }
           progress(s, db); s.phase = 'NIGHT'; s.step = 'NIGHT'; continue;
         case 'NIGHT':
           if (triggerPresent(s, db, 'night') && !(s.ready[0] && s.ready[1]) && s.pending !== 'night-done') { if (s.pending !== 'night') { s.pending = 'night'; log(s, 'Nuit : appliquez les effets « À la Nuit », puis validez.'); } return; }
           s.pending = null; s.ready = [false, false];
-          rest(s, db); s.step = 'CLEANUP'; continue;
+          rest(s, db);
+          if (s.afterRest && s.afterRest.length) { const L = s.afterRest; s.afterRest = []; L.forEach(x => doAction(s, x.p, x.self, x.act, db)); }
+          s.step = 'CLEANUP'; if (s.choices.length) return; continue;
         case 'CLEANUP': {
           const need = s.players.map(P => P.reserve.length > P.rl || P.lm.length > P.ll);
           for (let p = 0; p < 2; p++) if (!need[p]) s.ready[p] = true;
@@ -593,8 +636,9 @@
         const k = kw(d);
         if (d.t === 'CHARACTER' || d.t === 'EXPEDITION_PERMANENT') { moveTo(s, a.id, 'exp', a.e); c.fleeting = fromRes || k.fleeting; }
         else if (d.t === 'LANDMARK_PERMANENT' || d.t === 'PERMANENT') moveTo(s, a.id, 'lm');
-        else if (d.t === 'SPELL') { if (fromRes || k.fleeting) moveTo(s, a.id, 'discard'); else { moveTo(s, a.id, 'reserve'); if (k.cooldown) c.ex = true; } }
+        else if (d.t === 'SPELL') { const nf = P.noFleet; P.noFleet = false; if ((fromRes || k.fleeting) && !nf) moveTo(s, a.id, 'discard'); else { moveTo(s, a.id, 'reserve'); if (k.cooldown) c.ex = true; } }
         log(s, P.name + ' joue ' + name(a.id) + (fromRes ? ' depuis la réserve' : '') + ' (' + cost + ' mana)' + (d.t === 'CHARACTER' || d.t === 'EXPEDITION_PERMANENT' ? ' dans l’expédition ' + (a.e === 'C' ? 'Compagnon' : 'Héros') : '') + '.');
+        if (d.t === 'CHARACTER') { const fi = (P.nf || []).findIndex(x => x.max == null || num(d.c) <= x.max); if (fi >= 0) { c[P.nf[fi].f] = true; P.nf.splice(fi, 1); } }
         if (d.t === 'CHARACTER') { const bi = (P.nb || []).findIndex(x => x.t === 'character' || x.t === 'card'); if (bi >= 0) { c.boost += P.nb[bi].n; log(s, '→ ' + name(a.id) + ' gagne ' + P.nb[bi].n + ' boost(s).'); P.nb.splice(bi, 1); } }
         if (d.t === 'CHARACTER') { ev(s, { k: 'join', p, id: a.id, e: a.e === 'C' ? 'C' : 'H' }); ev(s, { k: 'char', p, id: a.id }); }
         if (d.t === 'SPELL') ev(s, { k: 'spell', p, id: a.id });

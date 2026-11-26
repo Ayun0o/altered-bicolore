@@ -164,6 +164,11 @@
     if (ch.kind === 'perm') return perm && (L.z === 'exp' || L.z === 'lm') && (ch.max == null || E.num(DB[c.ref].c) <= ch.max);
     if (ch.kind === 'any') return L.z === 'exp' || L.z === 'lm';
     if (ch.kind === 'ownchar') { const src = locate(ch.src); return L.z === 'exp' && L.p === me && (!src || src.z !== 'exp' || src.e === L.e); }
+    const isChar = c.tok ? !c.tok.lm : (DB[c.ref] || {}).t === 'CHARACTER';
+    if (ch.kind === 'mychar') return L.z === 'exp' && L.p === me && isChar && (ch.max == null || c.tok || E.num(DB[c.ref].c) <= ch.max);
+    if (ch.kind === 'charres') return (L.z === 'exp' || L.z === 'reserve') && isChar;
+    if (ch.kind === 'myres') return L.z === 'reserve' && L.p === me && (!ch.notSelf || id !== ch.src);
+    if (ch.kind === 'char' && ch.status && !(c.fleeting || c.anchored || c.asleep)) return false;
     if (ch.kind === 'char') return L.z === 'exp' && (c.tok || (DB[c.ref] || {}).t === 'CHARACTER') && (ch.max == null || c.tok || E.num(DB[c.ref].c) <= ch.max);
     return false;
   }
