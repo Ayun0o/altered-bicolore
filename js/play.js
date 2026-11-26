@@ -517,10 +517,11 @@
         '<select id="tkE"><option value="H">Expédition Héros</option><option value="C">Expédition Compagnon</option></select><div class="row"><button class="pri" data-do="mkToken">Créer</button><button data-do="closeSide">Annuler</button></div></div>';
       $('tkPre').onchange = () => $('tkCustom').classList.toggle('hidden', $('tkPre').value !== 'custom'); return;
     }
-    if (!sel || !card(sel)) { D.innerHTML = '<p class="note">Survole une carte pour la voir en grand. Clique-la pour ses actions.</p>'; return; }
+    if (!sel || !card(sel)) { $('cardActs').innerHTML = ''; $('costSlot').innerHTML = ''; D.innerHTML = '<p class="note">Survole une carte pour la voir en grand. Clique-la pour ses actions.</p>'; return; }
     const c = card(sel), d = data(c), L = locate(sel); if (!L) { sel = null; return renderSide(); }
     const mine = L.p === me, A = [];
-    const b = (label, act, pri) => A.push('<button' + (pri ? ' class="pri"' : '') + " data-act='" + esc(JSON.stringify(act)) + "'>" + esc(label) + '</button>');
+    const A2 = [];
+    const b = (label, act, pri) => (pri ? A : A2).push('<button' + (pri ? ' class="pri"' : '') + " data-act='" + esc(JSON.stringify(act)) + "'>" + esc(label) + '</button>');
     const isBody = d && (d.t === 'CHARACTER' || d.t === 'EXPEDITION_PERMANENT');
     let costBox = '';
     if (mine && (L.z === 'hand' || L.z === 'reserve') && d) {
@@ -528,9 +529,9 @@
       if (isBody) { b('Jouer → Héros', { type: 'play', id: sel, e: 'H' }, 1); b('Jouer → Compagnon', { type: 'play', id: sel, e: 'C' }, 1); }
       else b('Jouer', { type: 'play', id: sel }, 1);
     }
-    if (mine && L.z === 'hero' && d && /\{T\}\s*[,:]/i.test(d.xe || '')) b('Activer la capacité {T} du héros' + (c.ex ? ' (déjà épuisé)' : ''), { type: 'heroT' });
-    if (mine && L.z === 'lm' && d && c.completed && /^\[\[Completed\]\]\s*,\s*\{T\}/i.test(d.ee || '')) b('Activer la capacité {T} de la Prouesse' + (c.ex ? ' (déjà épuisée)' : ''), { type: 'heroT', id: sel });
-    if (mine && L.z === 'reserve' && d) { const sb = E.supportBody(d); if (sb) b('Capacité de réserve (me défausser)' + (sb.auto ? '' : ' — effet manuel'), { type: 'support', id: sel }); }
+    if (mine && L.z === 'hero' && d && /\{T\}\s*[,:]/i.test(d.xe || '')) b('Activer la capacité {T} du héros' + (c.ex ? ' (déjà épuisé)' : ''), { type: 'heroT' }, 1);
+    if (mine && L.z === 'lm' && d && c.completed && /^\[\[Completed\]\]\s*,\s*\{T\}/i.test(d.ee || '')) b('Activer la capacité {T} de la Prouesse' + (c.ex ? ' (déjà épuisée)' : ''), { type: 'heroT', id: sel }, 1);
+    if (mine && L.z === 'reserve' && d) { const sb = E.supportBody(d); if (sb) b('Capacité de réserve (me défausser)' + (sb.auto ? '' : ' — effet manuel'), { type: 'support', id: sel }, 1); }
     if (mine && L.z === 'hand') { b('Mettre en mana', { type: 'toMana', id: sel, free: !['SETUP_MANA', 'EXPAND'].includes(V.step) }); b('Vers la réserve', { type: 'move', id: sel, to: 'reserve' }); b('Défausser', { type: 'move', id: sel, to: 'discard' }); b('Sur le deck', { type: 'move', id: sel, to: 'deck', top: true }); b('Sous le deck', { type: 'move', id: sel, to: 'deck' }); }
     if (L.z === 'exp') { b('+1 boost', { type: 'boost', id: sel, n: 1 }); b('−1 boost', { type: 'boost', id: sel, n: -1 }); b('Fugace', { type: 'flag', id: sel, f: 'fleeting' }); b('Ancré', { type: 'flag', id: sel, f: 'anchored' }); b('Endormi', { type: 'flag', id: sel, f: 'asleep' }); b('Épuisé', { type: 'flag', id: sel, f: 'ex' }); b('Autre expédition', { type: 'move', id: sel, to: 'exp', e: L.e === 'H' ? 'C' : 'H' }); b('Vers la réserve', { type: 'move', id: sel, to: 'reserve' }); b('Vers la main', { type: 'move', id: sel, to: 'hand' }); b('Défausser', { type: 'move', id: sel, to: 'discard' }); }
     if (L.z === 'reserve') { b('Épuiser / redresser', { type: 'flag', id: sel, f: 'ex' }); b('Défausser', { type: 'move', id: sel, to: 'discard' }); b('Vers la main', { type: 'move', id: sel, to: 'hand' }); }
@@ -538,7 +539,8 @@
     if (L.z === 'discard') { b('Vers la main', { type: 'move', id: sel, to: 'hand' }); b('Vers la réserve', { type: 'move', id: sel, to: 'reserve' }); b('Sur le deck', { type: 'move', id: sel, to: 'deck', top: true }); }
     if (L.z === 'hero' && mine) b('Épuiser / redresser', { type: 'flag', id: sel, f: 'ex' });
     const info = d ? '<p class="small" style="margin:6px 0"><b>' + esc(NM(d)) + '</b> · coût ' + esc(String(d.c ?? '').replace(/#/g, '')) + ' / ' + esc(String(d.rc ?? '').replace(/#/g, '')) + (mine ? '' : ' · <i>carte adverse</i>') + '</p>' : '<p class="small"><b>Jeton ' + esc(tokName(c.tok.n)) + '</b></p>';
-    D.innerHTML = '<div class="detimg">' + (c.tok ? img(c) : '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(c.ref) + '.webp">') + '</div>' + costBox + '<div class="acts" style="margin-top:6px">' + A.join('') + '</div>';
+    D.innerHTML = '<div class="detimg">' + (c.tok ? img(c) : '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(c.ref) + '.webp">') + '</div>' + (A.length ? '<div class="acts" style="margin-top:6px">' + A.join('') + '</div>' : '');
+    $('cardActs').innerHTML = A2.join(''); $('costSlot').innerHTML = costBox;
   }
 
   function playable(id) { const P = V && V.players[me]; return !!(P && V.step === 'AFTERNOON' && V.turn === me && (P.hand.includes(id) || P.reserve.includes(id))); }
