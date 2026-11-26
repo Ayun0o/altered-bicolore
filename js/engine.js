@@ -10,8 +10,8 @@
 
   // Capacités lues dans le texte anglais de la carte
   function kw(card) {
-    const raw = ((card && card.xe) || '').replace(/\u00a0/g, ' ').trim();
-    const pr = w => new RegExp('^#?\\[+' + w + '\\]+', 'i').test(raw);
+    const raw = ((card && card.xe) || '').replace(/\u00a0/g, ' ').replace(/\[\]/g, '').trim();
+    const pr = w => new RegExp('^#?(?:i am |i\'m )?\\[*' + w + '\\]*(?:\\.|\\s|$)', 'i').test(raw);
     const t = (raw + ' ' + ((card && card.ee) || '')).toLowerCase();
     return {
       fleeting: pr('Fleeting'), cooldown: pr('Cooldown'), defender: pr('Defender'), eternal: pr('Eternal'),
@@ -258,6 +258,9 @@
     if ((m = b.match(/^it gains (\d+) boosts? and \[\[(fleeting|anchored|asleep)\]\]$/))) return { k: 'seq', list: [{ k: 'itBoost', n: +m[1] }, { k: 'itFlag', f: m[2] }] };
     if ((m = b.match(/^i gain (\d+) boosts? and \[\[(fleeting|anchored|asleep)\]\]$/))) return { k: 'seq', list: [{ k: 'selfBoostN', n: +m[1] }, { k: 'selfFlag', f: m[2], v: true }] };
     if (/^sacrifice it$/.test(b)) return { k: 'itDiscard' };
+    if ((m = b.match(/^the next (spell|character|permanent) you play this (?:turn|afternoon) costs \{(\d+)\} less$/))) return { k: 'disc', t: m[1], n: +m[2], min: 0 };
+    if (/^you may return a card from your reserve to your hand$/.test(b)) return { k: 'choose', kind: 'myres', opt: true, act: { k: 'toHand' }, label: 'Tu peux reprendre une carte de ta réserve en main' };
+    if (/^(?:you may )?discard any number of cards from your reserve(?: to give me that many boosts|, i gain that many boosts)$/.test(b)) return { k: 'seq', list: [1, 2, 3, 4, 5, 6].map(i => ({ k: 'choose', kind: 'myres', opt: true, notSelf: true, act: { k: 'discard', then: [{ k: 'selfBoostN', n: 1 }] }, label: 'Défausse une carte de ta réserve : je gagne 1 boost (' + i + ') — « Rien » pour arrêter' })) };
     if ((m = b.match(/^target (non-\[\[boosted\]\] )?character in your reserve gains (\d+) boosts?$/))) return { k: 'choose', kind: 'myres', tf: 'CHARACTER', nonBoost: !!m[1], act: { k: 'boost', n: +m[2] }, label: 'Choisis un personnage de ta réserve qui gagne ' + m[2] + ' boost(s)' };
     if (/^your companion expedition \[ascends\], then create an \[ordis recruit 1\/1\/1\] soldier token in it$/.test(b)) return { k: 'seq', list: [{ k: 'ascend', e: 'C' }, { k: 'token', tok: { n: 'Ordis Recruit', p: [1, 1, 1], type: 'soldier' }, where: 'C' }] };
     if (/^you may exhaust me to give it (\d+) boosts?$/.test(b)) { const n = +b.match(/(\d+)/)[1]; return { k: 'options', n: 1, opts: [{ label: 'M’épuiser : le jeton gagne ' + n + ' boost', acts: [{ k: 'selfFlag', f: 'ex', v: true }, { k: 'itBoost', n }] }, { label: 'Non', acts: [] }] }; }
@@ -514,7 +517,7 @@
       if (outs.length) return [{ k: 'dice', outs }];
     }
     if (/^if .+\. otherwise, /i.test(body.trim())) { const one = parseAction(body); if (one) return [one]; }
-    const lb = body.replace(/\u00a0/g, ' ').replace(/\s*\([^)]*\)/g, '').trim();
+    const lb = body.replace(/\u00a0/g, ' ').replace(/\s*\([^)]*\)/g, '').replace(/\[\]/g, '').replace(/\bIf you do:\s*/gi, 'If you do, ').replace(/^(If [^:,.]+):\s*/i, '$1, ').replace(/\.\s+(If [^:,.]+):\s*/gi, '. $1, ').trim();
     const dm = lb.toLowerCase().match(/^(.+?),? then,? (roll a die\..*)$/); if (dm && !/^roll a die/.test(dm[1])) { const a1 = parseBody(dm[1]), a2 = parseBody(dm[2]); if (a1 && a2) return a1.concat(a2); }
     let lbn = lb.toLowerCase().replace(/\.\s+then, /, '. ').replace(/^(you may target (?:another|a) character[^.]*)\. it /, '$1, it ').replace(/^you may discard one card/, 'you may discard a card').replace(/^you may give me (\d+) boosts?/, 'you may have me gain $1 boost'); if (lbn !== lb.toLowerCase()) return parseBody(lbn);
     let my = lb.match(/^you may (.+?)(?:\.\s+if you do,\s+| to )(.+)$/i);
@@ -659,7 +662,16 @@
       case 'nextBoost': (P.nb = P.nb || []).push({ t: a.t, n: a.n }); log(s, '→ le prochain personnage de ' + P.name + ' gagnera ' + a.n + ' boost(s).'); break;
     }
   }
+  // Vérifie qu'au moins une cible est réellement valable (on essaie chaque carte sur une copie)
   function hasTargets(s, ch, db) {
+    if (!hasTargetsQuick(s, ch, db)) return false;
+    if (['exp', 'yesno', 'option', 'anyexp'].includes(ch.kind)) return true;
+    const ids = []; for (const X of s.players) if (X) ids.push(...X.exp.H, ...X.exp.C, ...X.lm, ...X.reserve, ...X.hand);
+    const base = JSON.stringify(s);
+    for (const id of ids) { const c = JSON.parse(base); c.choices = []; c.log = []; c.ev = []; try { if (!applyChoice(c, Object.assign({}, ch), id, db)) return true; } catch (e) { } }
+    return false;
+  }
+  function hasTargetsQuick(s, ch, db) {
     if (ch.kind === 'exp' || ch.kind === 'yesno' || ch.kind === 'option') return true;
     const isPerm = c => !c.tok && /PERMANENT/.test((db[c.ref] || {}).t || '');
     if (ch.kind === 'perm') return s.players.some(X => [...X.exp.H, ...X.exp.C, ...X.lm].some(id => { const c = s.cards[id]; return isPerm(c) && (ch.max == null || num(db[c.ref].c) <= ch.max); }));

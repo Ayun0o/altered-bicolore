@@ -68,11 +68,11 @@
     else { for (const X of s.players) cand.push(...X.exp.H, ...X.exp.C, ...X.lm, ...X.reserve); cand.push(...s.players[p].hand); }
     cand.push(null);
     let best = null, bv = -Infinity;
-    for (const t of cand) {
-      if (t != null && typeof t === 'string' && s.cards[t] && s.cards[t].owner !== p && ch.act && /boost/i.test(ch.act.k || '') && !/rmCtr|clearBoost/.test(ch.act.k)) continue; // jamais de boost à l'adversaire
+    for (const pass of [0, 1]) { if (best) break; for (const t of cand) {
+      if (pass === 0 && t != null && typeof t === 'string' && s.cards[t] && s.cards[t].owner !== p && ch.act && /boost/i.test(ch.act.k || '') && !/rmCtr|clearBoost/.test(ch.act.k)) continue; // jamais de boost à l'adversaire
       const c = clone(s); const err = E.act(c, p, { type: 'choose', target: t }, db); if (err) continue;
       const v = score(c, p, db); if (v > bv) { bv = v; best = { type: 'choose', target: t }; }
-    }
+    } }
     return best;
   }
 
