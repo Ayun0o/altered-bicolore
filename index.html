@@ -101,6 +101,7 @@ textarea{width:100%;min-height:140px;font-size:13px}
 <button id="langBtn" aria-label="Langue des cartes"></button>
 <a class="mobtoggle" href="#deckpanel"><button tabindex="-1">Voir le deck</button></a>
 <span class="sync" id="sync">Chargement…</span>
+<button id="acctBtn" title="Compte : retrouve tes decks et tes stats sur tous tes appareils">Se connecter</button>
 </header>
 <div class="wrap">
 <main class="lib">
@@ -144,6 +145,11 @@ textarea{width:100%;min-height:140px;font-size:13px}
 </aside>
 </div>
 
+<dialog id="acctDlg">
+<h2 style="margin-bottom:8px" id="acctT">Se connecter</h2>
+<div id="acctBody"></div>
+<div class="row" style="justify-content:flex-end;margin-top:10px"><button id="acctClose">Fermer</button></div>
+</dialog>
 <dialog id="zoom"><img id="zoomImg" alt=""></dialog>
 <dialog id="newDlg">
 <h2 style="margin-bottom:8px">Nouveau deck</h2>
@@ -177,6 +183,8 @@ textarea{width:100%;min-height:140px;font-size:13px}
 <div class="row" style="justify-content:flex-end"><button id="ioClose">Fermer</button><button id="ioOk" class="on"></button></div>
 </dialog>
 
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/cloud.js"></script>
 <script>
 {
 const FN={AX:'Axiom',BR:'Bravos',LY:'Lyra',MU:'Muna',OR:'Ordis',YZ:'Yzmir'};
@@ -364,6 +372,19 @@ async function start(){
  if(!decks[cur])cur=Object.keys(decks)[0];
  if(qd)try{localStorage.setItem('alt-bi-cur',cur)}catch(e){}
  renderAll();$('sync').textContent='Decks gardés dans ce navigateur (copie la liste pour les partager)';
+ const C=window.AltCloud;
+ if(C&&C.ready()){const u=await C.init();setAcct();C.onChange(()=>location.reload());
+  if(u){db=C.db();if(db){$('sync').textContent='Synchronisation…';let first=true;
+   db.collection('decks').onSnapshot(s=>{$('sync').textContent='Decks synchronisés avec ton compte';
+    if(first){first=false;const remote=new Set(s.docs.map(x=>x.id));for(const id of Object.keys(decks))if(!remote.has(id)&&Object.keys(decks[id].cards).length)dirty.add(id);
+     for(const id of Object.keys(decks))if(!remote.has(id)&&!Object.keys(decks[id].cards).length&&s.docs.length)delete decks[id];if(dirty.size)flush()}
+    for(const x of s.docs){if(dirty.has(x.id))continue;const c=cleanDeck(x.data());if(c&&(!decks[x.id]||c.updated>=(decks[x.id].updated||0)))decks[x.id]=c}
+    for(const ch of s.docChanges())if(ch.type==='removed'&&!dirty.has(ch.doc.id))delete decks[ch.doc.id];
+    if(!Object.keys(decks).length)decks['d'+Date.now().toString(36)]=newDeckObj('Mon premier deck');
+    if(!decks[cur])cur=Object.keys(decks)[0];
+    try{localStorage.setItem('alt-bi-decks',JSON.stringify(decks))}catch(e){}
+    const a=document.activeElement;if(a&&a.id==='dName'){renderSel();return}renderAll()},
+    e=>{$('sync').textContent='Compte injoignable : decks gardés dans ce navigateur';db=null});return}}}
  const cl=window.claude;if(!cl||!cl.use)return;
  db=await cl.use('db').catch(()=>null);if(!db){$('sync').textContent='Decks gardés dans ce navigateur';return}
  const timer=setTimeout(()=>{$('sync').textContent='Partage injoignable pour l\'instant'},10000);
@@ -382,6 +403,15 @@ async function start(){
 function setLangBtn(){$('langBtn').innerHTML=(EN()?'<b>EN</b> / fr':'<b>FR</b> / en')}
 $('langBtn').onclick=()=>{LANG=EN()?'fr':'en';try{localStorage.setItem('alt-bi-lang',LANG)}catch(e){}setLangBtn();renderAll()};
 setLangBtn();
+function setAcct(){const C=window.AltCloud,u=C&&C.user();$('acctBtn').textContent=u?'👤 '+(u.email||'Compte').split('@')[0]:'Se connecter'}
+$('acctBtn').onclick=()=>{const C=window.AltCloud,u=C&&C.user();
+ if(!C||!C.ready()){$('acctBody').innerHTML='<p class="note">Le module de connexion n\'a pas pu se charger. Vérifie ta connexion internet.</p>'}
+ else if(u){$('acctT').textContent='Mon compte';$('acctBody').innerHTML='<p>Connecté avec <b>'+esc(u.email||'')+'</b>.</p><p class="note">Tes decks et tes statistiques sont enregistrés sur ton compte : connecte-toi avec la même adresse sur ton téléphone ou un autre ordinateur pour les retrouver.</p><div class="row"><button id="acctOut">Se déconnecter</button></div>';
+  $('acctOut').onclick=async()=>{await C.signOut();location.reload()}}
+ else{$('acctT').textContent='Se connecter';$('acctBody').innerHTML='<p class="note">Entre ton adresse e-mail : tu reçois un lien de connexion (pas de mot de passe). Tes decks de ce navigateur seront ajoutés à ton compte.</p><div class="row"><input id="acctMail" type="email" placeholder="ton@email.fr" style="flex:1"><button class="on" id="acctGo">Recevoir le lien</button></div><p class="note" id="acctMsg"></p>';
+  $('acctGo').onclick=async()=>{const m=$('acctMail').value.trim();if(!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)){$('acctMsg').textContent='Adresse e-mail invalide.';return}$('acctMsg').textContent='Envoi…';try{await C.signIn(m);$('acctMsg').innerHTML='<b>C\'est parti !</b> Ouvre l\'e-mail reçu et clique le lien : tu reviendras ici, connecté. (Regarde aussi les spams.)'}catch(e){$('acctMsg').textContent='Échec : '+(e&&e.message||e)}}}
+ $('acctDlg').showModal()};
+$('acctClose').onclick=()=>$('acctDlg').close();
 start();
 }
 </script>

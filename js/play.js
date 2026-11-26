@@ -64,6 +64,22 @@
     const q = new URLSearchParams(location.search).get('join'); if (q) $('jcode').value = q;
     bindGame();
     const sb = $('statsBox'); if (sb) sb.innerHTML = statsHtml();
+    cloudInit();
+  }
+  let CLOUDGAMES = null;
+  async function cloudInit() {
+    const C = window.AltCloud; if (!C || !C.ready()) return;
+    const u = await C.init(); const ab = $('acctInfo');
+    if (ab) ab.innerHTML = u ? 'Connecté : <b>' + esc(u.email || '') + '</b> — decks et stats synchronisés.' : 'Pas connecté : decks et stats restent sur cet appareil. <a href="index.html">Se connecter depuis le deckbuilder</a>.';
+    if (!u) return;
+    if (!$('pname').value) { $('pname').value = (u.email || '').split('@')[0].slice(0, 24); }
+    try {
+      const db = C.db(); db.collection('decks').onSnapshot(s => { const all = store.get('alt-bi-decks', {}); for (const x of s.docs) { const v = x.data(); if (v && v.hero && (!all[x.id] || (v.updated || 0) >= (all[x.id].updated || 0))) all[x.id] = v; } store.set('alt-bi-decks', all); $('pdeck').innerHTML = deckOpts($('pdeck').value || store.get('alt-bi-lastdeck', '')); $('sdeck').innerHTML = deckOpts($('sdeck').value); renderPickers(); });
+      // statistiques locales déjà jouées : envoyées une fois sur le compte
+      const loc = store.get('alt-bi-stats', { games: [] }); const sent = store.get('alt-bi-stats-sent', 0);
+      for (const g of (loc.games || []).slice(sent)) await C.addGame(g); store.set('alt-bi-stats-sent', (loc.games || []).length);
+      CLOUDGAMES = await C.games(); const sb = $('statsBox'); if (sb) sb.innerHTML = statsHtml();
+    } catch (e) { }
   }
   const myName = (def) => ($('pname').value.trim() || def || 'Joueur 1').slice(0, 24);
   function needDeck() { const d = getDeck($('pdeck').value); if (!d) { $('lobbyMsg').innerHTML = '<span class="err">Choisis un deck avec un héros.</span>'; } return d; }
@@ -315,9 +331,10 @@
     st.games.push({ t: Date.now(), win: V.winner === me, me: fac(P), heroMe: hero(P), deck: (decksUsed[me] || {}).name || hero(P), vs: fac(O), heroVs: hero(O), opp: O.name, days: V.day });
     if (st.games.length > 500) st.games = st.games.slice(-500);
     store.set('alt-bi-stats', st);
+    const C = window.AltCloud; if (C && C.user()) C.addGame(st.games[st.games.length - 1]).then(ok => { if (ok) store.set('alt-bi-stats-sent', st.games.length); });
   }
   function statsHtml() {
-    const g = (store.get('alt-bi-stats', { games: [] }).games || []); if (!g.length) return '<p class="note">Aucune partie en ligne terminée pour l’instant. Les résultats s’enregistreront ici automatiquement.</p>';
+    const g = CLOUDGAMES || (store.get('alt-bi-stats', { games: [] }).games || []); if (!g.length) return '<p class="note">Aucune partie en ligne terminée pour l’instant. Les résultats s’enregistreront ici automatiquement.</p>';
     const w = g.filter(x => x.win).length, pct = n => Math.round(100 * n);
     const by = (k) => { const m = {}; g.forEach(x => { const v = x[k]; m[v] = m[v] || [0, 0]; m[v][0]++; if (x.win) m[v][1]++; }); return Object.entries(m).sort((a, b) => b[1][0] - a[1][0]); };
     const row = (lab, n, v, col) => '<tr><td>' + (col ? '<span class="sdot" style="background:' + col + '"></span>' : '') + esc(lab) + '</td><td>' + n + '</td><td>' + v + ' – ' + (n - v) + '</td><td><b>' + pct(v / n) + ' %</b></td></tr>';

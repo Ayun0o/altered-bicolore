@@ -1,0 +1,64 @@
+// Compte en ligne (Supabase) : connexion par lien e-mail, decks et statistiques synchronisés.
+// Sans connexion, tout continue de fonctionner dans le navigateur.
+(function (root) {
+  'use strict';
+  const URL = 'https://rwvrdaytkarbehcljicr.supabase.co';
+  const KEY = 'sb_publishable_r9FsSdpXs7hDjcj6NQUL7Q_pRuwfPoq';
+  let sb = null, user = null;
+  const subs = [];
+
+  function client() {
+    if (sb) return sb;
+    if (!root.supabase || !root.supabase.createClient) return null;
+    sb = root.supabase.createClient(URL, KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
+    sb.auth.onAuthStateChange((ev, session) => { const u = session ? session.user : null; if ((u && u.id) !== (user && user.id)) { user = u; subs.forEach(f => { try { f(user); } catch (e) { } }); } });
+    return sb;
+  }
+  async function init() {
+    const c = client(); if (!c) return null;
+    try { const { data } = await c.auth.getSession(); user = data && data.session ? data.session.user : null; } catch (e) { user = null; }
+    return user;
+  }
+  async function signIn(email) {
+    const c = client(); if (!c) throw new Error('Module de connexion indisponible.');
+    const back = location.origin + location.pathname;
+    const { error } = await c.auth.signInWithOtp({ email, options: { emailRedirectTo: back } });
+    if (error) throw error;
+  }
+  async function signOut() { const c = client(); if (c) await c.auth.signOut(); user = null; subs.forEach(f => f(null)); }
+
+  // Adaptateur au format « collection / doc / onSnapshot » déjà utilisé par le deckbuilder
+  function db() {
+    const c = client(); if (!c || !user) return null;
+    let last = new Map();
+    const snap = (rows) => {
+      const now = new Map(rows.map(r => [r.id, r.data]));
+      const changes = [];
+      for (const id of last.keys()) if (!now.has(id)) changes.push({ type: 'removed', doc: { id } });
+      last = now;
+      return { docs: rows.map(r => ({ id: r.id, data: () => r.data })), docChanges: () => changes };
+    };
+    return {
+      doc: () => ({ onSnapshot: () => () => { } }),
+      collection: (name) => ({
+        doc: (id) => ({
+          set: async (data) => { const { error } = await c.from('decks').upsert({ user_id: user.id, id, data, updated_at: new Date().toISOString() }); if (error) throw error; },
+          delete: async () => { const { error } = await c.from('decks').delete().eq('user_id', user.id).eq('id', id); if (error) throw error; }
+        }),
+        onSnapshot: (cb, err) => {
+          let stop = false;
+          const pull = async () => { if (stop) return; const { data, error } = await c.from('decks').select('id,data').eq('user_id', user.id); if (error) { if (err) err(error); return; } cb(snap(data || [])); };
+          pull();
+          const onFocus = () => pull(); root.addEventListener('focus', onFocus);
+          const t = setInterval(pull, 30000);
+          return () => { stop = true; clearInterval(t); root.removeEventListener('focus', onFocus); };
+        }
+      })
+    };
+  }
+
+  async function addGame(g) { const c = client(); if (!c || !user) return false; const { error } = await c.from('games').insert({ user_id: user.id, data: g }); return !error; }
+  async function games() { const c = client(); if (!c || !user) return null; const { data, error } = await c.from('games').select('data,created_at').eq('user_id', user.id).order('created_at', { ascending: true }).limit(1000); if (error) return null; return (data || []).map(r => r.data); }
+
+  root.AltCloud = { init, signIn, signOut, db, addGame, games, user: () => user, onChange: f => subs.push(f), ready: () => !!client() };
+})(window);
