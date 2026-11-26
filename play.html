@@ -484,6 +484,7 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 <p class="note">Tu obtiens un code à envoyer à ton adversaire. La partie utilise le deck choisi au centre.</p>
 <p id="lobbyMsg" class="note"></p>
 </div>
+<button id="bSolo2" style="width:100%;margin-top:-4px">▶ Lancer une partie d'essai</button>
 <p class="note">La plupart des effets des cartes s'appliquent tout seuls ; les rares effets situationnels se règlent avec les boutons de chaque carte.</p>
 </div>
 <div class="lcol">
@@ -546,5 +547,6 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
  document.getElementById('side').addEventListener('click',e=>{const x=e.target.closest('button[data-tool],button[data-do]');if(x&&matchMedia('(max-width:900px)').matches)setTimeout(()=>b.classList.remove('sideopen'),150)});
 })();
 </script>
+<script>document.getElementById('bSolo2').onclick=()=>document.getElementById('bSolo').click();</script>
 </body>
 </html>
