@@ -383,6 +383,16 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 .uqo .ue{position:absolute;left:83.5%;top:4.4%;width:12.5%;height:13.5%;background:linear-gradient(#f7dc8a,#b9862a);mix-blend-mode:color;border-radius:0 0 1cqw 1cqw}
 .uqo .uf{position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 .8cqw #e2b84a}
 
+
+#sideTab,#sideBg{display:none}
+@media(max-width:900px){
+ .side{position:fixed;top:0;right:0;bottom:0;width:min(320px,86vw);height:100dvh!important;z-index:60;border-top:0!important;border-left:1px solid var(--line)!important;box-shadow:-8px 0 30px #0004;transform:translateX(105%);transition:transform .22s ease;overflow:auto}
+ body.sideopen .side{transform:none}
+ #sideTab{display:block;position:fixed;right:0;top:50%;transform:translateY(-50%);z-index:59;min-height:0;width:22px;height:64px;padding:0;border-radius:10px 0 0 10px;border:1px solid var(--line);border-right:0;background:var(--panel);font-size:18px;line-height:1;box-shadow:-2px 0 8px #0002;opacity:.85}
+ #sideTab.new::after{content:"";position:absolute;top:6px;left:5px;width:7px;height:7px;border-radius:50%;background:var(--OR,#d4a017)}
+ body.sideopen #sideTab{display:none}
+ body.sideopen #sideBg{display:block;position:fixed;inset:0;z-index:58;background:#0005}
+}
 </style>
 </head>
 <body>
@@ -437,7 +447,8 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 <div class="exprow" id="myExps"></div>
 <div id="myStrip"></div>
 </div>
-<aside class="side">
+<button id="sideTab" type="button" aria-label="Outils et journal">‹</button><div id="sideBg"></div>
+<aside class="side" id="side">
 <div id="detail" class="det"></div>
 <div class="zone"><h3>Outils</h3><div class="acts">
 <button data-tool="draw">Piocher 1</button><button data-tool="resupply">Ravitailler</button><button data-tool="shuffle">Mélanger le deck</button><button data-tool="token">Créer un jeton</button>
@@ -456,5 +467,12 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 <script src="js/ai.js?v=1795716790"></script>
 <script src="js/net.js?v=1795716790"></script>
 <script src="js/play.js?v=1795716790"></script>
+<script>
+(function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
+ t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');
+ if(log)new MutationObserver(()=>{if(!b.classList.contains('sideopen'))t.classList.add('new')}).observe(log,{childList:true});
+ document.getElementById('side').addEventListener('click',e=>{const x=e.target.closest('button[data-tool]');if(x&&matchMedia('(max-width:900px)').matches)setTimeout(()=>b.classList.remove('sideopen'),150)});
+})();
+</script>
 </body>
 </html>
