@@ -295,6 +295,32 @@
     document.body.style.background = 'var(--bg)';
     const mainEl = document.querySelector('#game .main'); if (mainEl) mainEl.style.background = 'linear-gradient(to bottom,' + (fo ? FC[fo] + '30' : 'transparent') + ' 0%,' + (fo ? FC[fo] + '99' : 'transparent') + ' 26%,transparent 46%,transparent 54%,' + (fm ? FC[fm] + '99' : 'transparent') + ' 74%,' + (fm ? FC[fm] + '30' : 'transparent') + ' 100%),var(--bg)';
     renderPrompt(P, O); renderSide();
+    animate();
+  }
+  // Petites animations non bloquantes : carte posée, boosts / statuts qui tombent sur la carte, dé lancé
+  let SNAP = null, LOGN = 0;
+  function animate() {
+    const cur = {};
+    for (const id in V.cards) { const c = V.cards[id], L = locate(id); if (!L) continue; cur[id] = { z: L.z, b: c.boost || 0, st: (c.fleeting ? 'f' : '') + (c.anchored ? 'a' : '') + (c.asleep ? 's' : '') + (c.completed ? 'c' : ''), ct: c.ctr ? Object.values(c.ctr).reduce((a, v) => a + v, 0) : 0 }; }
+    if (SNAP) {
+      document.querySelectorAll('#game .main .c[data-id]').forEach(el => {
+        const id = el.dataset.id, n = cur[id], o = SNAP[id]; if (!n || el.closest('.hand')) return;
+        if ((!o && (n.z === 'exp' || n.z === 'lm')) || (o && o.z !== n.z && ['exp', 'lm', 'reserve'].includes(n.z))) el.classList.add('landed');
+        if (o && n.b > o.b) { const b = el.querySelector('.bd b.bst'); if (b) b.classList.add('drop'); }
+        if (o && n.ct > o.ct) el.querySelectorAll('.bd b:not(.bst)').forEach(b => b.classList.add('drop'));
+        if (o && n.st !== o.st) { const T = { f: 'Fugace', a: 'Ancré', s: 'Endormi', c: 'Accomplie' }; [...n.st].filter(k => !o.st.includes(k)).forEach((k, i) => { const it = el.querySelector('.st i[title="' + T[k] + '"]'); if (it) { it.style.animationDelay = (i * 90) + 'ms'; it.classList.add('drop'); } }); }
+      });
+    }
+    SNAP = cur;
+    if (V.log.length < LOGN) LOGN = V.log.length;
+    const fresh = V.log.slice(LOGN); LOGN = V.log.length;
+    fresh.filter(l => /🎲/.test(l.m)).slice(-3).forEach((l, i) => { const m = l.m.match(/🎲\s*(.+?) lance un dé : (\d)/); if (m) setTimeout(() => showDie(+m[2], m[1]), i * 450); });
+  }
+  const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
+  function showDie(n, who) {
+    const d = document.createElement('div'); d.className = 'diefx';
+    d.innerHTML = '<div class="die">' + Array.from({ length: 9 }, (x, i) => '<i' + (PIPS[n].includes(i) ? ' class="on"' : '') + '></i>').join('') + '</div><span>' + esc(who) + ' · ' + n + '</span>';
+    document.body.appendChild(d); setTimeout(() => d.remove(), 2600);
   }
   function renderPrompt(P, O) {
     const pr = $('prompt'); let h = '';
