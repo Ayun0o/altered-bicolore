@@ -110,6 +110,65 @@
   }
 
 
+
+  // ---------- Conditions (« si… », « sauf si… », « par… ») ----------
+  const NW = { a: 1, an: 1, one: 1, two: 2, three: 3, four: 4, five: 5, six: 6, seven: 7, eight: 8, nine: 9, ten: 10, eleven: 11, twelve: 12 };
+  const nw = x => NW[x] ?? (+x || 0);
+  const SING = w => w.replace(/ies$/, 'y').replace(/s$/, '');
+  function subtypesOf(s, id, db) { const c = s.cards[id]; if (!c) return []; if (c.tok) return [String(c.tok.type || '').toLowerCase(), 'token']; const d = db[c.ref] || {}; return (d.ste || []).map(x => x.toLowerCase()); }
+  function typeOf(s, id, db) { const c = s.cards[id]; if (!c) return ''; if (c.tok) return c.tok.lm ? 'LANDMARK_PERMANENT' : 'CHARACTER'; return (db[c.ref] || {}).t || ''; }
+  function controlled(s, p, noun, db, self) {
+    const P = s.players[p]; const ids = [...P.exp.H, ...P.exp.C, ...P.lm];
+    const n = SING(noun.toLowerCase().trim());
+    return ids.filter(id => {
+      if (n === 'landmark') return P.lm.includes(id);
+      if (n === 'character') return /CHARACTER/.test(typeOf(s, id, db));
+      if (n === 'permanent') return /PERMANENT/.test(typeOf(s, id, db));
+      if (n === 'token') return !!s.cards[id].tok;
+      if (n === 'boosted character') return /CHARACTER/.test(typeOf(s, id, db)) && s.cards[id].boost > 0;
+      if (n === 'fleeting character') return /CHARACTER/.test(typeOf(s, id, db)) && s.cards[id].fleeting;
+      return subtypesOf(s, id, db).includes(n);
+    }).filter(id => id !== self || !/^another /.test(noun));
+  }
+  const TER = { '{v}': 'F', '{m}': 'M', '{o}': 'W' };
+  function regionOf(s, p, e) { return s.adv[s.players[p].pos[e]]; }
+  function evalCond(s, p, self, c, db, ctx) {
+    c = c.trim(); let m;
+    const P = s.players[p], O = s.players[1 - p];
+    const e = expOf(s, self) || ctx.e;
+    if ((m = c.match(/^you control (a|an|one|two|three|four|five|\d+)(?: or more)? (another |other )?(.+)$/))) { const n = nw(m[1]); return controlled(s, p, (m[2] ? 'another ' : '') + m[3], db, self).filter(id => !m[2] || id !== self).length >= n; }
+    if ((m = c.match(/^you don't control (?:a|an|any) (.+)$/))) return controlled(s, p, m[1], db, self).length === 0;
+    if (/^i'm \[in contact\]$/.test(c)) { if (!e) return false; return P.pos[e] === O.pos[e]; }
+    if (/^my expedition is behind$/.test(c)) { if (!e) return false; const d = x => e === 'H' ? x.pos.H : LAST - x.pos.C; return d(P) < d(O); }
+    if (/^my expedition is ahead$/.test(c)) { if (!e) return false; const d = x => e === 'H' ? x.pos.H : LAST - x.pos.C; return d(P) > d(O); }
+    if ((m = c.match(/^i have (\w+) or more boosts?$/))) { const k = s.cards[self]; return !!k && k.boost >= nw(m[1]); }
+    if (/^i'm boosted$/.test(c)) { const k = s.cards[self]; return !!k && k.boost > 0; }
+    if (/^your hand is empty$/.test(c)) return P.hand.length === 0;
+    if ((m = c.match(/^(?:there are )?(\w+) or more cards (?:are )?in your discard pile$/))) return P.discard.length >= nw(m[1]);
+    if ((m = c.match(/^(?:there are )?(\w+) or more cards (?:are )?in your reserve$/))) return P.reserve.length >= nw(m[1]);
+    if ((m = c.match(/^there are (\w+) or more exhausted cards in (?:your )?reserve$/))) return P.reserve.filter(id => s.cards[id].ex).length >= nw(m[1]);
+    if ((m = c.match(/^(?:there are )?(\w+) or more mana orbs in your mana zone$/)) || (m = c.match(/^you have (\w+) or more mana orbs$/))) return P.mana.length >= nw(m[1]);
+    if (/^there's another character in each of your expeditions$/.test(c)) return ['H', 'C'].every(x => P.exp[x].some(id => id !== self && /CHARACTER/.test(typeOf(s, id, db))));
+    if ((m = c.match(/^i'm in (\{[vmo]\})$/))) { if (!e) return false; const r = regionOf(s, p, e); return !!r && r.terr.includes(TER[m[1]]); }
+    if (/^your opponent's hand is empty$/.test(c)) return O.hand.length === 0;
+    if (/^you have no cards in hand$/.test(c)) return P.hand.length === 0;
+    if (/^my expedition is in a region with two or more terrains$/.test(c)) { if (!e) return false; const r = regionOf(s, p, e); return !!r && r.terr.length >= 2; }
+    return null; // inconnue
+  }
+  function countPer(s, p, self, what, db, ctx) {
+    const P = s.players[p], O = s.players[1 - p]; const e = expOf(s, self) || ctx.e; let m;
+    what = what.trim();
+    if (/^character in the expeditions? facing me$/.test(what)) return e ? O.exp[e].filter(id => /CHARACTER/.test(typeOf(s, id, db))).length : 0;
+    if (/^mana orb in your mana zone$/.test(what)) return P.mana.length;
+    if (/^card in your hand$/.test(what)) return P.hand.length;
+    if (/^card in your reserve$/.test(what)) return P.reserve.length;
+    if ((m = what.match(/^expedition in (\{[vmo]\})$/))) return s.players.reduce((a, X, q) => a + ['H', 'C'].filter(x => { const r = regionOf(s, q, x); return r && r.terr.includes(TER[m[1]]); }).length, 0);
+    if ((m = what.match(/^(other )?(.+?) you control$/))) return controlled(s, p, m[2], db, self).filter(id => !m[1] || id !== self).length;
+    return null;
+  }
+  function condKnown(c) { const fake = { players: [{ exp: { H: [], C: [] }, lm: [], hand: [], discard: [], reserve: [], mana: [], deck: [], hero: null, pos: { H: 0, C: 7 } }, { exp: { H: [], C: [] }, lm: [], hand: [], discard: [], reserve: [], mana: [], deck: [], hero: null, pos: { H: 0, C: 7 } }], cards: {}, adv: [] }; try { return evalCond(fake, 0, 'x', c, {}, {}) !== null; } catch (e) { return false; } }
+  function perKnown(w) { const fake = { players: [{ exp: { H: [], C: [] }, lm: [], hand: [], discard: [], reserve: [], mana: [], deck: [], hero: null, pos: { H: 0, C: 7 } }, { exp: { H: [], C: [] }, lm: [], hand: [], discard: [], reserve: [], mana: [], deck: [], hero: null, pos: { H: 0, C: 7 } }], cards: {}, adv: [{ terr: [] }, { terr: [] }, { terr: [] }, { terr: [] }, { terr: [] }, { terr: [] }, { terr: [] }, { terr: [] }] }; try { return countPer(fake, 0, 'x', w, {}, {}) !== null; } catch (e) { return false; } }
+
   // ---------- Effets automatiques ----------
   // Découpe le texte anglais en clauses ; chaque clause a ses déclencheurs ({J} joué, {H} depuis la main, {R} depuis la réserve).
   function clauses(card) {
@@ -121,6 +180,10 @@
   function parseAction(b) {
     b = b.toLowerCase().replace(/\u00a0/g, ' ').replace(/\[\]/g, '').replace(/\s*\([^)]*\)/g, '').replace(/\s+/g, ' ').replace(/\s+([.,])/g, '$1').trim().replace(/\.$/, '');
     let m;
+    if ((m = b.match(/^if (.+?), (.+?)(?:\. otherwise, (.+))?$/)) && condKnown(m[1])) { const t = parseBody(m[2]); const o = m[3] ? parseBody(m[3]) : []; if (t && o) return { k: 'if', c: m[1], t, o }; }
+    if ((m = b.match(/^unless (.+?), (.+)$/)) && condKnown(m[1])) { const t = parseBody(m[2]); if (t) return { k: 'if', c: m[1], t: [], o: t }; }
+    if ((m = b.match(/^(.+?) unless (.+)$/)) && condKnown(m[2])) { const t = parseBody(m[1]); if (t) return { k: 'if', c: m[2], t: [], o: t }; }
+    if ((m = b.match(/^i gain (\d+) boosts? per (.+?)(?:, up to a max of (\d+))?$/)) && perKnown(m[2])) return { k: 'boostPer', n: +m[1], per: m[2], max: m[3] ? +m[3] : null };
     if (/^\[resupply\]$/.test(b)) return { k: 'resupply' };
     if (/^\[exhausted resupply\]$/.test(b)) return { k: 'resupply', ex: true };
     if ((m = b.match(/^i gain \[\[?(anchored|asleep|fleeting)\]?\]$/))) return { k: 'selfFlag', f: m[1], v: true };
@@ -136,7 +199,7 @@
     if (/^exhaust target card in reserve$/.test(b)) return { k: 'choose', kind: 'reserve', act: { k: 'flag', f: 'ex' }, label: 'Choisis une carte en réserve à épuiser' };
     if (/^send target character to reserve$/.test(b)) return { k: 'choose', kind: 'char', act: { k: 'toReserve' }, label: 'Choisis un personnage à renvoyer en réserve' };
     if ((m = b.match(/^create (?:a|an) \[(.+?) (\d+)\/(\d+)\/(\d+)\] (.+?) token in (target expedition|my expedition|each of your expeditions)$/))) {
-      const tok = { n: m[1].replace(/\b\w/g, c => c.toUpperCase()), p: [+m[2], +m[3], +m[4]] };
+      const tok = { n: m[1].replace(/\b\w/g, c => c.toUpperCase()), p: [+m[2], +m[3], +m[4]], type: m[5] };
       if (m[6] === 'target expedition') return { k: 'choose', kind: 'exp', act: { k: 'token', tok }, label: 'Dans quelle expédition créer le jeton ' + tok.n + ' ?' };
       return { k: 'token', tok, where: m[6] === 'my expedition' ? 'mine' : 'both' };
     }
@@ -175,6 +238,7 @@
     return null;
   }
   function parseBody(body) {
+    if (/^if .+\. otherwise, /i.test(body.trim())) { const one = parseAction(body); if (one) return [one]; }
     const parts = body.split(/\.\s+/).map(x => x.trim()).filter(Boolean);
     const acts = parts.map(parseAction);
     return acts.every(Boolean) ? acts : null;
@@ -193,12 +257,14 @@
       case 'draw': for (let i = 0; i < a.n; i++) draw(s, p); log(s, '→ ' + P.name + ' pioche ' + a.n + ' carte(s).'); break;
       case 'token': {
         const es = a.where === 'both' ? ['H', 'C'] : [a.e || ctx.e || expOf(s, self) || 'H'];
-        for (const e of es) { const id = 't' + (s.nid++); s.cards[id] = { id, ref: '__token', owner: p, boost: 0, ex: false, fleeting: false, anchored: false, asleep: false, tok: { n: a.tok.n, p: a.tok.p.slice() } }; P.exp[e].push(id); ev(s, { k: 'join', p, id, e }); }
+        for (const e of es) { const id = 't' + (s.nid++); s.cards[id] = { id, ref: '__token', owner: p, boost: 0, ex: false, fleeting: false, anchored: false, asleep: false, tok: { n: a.tok.n, p: a.tok.p.slice(), type: a.tok.type || '' } }; P.exp[e].push(id); ev(s, { k: 'join', p, id, e }); }
         log(s, '→ ' + P.name + ' crée ' + (es.length > 1 ? 'des jetons ' : 'un jeton ') + a.tok.n + ' ' + a.tok.p.join('/') + '.'); break;
       }
       case 'choose': { const ch = { p, kind: a.kind, opt: !!a.opt || a.kind === 'yesno', max: a.max ?? null, act: a.act, label: a.label, src: self }; if (hasTargets(s, ch, db)) s.choices.push(ch); else log(s, '→ aucune cible possible, effet ignoré.'); break; }
       case 'chooseOpp': if (s.players[1 - p].hand.length) s.choices.push({ p: 1 - p, kind: a.kind, opt: false, act: a.act, label: a.label, src: self }); break;
-      case 'seq': a.list.forEach(x => doAction(s, p, self, x, db)); break;
+      case 'seq': a.list.forEach(x => doAction(s, p, self, x, db, ctx)); break;
+      case 'if': { const r = evalCond(s, p, self, a.c, db, ctx); log(s, '→ condition « ' + a.c + ' » : ' + (r ? 'remplie' : 'non remplie') + '.'); (r ? a.t : a.o).forEach(x => doAction(s, p, self, x, db, ctx)); break; }
+      case 'boostPer': { const n = (countPer(s, p, self, a.per, db, ctx) || 0) * a.n; const k = s.cards[self]; if (k && n > 0) { const before = k.boost; k.boost = a.max != null ? Math.min(a.max, k.boost + n) : k.boost + n; log(s, '→ ' + nm() + ' gagne ' + (k.boost - before) + ' boost(s).'); } break; }
       case 'oppBack': { const e = expOf(s, self); if (e) { const O = s.players[1 - p]; const np = O.pos[e] - (e === 'H' ? 1 : -1); O.pos[e] = Math.max(0, Math.min(LAST, np)); log(s, '→ l’expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + ' de ' + O.name + ' recule.'); } break; }
       case 'ascendMine': { const e = expOf(s, self); if (e) { (P.asc = P.asc || {})[e] = true; log(s, '→ l’expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + ' de ' + P.name + ' s’élève.'); } break; }
       case 'oppResupply': { const O = s.players[1 - p]; if (!O.deck.length && O.discard.length) { O.deck = O.discard.splice(0); shuffle(O.deck, Math.random); } const id = O.deck.shift(); if (id) { O.reserve.push(id); log(s, '→ ' + O.name + ' se ravitaille : ' + cname(s, id, db) + '.'); } break; }
