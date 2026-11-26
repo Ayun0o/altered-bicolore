@@ -570,7 +570,7 @@
   function selPreview() {
     if (V && V.step !== PEEKSTEP) { PEEK = null; PEEKSTEP = V.step; }
     const sid = sel || PEEK, x = sid && V && MOB() ? card(sid) : null, L = x && locate(sid);
-    if (x && !x.tok && L && L.p === me && ['hand', 'reserve', 'lm'].includes(L.z)) { zoomEl.innerHTML = zoomHtml(x); zoomEl.classList.remove('touch'); zoomEl.classList.add('selz'); zoomEl.style.display = 'block'; }
+    if (x && !x.tok && L && !(L.p !== me && L.z === 'hand')) { zoomEl.innerHTML = zoomHtml(x); zoomEl.classList.remove('touch'); zoomEl.classList.add('selz'); zoomEl.style.display = 'block'; }
     else if (zoomEl.classList.contains('selz')) { zoomEl.classList.remove('selz'); zoomEl.style.display = 'none'; }
   }
   function bindZoom() {
