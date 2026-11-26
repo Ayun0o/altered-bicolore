@@ -390,8 +390,8 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 </div>
 <div class="box">
 <h2 class="lh2">S'entraîner seul</h2>
-<span class="lbl">Deck adverse</span><select id="sdeck" class="hidden"></select><div id="sdeckPick" class="scrollpick"></div><div class="row" style="margin-top:8px"><button id="bSolo" class="pri">Lancer la partie d'essai</button></div>
-<p class="note">Tu contrôles les deux joueurs (bouton « Changer de côté »).</p>
+<div class="row" style="gap:14px;margin-bottom:8px"><label><input type="radio" name="soloMode" id="soloAI" checked> Contre l’ordinateur</label><label><input type="radio" name="soloMode" id="soloBoth"> Je joue les deux côtés</label></div><span class="lbl">Deck adverse</span><select id="sdeck" class="hidden"></select><div id="sdeckPick" class="scrollpick"></div><div class="row" style="margin-top:8px"><button id="bSolo" class="pri">Lancer la partie d'essai</button></div>
+<p class="note">L’ordinateur dépense son mana en priorité sur ses cartes les plus chères et les place là où elles font gagner le plus de terrains. En mode « les deux côtés », bascule avec « Changer de côté ».</p>
 </div>
 </div>
 <div class="lcol">
@@ -429,8 +429,9 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/cloud.js?v=1795704521"></script>
-<script src="js/engine.js?v=1795707227"></script>
-<script src="js/net.js?v=1795707227"></script>
-<script src="js/play.js?v=1795707227"></script>
+<script src="js/engine.js?v=1795708398"></script>
+<script src="js/ai.js?v=1795708398"></script>
+<script src="js/net.js?v=1795708398"></script>
+<script src="js/play.js?v=1795708398"></script>
 </body>
 </html>

@@ -136,9 +136,10 @@
 
   function startSolo() {
     const a = needDeck(); if (!a) return; const b = getDeck($('sdeck').value) || a;
-    mode = 'solo'; me = 0; decksUsed = [a, b]; names = [myName('Joueur 1'), 'Joueur 2'];
+    const vsAI = !$('soloAI') || $('soloAI').checked;
+    mode = vsAI ? 'ai' : 'solo'; me = 0; decksUsed = [a, b]; names = [myName('Joueur 1'), vsAI ? 'Ordinateur' : 'Joueur 2'];
     S = E.newGame({}); E.addPlayer(S, 0, names[0], a, DB); E.addPlayer(S, 1, names[1], b, DB); E.advance(S, DB);
-    $('bSwitch').classList.remove('hidden'); setConn('Partie d’essai');
+    if (!vsAI) $('bSwitch').classList.remove('hidden'); else $('bSwitch').classList.add('hidden'); setConn(vsAI ? 'Contre l’ordinateur' : 'Partie d’essai');
     showGame(); push();
   }
   function rematch() {
@@ -151,6 +152,7 @@
   function applyAct(p, a) { const snap = JSON.stringify(S); const err = E.act(S, p, a, DB); if (!err) { hist.push({ s: snap, by: p }); if (hist.length > 40) hist.shift(); } return err; }
   function undo(p) {
     const last = hist[hist.length - 1]; if (!last) return 'Rien à annuler.';
+    if (mode === 'ai') { while (hist.length && hist[hist.length - 1].by !== p) hist.pop(); const l = hist.pop(); if (!l) return 'Rien à annuler.'; S = JSON.parse(l.s); S.log.push({ d: S.day, m: S.players[p].name + ' annule sa dernière action.' }); return null; }
     if (mode !== 'solo' && last.by !== p) return 'La dernière action est celle de l’adversaire : il doit l’annuler lui-même.';
     hist.pop(); S = JSON.parse(last.s); S.log.push({ d: S.day, m: (S.players[p] ? S.players[p].name : '?') + ' annule sa dernière action.' }); return null;
   }
@@ -161,6 +163,13 @@
   function push() {
     if (mode === 'host' && net && S.players[1]) net.send({ type: 'state', v: E.view(S, 1) });
     V = E.view(S, me); render();
+    if (mode === 'ai') aiTick();
+  }
+  let aiT = null;
+  function aiTick() {
+    clearTimeout(aiT); if (!window.AlteredAI || mode !== 'ai') return;
+    const a = AlteredAI.next(S, 1, DB); if (!a) return;
+    aiT = setTimeout(() => { if (mode !== 'ai') return; const b = AlteredAI.next(S, 1, DB); if (!b) return; const err = applyAct(1, b); if (err) { console.warn('IA', err, b); if (b.type === 'play') applyAct(1, { type: 'pass' }); } push(); }, a.type === 'play' ? 900 : 450);
   }
   function showGame() { $('lobby').classList.add('hidden'); $('game').classList.remove('hidden'); if (!V && S) V = E.view(S, me); render(); }
   function setConn(t) { $('conn').textContent = t; }
