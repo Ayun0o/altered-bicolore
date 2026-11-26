@@ -129,7 +129,7 @@ textarea{width:100%;min-height:140px;font-size:13px}
 <div class="filters">
 <input type="search" id="q" placeholder="Nom, effet, sous-type, en français ou en anglais (ex. fugace, fleeting)">
 <select id="fType" aria-label="Type"><option value="">Tous les types</option><option value="HERO">Héros</option><option value="CHARACTER">Personnage</option><option value="SPELL">Sort</option><option value="LANDMARK_PERMANENT">Repère</option><option value="EXPEDITION_PERMANENT">Permanent d'expédition</option><option value="PERMANENT">Permanent</option></select>
-<select id="fRar" aria-label="Rareté"><option value="">Toutes raretés</option><option value="C">Communes</option><option value="R">Rares</option><option value="OOF">Rares hors faction</option></select>
+<select id="fRar" aria-label="Rareté"><option value="">Toutes raretés</option><option value="C">Communes</option><option value="R">Rares</option><option value="OOF">Rares hors faction</option><option value="U">Uniques (mes uniques)</option></select>
 <select id="fSet" aria-label="Set"><option value="">Tous les sets</option></select>
 <select id="fCost" aria-label="Coût"><option value="">Tous coûts</option></select>
 <select id="fSort" aria-label="Tri"><option value="cost">Tri : coût de main</option><option value="name">Tri : nom A→Z</option><option value="set">Tri : set et numéro</option></select>
@@ -273,7 +273,7 @@ function cardHtml(c){
  const cost=c.t==='HERO'?'':'<div class="cost" title="Coût de main / coût de réserve">'+'<span>'+cst(c.c)+'</span><span>'+cst(c.rc)+'</span></div>';
  const rb=c.t==='HERO'?'<span class="badge">Héros</span>':c.u?'<span class="badge U">Unique</span>':c.y==='R'?'<span class="badge R">Rare</span>':'<span class="badge">Commune</span>';
  const ob=oof?'<span class="badge oof">hors faction · origine '+esc(FN[c.h])+'</span>':'';
- const btn=c.u?'<button data-urmr="'+esc(c.r)+'">Retirer l\'unique</button>':c.t==='HERO'?'<button data-hero="'+esc(c.r)+'">'+(n?'Héros choisi':'Choisir ce héros')+'</button>':'<button data-rm="'+esc(c.r)+'" aria-label="Retirer">−</button><span class="n">'+n+'</span><button data-add="'+esc(c.r)+'" aria-label="Ajouter">+</button>';
+ const inD=c.u&&d&&d.uniques.some(u=>u.r===c.r);const btn=c.u?(inD?'<button data-urmr="'+esc(c.r)+'">Retirer du deck</button>':'<button data-uadd="'+esc(c.r)+'">Ajouter au deck</button>'):c.t==='HERO'?'<button data-hero="'+esc(c.r)+'">'+(n?'Héros choisi':'Choisir ce héros')+'</button>':'<button data-rm="'+esc(c.r)+'" aria-label="Retirer">−</button><span class="n">'+n+'</span><button data-add="'+esc(c.r)+'" aria-label="Ajouter">+</button>';
  return '<article class="card'+(legal(c)?'':' off')+'" style="--fc:var(--'+c.f+')">'+(c.u?'<span class="uqw">':'')+'<img class="art" decoding="async" data-r="'+esc(c.r)+'" alt="'+esc(NM(c))+'" width="360" height="502">'+(c.u?uqOverlay(c)+'</span>':'')+'<div class="hd"><div class="nm">'+esc(NM(c))+'</div>'+cost+'</div><div class="meta"><span class="chip"><span class="fd" style="background:var(--'+c.f+')"></span>'+esc(FN[c.f])+'</span>'+rb+ob+'</div><div class="meta">'+esc(TYL(c.t))+(ST(c).length?' · '+esc(ST(c).join(', ')):'')+' · '+esc(SETL(c.s))+'</div>'+'<details class="txt"><summary>Texte et stats</summary>'+pw+'<div class="fx">'+fxHtml(TX(c))+(EC(c)?'<br><span class="sym">'+(EN()?'echo':'écho')+'</span> '+fxHtml(EC(c)):'')+'</div></details><div class="act">'+btn+'</div></article>';
 }
 
@@ -283,7 +283,8 @@ function imgFor(r){if(BY[r]&&BY[r].u)r=uqBase(r.replace(/_U_\d+$/,''),BY[r].f,BY
 function fillImgs(){document.querySelectorAll('img.art[data-r]:not([src])').forEach(im=>{const r=im.dataset.r;imgFor(r).then(u=>{if(u&&im.dataset.r===r)im.src=u})})}
 let DECKVIEW=false;
 function deckCards(){const d=D();if(!d)return[];const L=[];if(BY[d.hero])L.push(BY[d.hero]);for(const r of Object.keys(d.cards))if(BY[r]&&d.cards[r]>0)L.push(BY[r]);for(const u of d.uniques)if(u.r&&BY[u.r])L.push(BY[u.r]);return L}
-function filtered(){if(DECKVIEW){const L=deckCards(),h=L.filter(c=>c.t==='HERO');return h.concat(L.filter(c=>c.t!=='HERO'))}
+function myUniques(){const m=new Map();for(const dk of Object.values(decks))for(const u of (dk.uniques||[]))if(u.r&&BY[u.r])m.set(u.r,BY[u.r]);return [...m.values()]}
+function filtered(){if(!DECKVIEW&&$('fRar').value==='U'){const q=norm($('q').value.trim());return myUniques().filter(c=>!q||norm(c.n+' '+c.en+' '+(c.xe||'')+' '+(c.x||'')).includes(q))}if(DECKVIEW){const L=deckCards(),h=L.filter(c=>c.t==='HERO');return h.concat(L.filter(c=>c.t!=='HERO'))}
  const q=norm($('q').value.trim()),t=$('fType').value,r=$('fRar').value,s=$('fSet').value,co=$('fCost').value,only=$('onlyLegal').checked;
  return CARDS.filter(c=>{
   if(t&&c.t!==t)return false;if(s&&c.s!==s)return false;
@@ -307,7 +308,7 @@ function deckStats(){const d=D();if(!d)return'';const L=deckCards().filter(c=>c.
  return '<div class="dstats"><div><b>'+tot+'</b> cartes + héros'+(d.sec?' · '+src.P+' '+FN[hf]+' / '+src.S+' '+FN[d.sec]:'')+'</div><div class="dsrow"><div><span class="lbl">Courbe de mana</span><div class="dscurve">'+bars+'</div></div><div class="dstypes"><div><b>'+ty.CHARACTER+'</b> personnages</div><div><b>'+ty.SPELL+'</b> sorts</div><div><b>'+ty.PERM+'</b> permanents / repères</div><div><b>'+d.uniques.length+'</b> unique'+(d.uniques.length>1?'s':'')+'</div></div></div></div>'}
 function renderGrid(){renderFacChips();const L0=filtered(),L=DECKVIEW?L0.filter(c=>c.t==='HERO').concat(sorted(L0.filter(c=>c.t!=='HERO'))):sorted(L0),d=D(),hh=d&&BY[d.hero],only=$('onlyLegal').checked;
  const n=L.length+' carte'+(L.length>1?'s':'');
- $('count').textContent=!only?n+' (toutes factions)':!hh?'Commence par choisir ton héros : '+n:'Pool du deck : '+FN[hh.f]+' (principale)'+(d.sec?' + '+FN[d.sec]+' (secondaire)':'')+' · '+n;if(DECKVIEW){$('count').innerHTML=deckStats();shown=999}
+ $('count').textContent=!only?n+' (toutes factions)':!hh?'Commence par choisir ton héros : '+n:'Pool du deck : '+FN[hh.f]+' (principale)'+(d.sec?' + '+FN[d.sec]+' (secondaire)':'')+' · '+n;if(DECKVIEW){$('count').innerHTML=deckStats();shown=999}else if($('fRar').value==='U'){$('count').innerHTML=L.length+' unique'+(L.length>1?'s':'')+' dans tes decks · <button id="uNewBtn" class="on" style="min-height:0;padding:3px 10px">＋ Ajouter / scanner un unique</button>';setTimeout(()=>{const x=$('uNewBtn');if(x)x.onclick=()=>$('addU').click()},0)}
  $('grid').innerHTML=L.slice(0,shown).map(cardHtml).join('');$('viewDeck').classList.toggle('on',DECKVIEW);$('viewDeck').textContent=DECKVIEW?'← Retour aux cartes':'🃏 Voir mon deck';$('more').style.display=L.length>shown?'block':'none';fillImgs()}
 
 function renderDeck(){
@@ -341,6 +342,7 @@ async function flush(){if(!db){$('saveNote').textContent='Enregistré dans ce na
  catch(e){$('saveNote').textContent=e&&e.code==='invalid_argument'?'Lecture seule : tu n\'as pas le droit de modifier ces decks.':'Échec de l\'enregistrement, nouvel essai à la prochaine modification.'}saving=false}
 
 document.addEventListener('click',e=>{const im=e.target.closest('img.art');if(im){$('zoomImg').src=im.dataset.r?'img/'+LANG+'-hd/'+encodeURIComponent(im.dataset.r)+'.webp':im.src;$('zoomImg').alt=im.alt;$('zoom').showModal();return}if(e.target.closest('#zoom')){$('zoom').close();return}const pv=e.target.closest('[data-pv]');if(pv&&!e.target.closest('button')){$('zoomImg').removeAttribute('src');$('zoomImg').src='img/'+LANG+'-hd/'+encodeURIComponent(pv.dataset.pv)+'.webp';$('zoomImg').alt='';$('zoom').showModal();return}const b=e.target.closest('button');if(!b)return;const d=D();
+ if(b.dataset.uadd){const c=BY[b.dataset.uadd];if(c&&!d.uniques.some(u=>u.r===c.r)){d.uniques.push({n:c.n,f:c.f,r:c.r,card:c});touch();renderDeck();renderGrid()}return}
  if(b.dataset.urmr){const i=d.uniques.findIndex(u=>u.r===b.dataset.urmr);if(i>=0){d.uniques.splice(i,1);touch();renderDeck();renderGrid()}return}
  if(b.dataset.add){const c=BY[b.dataset.add];d.cards[c.r]=(d.cards[c.r]||0)+1;touch();renderDeck();renderGrid()}
  else if(b.dataset.rm){const r=b.dataset.rm;if(d.cards[r]){d.cards[r]--;if(!d.cards[r])delete d.cards[r]}touch();renderDeck();renderGrid()}
