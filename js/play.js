@@ -359,7 +359,10 @@
     if (V.step !== lastStep) { pick = new Set(); lastStep = V.step; }
     computeGlow();
     const P = V.players[me], O = V.players[1 - me];
-    $('phase').textContent = 'Jour ' + V.day + ' · ' + (PH[V.step] || V.step) + (V.tie ? ' · Arène' : '');
+    const MOOD = { SETUP_MANA: 'morning', MORNING: 'morning', EXPAND: 'morning', NOON: 'noon', AFTERNOON: 'afternoon', DUSK: 'dusk', NIGHT: 'night', CLEANUP: 'night', END: 'night' };
+    const ICO = { morning: '🌅', noon: '☀️', afternoon: '🌤️', dusk: '🌇', night: '🌙' };
+    const md = MOOD[V.step] || 'noon'; if (document.body.dataset.mood !== md) document.body.dataset.mood = md;
+    $('phase').innerHTML = '<span class="mood-ico">' + ICO[md] + '</span>Jour ' + V.day + ' · ' + (PH[V.step] || V.step) + (V.tie ? ' · Arène' : '');
     $('turnInfo').textContent = !O ? 'En attente du deuxième joueur…' : 'Premier joueur : ' + V.players[V.first].name + (V.step === 'AFTERNOON' ? ' · au tour de ' + V.players[V.turn].name : '');
     $('oppInfo').innerHTML = O ? '<b style="color:' + (FC[(DB[(card(O.hero) || {}).ref] || {}).f] || 'inherit') + '">' + esc(O.name) + '</b> · main ' + (O.handCount || 0) + ' · deck ' + (O.deckCount || 0) + ' · défausse ' + O.discard.length : 'En attente de l’adversaire…';
     $('oppMana').innerHTML = O ? manaIcon(O, false) : '';

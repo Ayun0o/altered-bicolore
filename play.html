@@ -336,6 +336,20 @@ button.mini{min-height:24px;padding:0 7px;font-size:11px}
 .lbl{display:block}
 .scrollpick{max-height:340px;overflow:auto;padding-right:4px}
 @media(max-width:1000px){.lcols{grid-template-columns:1fr}}
+
+/* Ambiance de phase : une fine bande de lumière en haut + léger halo, très discret */
+body{--mood:transparent}
+body[data-mood=morning]{--mood:#ffb27a}
+body[data-mood=noon]{--mood:#ffe9a6}
+body[data-mood=afternoon]{--mood:#f3c56b}
+body[data-mood=dusk]{--mood:#c4607a}
+body[data-mood=night]{--mood:#5b6bd6}
+#game .bar{position:relative;overflow:hidden;transition:box-shadow 1.2s}
+#game .bar::before{content:'';position:absolute;left:0;right:0;top:0;height:3px;background:linear-gradient(90deg,transparent,var(--mood) 25%,var(--mood) 75%,transparent);opacity:.9;transition:background 1.2s}
+#game .bar::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse 60% 140% at 12% 0%,var(--mood),transparent 70%);opacity:.14;pointer-events:none;transition:background 1.2s}
+.mood-ico{margin-right:6px;display:inline-block;transition:transform .6s}
+body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:0 0 0 1px color-mix(in srgb,var(--mood) 35%,transparent)}
+.actionbox{box-shadow:0 0 0 1px color-mix(in srgb,var(--mood) 30%,transparent);transition:box-shadow 1.2s}
 </style>
 </head>
 <body>
@@ -404,8 +418,8 @@ button.mini{min-height:24px;padding:0 7px;font-size:11px}
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/cloud.js?v=1795704521"></script>
-<script src="js/engine.js?v=1795704521"></script>
-<script src="js/net.js?v=1795704521"></script>
-<script src="js/play.js?v=1795704521"></script>
+<script src="js/engine.js?v=1795706524"></script>
+<script src="js/net.js?v=1795706524"></script>
+<script src="js/play.js?v=1795706524"></script>
 </body>
 </html>
