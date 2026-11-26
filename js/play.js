@@ -190,7 +190,9 @@
     if (c.tok) { const r = tokRef(c.tok.n); if (r) return '<img loading="lazy" draggable="false" alt="' + esc(tokName(c.tok.n)) + '" src="img/tok/' + r + '_' + LANG + '.webp">' + (c.tok.p ? '<span class="tokst">' + c.tok.p.join('/') + '</span>' : ''); }
     return imgOld(c);
   }
-  function imgOld(c) { return c.tok ? '<div class="tok"><b>' + esc(tokName(c.tok.n)) + '</b><span>' + c.tok.p.join(' / ') + '</span><span class="note">jeton</span></div>' : '<img loading="lazy" draggable="false" alt="' + esc(NM(DB[c.ref])) + '" src="img/' + LANG + '/' + encodeURIComponent((DB[c.ref] && DB[c.ref].u) ? DB[c.ref].base : c.ref) + '.webp"' + ((DB[c.ref] && DB[c.ref].u) ? ' onerror="this.onerror=null;this.src=this.src.replace(/_R1\.webp$/,\'_C.webp\')"' : '') + '>' + ((DB[c.ref] && DB[c.ref].u) ? '<span class="uqtag">U</span>' : ''); }
+  function uqOverlay(c){if(!c||!c.u)return'';const n=v=>String(v??'').replace(/#/g,'').replace(/[<>&"']/g,'');const p=c.p||[];return '<span class="uqo"><span class="ub"></span><span class="ue"></span><span class="uc uc1">'+n(c.c)+'</span><span class="uc uc2">'+n(c.rc)+'</span><span class="us s0">'+n(p[0])+'</span><span class="us s1">'+n(p[1])+'</span><span class="us s2">'+n(p[2])+'</span><span class="uf"></span></span>'}
+  function uqBase(fam,f,MAP){const r1=fam+'_R1',r2=fam+'_R2';if(MAP[r2]&&MAP[r2].f===f)return r2;if(MAP[r1])return r1;return fam+'_C'}
+    function imgOld(c) { return c.tok ? '<div class="tok"><b>' + esc(tokName(c.tok.n)) + '</b><span>' + c.tok.p.join(' / ') + '</span><span class="note">jeton</span></div>' : ((DB[c.ref] && DB[c.ref].u) ? '<span class="uqw"><img loading="lazy" draggable="false" alt="' + esc(NM(DB[c.ref])) + '" src="img/' + LANG + '/' + encodeURIComponent(uqBase(AltUniques.familyOf(c.ref), DB[c.ref].f, DB)) + '.webp">' + uqOverlay(DB[c.ref]) + '</span><span class="uqtag">U</span>' : '<img loading="lazy" draggable="false" alt="' + esc(NM(DB[c.ref])) + '" src="img/' + LANG + '/' + encodeURIComponent(c.ref) + '.webp">'); }
   const CH = () => V && V.choices && V.choices[0];
   function isTarget(id) {
     const ch = CH(); if (!ch || ch.p !== me) return false;
@@ -510,7 +512,7 @@
   }
   const zoomEl = document.createElement('div'); zoomEl.id = 'zoomCard'; document.body.appendChild(zoomEl);
   function zoomHtml(x) { const d = DB[x.ref] || {}; if (!d.u) return '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(x.ref) + '.webp">';
-    return '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(d.base) + '.webp" onerror="this.onerror=null;this.src=this.src.replace(/_R1\.webp$/,\'_C.webp\')"><div class="uqz"><b>' + esc(NM(d)) + ' — unique</b><span>Coût ' + esc(d.c) + ' / ' + esc(d.rc) + ' · <i class="F">' + esc(d.p[0]) + '</i> <i class="M">' + esc(d.p[1]) + '</i> <i class="W">' + esc(d.p[2]) + '</i></span><span>' + esc(LANG === 'en' ? d.xe : d.x) + '</span>' + (d.e ? '<span><i>' + esc(LANG === 'en' ? d.ee : d.e) + '</i></span>' : '') + '</div>'; }
+    return '<span class="uqw"><img alt="" style="width:100%;display:block;border-radius:14px" src="img/' + LANG + '-hd/' + encodeURIComponent(uqBase(AltUniques.familyOf(x.ref), d.f, DB)) + '.webp">' + uqOverlay(d) + '</span><div class="uqz"><b>' + esc(NM(d)) + ' — unique</b><span>Coût ' + esc(d.c) + ' / ' + esc(d.rc) + ' · <i class="F">' + esc(d.p[0]) + '</i> <i class="M">' + esc(d.p[1]) + '</i> <i class="W">' + esc(d.p[2]) + '</i></span><span>' + esc(LANG === 'en' ? d.xe : d.x) + '</span>' + (d.e ? '<span><i>' + esc(LANG === 'en' ? d.ee : d.e) + '</i></span>' : '') + '</div>'; }
   function hideZoom() { zoomEl.style.display = 'none'; }
   function bindZoom() {
     document.addEventListener('mouseover', e => {

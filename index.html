@@ -98,6 +98,18 @@ textarea{width:100%;min-height:140px;font-size:13px}
 .dsbar{width:22px;background:linear-gradient(#5b8fd6,#2f5fa8);border-radius:4px 4px 0 0;min-height:2px}
 .dsn{font-size:12px;font-weight:700;min-height:16px}.dsl{font-size:12px;opacity:.75;border-top:1px solid var(--line);width:100%;text-align:center}
 .dstypes{display:grid;gap:4px;font-size:14px}
+/* Unique : coûts et stats réels par-dessus l'illustration de la rare, cartouche et blason dorés */
+.uqw{position:relative;display:block;container-type:inline-size}
+.uqo{position:absolute;inset:0;pointer-events:none}
+.uqo .uc{position:absolute;border-radius:50%;display:grid;place-items:center;font-weight:900;color:#fff;font-size:7.4cqw;line-height:1;background:radial-gradient(circle at 40% 35%,#fff3c4 0,#e9bf4f 30%,#b07d18 75%,#7a5207 100%);box-shadow:0 0 0 .5cqw #fff6d6,0 .4cqw 1cqw #0008;text-shadow:0 .3cqw .6cqw #000a,0 0 .2cqw #000}
+.uqo .uc1{left:1.2%;top:4.2%;width:10.8%;aspect-ratio:1}
+.uqo .uc2{left:8.6%;top:8.6%;width:8.8%;aspect-ratio:1;font-size:6cqw}
+.uqo .us{position:absolute;left:8.6%;width:10.8%;height:5.3%;border-radius:0 1.6cqw 1.6cqw 0;display:grid;place-items:center;font-weight:900;font-size:6.2cqw;color:#fff;text-shadow:0 .3cqw .5cqw #000a}
+.uqo .s0{top:21%;background:#76b62c}.uqo .s1{top:27%;background:#c08032}.uqo .s2{top:33.2%;background:#3a76c6}
+.uqo .ub{position:absolute;left:19%;top:5.2%;width:64%;height:5.4%;border-radius:.6cqw;background:linear-gradient(90deg,#c9952f,#f7dc8a 50%,#c9952f);mix-blend-mode:color;opacity:1}
+.uqo .ue{position:absolute;left:83.5%;top:4.4%;width:12.5%;height:13.5%;background:linear-gradient(#f7dc8a,#b9862a);mix-blend-mode:color;border-radius:0 0 1cqw 1cqw}
+.uqo .uf{position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 .8cqw #e2b84a}
+
 </style>
 </head>
 <body>
@@ -196,8 +208,8 @@ textarea{width:100%;min-height:140px;font-size:13px}
 </dialog>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/uniques.js?v=1795715728"></script>
-<script src="js/cloud.js?v=1795715728"></script>
+<script src="js/uniques.js?v=1795716790"></script>
+<script src="js/cloud.js?v=1795716790"></script>
 <script>
 {
 const FN={AX:'Axiom',BR:'Bravos',LY:'Lyra',MU:'Muna',OR:'Ordis',YZ:'Yzmir'};
@@ -253,6 +265,8 @@ function analyse(d){
 
 function legal(c){const d=D();if(!d)return true;const h=BY[d.hero];if(!h)return true;if(c.t==='HERO')return true;return c.f===h.f||(d.sec&&c.f===d.sec)}
 
+function uqOverlay(c){if(!c||!c.u)return'';const n=v=>String(v??'').replace(/#/g,'').replace(/[<>&"']/g,'');const p=c.p||[];return '<span class="uqo"><span class="ub"></span><span class="ue"></span><span class="uc uc1">'+n(c.c)+'</span><span class="uc uc2">'+n(c.rc)+'</span><span class="us s0">'+n(p[0])+'</span><span class="us s1">'+n(p[1])+'</span><span class="us s2">'+n(p[2])+'</span><span class="uf"></span></span>'}
+function uqBase(fam,f,MAP){const r1=fam+'_R1',r2=fam+'_R2';if(MAP[r2]&&MAP[r2].f===f)return r2;if(MAP[r1])return r1;return fam+'_C'}
 function cardHtml(c){
  const d=D(),n=d?(c.t==='HERO'?(d.hero===c.r?1:0):c.u?1:(d.cards[c.r]||0)):0,oof=c.y==='R'&&c.f!==c.h;
  const pw=c.p?'<div class="pw"><span><i>F</i>'+esc(c.p[0])+'</span><span><i>M</i>'+esc(c.p[1])+'</span><span><i>O</i>'+esc(c.p[2])+'</span></div>':'';
@@ -260,12 +274,12 @@ function cardHtml(c){
  const rb=c.t==='HERO'?'<span class="badge">Héros</span>':c.u?'<span class="badge U">Unique</span>':c.y==='R'?'<span class="badge R">Rare</span>':'<span class="badge">Commune</span>';
  const ob=oof?'<span class="badge oof">hors faction · origine '+esc(FN[c.h])+'</span>':'';
  const btn=c.u?'<button data-urmr="'+esc(c.r)+'">Retirer l\'unique</button>':c.t==='HERO'?'<button data-hero="'+esc(c.r)+'">'+(n?'Héros choisi':'Choisir ce héros')+'</button>':'<button data-rm="'+esc(c.r)+'" aria-label="Retirer">−</button><span class="n">'+n+'</span><button data-add="'+esc(c.r)+'" aria-label="Ajouter">+</button>';
- return '<article class="card'+(legal(c)?'':' off')+'" style="--fc:var(--'+c.f+')"><img class="art" decoding="async" data-r="'+esc(c.r)+'" alt="'+esc(NM(c))+'" width="360" height="502"><div class="hd"><div class="nm">'+esc(NM(c))+'</div>'+cost+'</div><div class="meta"><span class="chip"><span class="fd" style="background:var(--'+c.f+')"></span>'+esc(FN[c.f])+'</span>'+rb+ob+'</div><div class="meta">'+esc(TYL(c.t))+(ST(c).length?' · '+esc(ST(c).join(', ')):'')+' · '+esc(SETL(c.s))+'</div>'+'<details class="txt"><summary>Texte et stats</summary>'+pw+'<div class="fx">'+fxHtml(TX(c))+(EC(c)?'<br><span class="sym">'+(EN()?'echo':'écho')+'</span> '+fxHtml(EC(c)):'')+'</div></details><div class="act">'+btn+'</div></article>';
+ return '<article class="card'+(legal(c)?'':' off')+'" style="--fc:var(--'+c.f+')">'+(c.u?'<span class="uqw">':'')+'<img class="art" decoding="async" data-r="'+esc(c.r)+'" alt="'+esc(NM(c))+'" width="360" height="502">'+(c.u?uqOverlay(c)+'</span>':'')+'<div class="hd"><div class="nm">'+esc(NM(c))+'</div>'+cost+'</div><div class="meta"><span class="chip"><span class="fd" style="background:var(--'+c.f+')"></span>'+esc(FN[c.f])+'</span>'+rb+ob+'</div><div class="meta">'+esc(TYL(c.t))+(ST(c).length?' · '+esc(ST(c).join(', ')):'')+' · '+esc(SETL(c.s))+'</div>'+'<details class="txt"><summary>Texte et stats</summary>'+pw+'<div class="fx">'+fxHtml(TX(c))+(EC(c)?'<br><span class="sym">'+(EN()?'echo':'écho')+'</span> '+fxHtml(EC(c)):'')+'</div></details><div class="act">'+btn+'</div></article>';
 }
 
 const BUN=new Map();
 function bundle_unused(r){const p=r.split('_'),k0=p[1]+'_'+p[3],k=LANG+':'+k0;if(!BUN.has(k))BUN.set(k,fetch((EN()?'imgb_en/':'imgb/')+k0+'.json').then(x=>x.ok?x.json():{}).catch(()=>({})));return BUN.get(k)}
-function imgFor(r){if(BY[r]&&BY[r].u)r=BY[r].base;return Promise.resolve(/^ALT_[A-Z0-9_]+$/.test(r)?'img/'+LANG+'/'+r+'.webp':'')}
+function imgFor(r){if(BY[r]&&BY[r].u)r=uqBase(r.replace(/_U_\d+$/,''),BY[r].f,BY);return Promise.resolve(/^ALT_[A-Z0-9_]+$/.test(r)?'img/'+LANG+'/'+r+'.webp':'')}
 function fillImgs(){document.querySelectorAll('img.art[data-r]:not([src])').forEach(im=>{const r=im.dataset.r;imgFor(r).then(u=>{if(u&&im.dataset.r===r)im.src=u})})}
 let DECKVIEW=false;
 function deckCards(){const d=D();if(!d)return[];const L=[];if(BY[d.hero])L.push(BY[d.hero]);for(const r of Object.keys(d.cards))if(BY[r]&&d.cards[r]>0)L.push(BY[r]);for(const u of d.uniques)if(u.r&&BY[u.r])L.push(BY[u.r]);return L}
