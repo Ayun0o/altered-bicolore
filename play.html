@@ -414,7 +414,9 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
  .strip2 .deckz{flex:none;width:auto!important;min-width:0}
  .strip2 .sL,.strip2 .sR{gap:8px!important}
  .strip2 .sL{justify-content:flex-start!important}
- .strip2 .sres{flex:1;min-width:0}
+ .strip2 .sres,.strip2 .slm{flex:1;min-width:0}
+ .strip2 .discz{flex:none;width:auto!important;min-width:0}
+ .strip2 .sR{justify-content:flex-end!important}
  .strip2 .sres .cards.rz{flex-wrap:nowrap;overflow-x:auto}
  .note.empty{display:none}
  .zone.exp .xarr{display:none!important}
@@ -425,7 +427,7 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
  .exp{min-height:64px}
  .ofan2{display:flex;justify-content:center;margin-top:3px;height:22px}
  .ofan2 .fback{width:15px;margin-left:-8px}
- .strip2 .ofan{display:none}
+ .strip2 .ofan{visibility:hidden;min-height:0;height:0;overflow:hidden;padding:0}
  .discz .cards,.discz>.lbl{display:none!important}
  .discz .dico{display:inline-flex;align-items:center;gap:3px;font-size:13px;font-weight:600;background:#0005;border-radius:9px;padding:3px 8px;cursor:pointer}
  body.sideopen #zoomCard.selz{display:none!important}
@@ -525,7 +527,7 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 <script src="js/engine.js?v=1795716790"></script>
 <script src="js/ai.js?v=1795716790"></script>
 <script src="js/net.js?v=1795716790"></script>
-<script src="js/play.js?v=1795725139"></script>
+<script src="js/play.js?v=1795725227"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
  t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');

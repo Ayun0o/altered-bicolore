@@ -387,6 +387,11 @@
     $('adv').innerHTML = track();
     $('myExps').innerHTML = P ? expRow(me) : '';
     $('myStrip').innerHTML = P ? strip(P, me) : '';
+    { // Téléphone : bascule auto sur la réserve quand on doit y choisir des cartes
+      const need = P && MOB() && ((V.step === 'CLEANUP' && !V.ready[me] && P.reserve.length > P.rl) || (CH() && CH().p === me && P.reserve.some(id => isTarget(id)) && !P.hand.some(id => isTarget(id))));
+      const key = need ? V.day + V.step + (CH() ? JSON.stringify(CH()).length : '') : null;
+      if (need && key !== AUTOK) { HV = 'R'; AUTOK = key; } else if (!need && AUTOK) { HV = 'H'; AUTOK = null; }
+    }
     if (HV === 'R' && !(P && P.reserve.length)) HV = 'H';
     $('myInfo').innerHTML = P && MOB() && (P.reserve.length || HV === 'R') ? '<button id="rsvTog" class="' + (HV === 'R' ? 'on' : '') + '" title="Basculer entre ta main et ta réserve">' + (HV === 'R' ? '✋ Main ' + P.hand.length : '<span class="rmini">' + P.reserve.slice(0, 3).map(() => '<i></i>').join('') + '</span>Rés. ' + P.reserve.length) + '</button>' : '';
     $('myMana').innerHTML = P ? manaIcon(P, true) : '';
@@ -560,7 +565,7 @@
   const MOB = () => matchMedia('(max-width:900px)').matches;
   { const h = document.querySelector('.hand'); if (h && window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty('--handh', h.offsetHeight + 'px')).observe(h); }
 
-  let PEEK = null, PEEKSTEP = null, HV = 'H';
+  let PEEK = null, PEEKSTEP = null, HV = 'H', AUTOK = null;
   function selPreview() {
     if (V && V.step !== PEEKSTEP) { PEEK = null; PEEKSTEP = V.step; }
     const sid = sel || PEEK, x = sid && V && MOB() ? card(sid) : null, L = x && locate(sid);
