@@ -168,6 +168,9 @@
     if (ch.kind === 'mychar') return L.z === 'exp' && L.p === me && isChar && (ch.max == null || c.tok || E.num(DB[c.ref].c) <= ch.max);
     if (ch.kind === 'charres') return (L.z === 'exp' || L.z === 'reserve') && isChar;
     if (ch.kind === 'myres') return L.z === 'reserve' && L.p === me && (!ch.notSelf || id !== ch.src);
+    if (ch.kind === 'reschar') return L.z === 'reserve' && isChar;
+    if (ch.kind === 'myperm') return L.p === me && (L.z === 'exp' || L.z === 'lm') && !c.tok && /PERMANENT/.test((DB[c.ref] || {}).t || '');
+    if (ch.min != null && !c.tok && E.num((DB[c.ref] || {}).c) < ch.min) return false;
     if (ch.kind === 'char' && ch.status && !(c.fleeting || c.anchored || c.asleep)) return false;
     if (ch.kind === 'char') return L.z === 'exp' && (c.tok || (DB[c.ref] || {}).t === 'CHARACTER') && (ch.max == null || c.tok || E.num(DB[c.ref].c) <= ch.max);
     return false;
@@ -181,7 +184,7 @@
   }
   function cardEl(id) {
     const c = card(id); if (!c) return '<div class="c"><div class="tok">?</div></div>';
-    const b = []; if (c.boost) b.push('+' + c.boost); if (c.fleeting) b.push('fugace'); if (c.anchored) b.push('ancré'); if (c.asleep) b.push('endormi');
+    const b = []; if (c.boost) b.push('+' + c.boost); if (c.ctr) for (const [k, v] of Object.entries(c.ctr)) if (v) b.push(v + ' ' + k); if (c.fleeting) b.push('fugace'); if (c.anchored) b.push('ancré'); if (c.asleep) b.push('endormi');
     const k = keep.R.has(id) || keep.L.has(id) || pick.has(id);
     const P = V.players[me]; const drag = P && c.owner === me && (P.hand.includes(id) || P.reserve.includes(id));
     return '<div class="c' + (c.ex ? ' ex' : '') + (sel === id || k ? ' sel' : '') + (isTarget(id) ? ' tgt' : '') + (GLOW.has(id) ? ' trig' : '') + '" data-id="' + esc(id) + '"' + (drag ? ' draggable="true"' : '') + '>' + img(c) + (b.length ? '<div class="bd">' + b.map(x => '<b>' + esc(x) + '</b>').join('') + '</div>' : '') + '</div>';
@@ -265,6 +268,7 @@
         h = '<b>' + esc(ch.label) + '</b>';
         if (ch.kind === 'exp') h += '<div class="row"><button class="pri" data-choose="H">Expédition Héros</button><button class="pri" data-choose="C">Expédition Compagnon</button></div>';
         else if (ch.kind === 'option') h += '<div style="display:grid;gap:5px">' + ch.opts.map((o, i) => '<button class="pri" style="text-align:left" data-choose="' + i + '">' + esc(o.label) + '</button>').join('') + '</div>';
+        else if (ch.kind === 'anyexp') h += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:5px"><button class="pri" data-choose="' + me + 'H">Mon Héros</button><button class="pri" data-choose="' + me + 'C">Mon Compagnon</button><button data-choose="' + (1 - me) + 'H">Héros adverse</button><button data-choose="' + (1 - me) + 'C">Compagnon adverse</button></div>';
         else if (ch.kind === 'yesno') h += '<div class="row"><button class="pri" data-choose="yes">Oui</button><button data-choose="no">Non</button></div>';
         else h += '<div class="note">Clique une carte en surbrillance.</div>' + (ch.opt ? '<div class="row"><button data-choose="none">Ne rien choisir</button></div>' : '');
       }
