@@ -36,7 +36,7 @@
     rnd = rnd || Math.random;
     const P = { name: name || ('Joueur ' + (idx + 1)), hero: null, deck: [], hand: [], reserve: [], lm: [], discard: [], mana: [], exp: { H: [], C: [] }, pos: { H: 0, C: LAST }, rl: 2, ll: 2 };
     const h = db[deck.hero];
-    if (h) { P.hero = mk(s, deck.hero, idx); P.rl = h.rl ?? 2; P.ll = h.ll ?? 2; const bm = (h.xe || '').match(/I begin the game with (\d+) (\w+) counters/i); if (bm) s.cards[P.hero].ctr = { [bm[2].toLowerCase()]: +bm[1] }; if (/up to three cards in your Landmarks/i.test(h.xe || '')) P.ll = 3; }
+    if (h) { P.hero = mk(s, deck.hero, idx); P.rl = h.rl ?? 2; P.ll = h.ll ?? 2; const bm = (h.xe || '').match(/I begin the game with (\d+) (\w+) counters/i); if (bm) s.cards[P.hero].ctr = { [bm[2].toLowerCase()]: +bm[1] }; if (/up to three cards in your Landmarks/i.test(h.xe || '')) P.ll = 3; if (/begin the game with one \{V\}, one \{M\} and one \{O\} Terrain Marker/i.test(h.xe || '')) P.markers = ['F', 'M', 'W']; }
     for (const [ref, n] of Object.entries(deck.cards || {})) for (let i = 0; i < n; i++) if (db[ref]) P.deck.push(mk(s, ref, idx));
     shuffle(P.deck, rnd);
     s.players[idx] = P;
@@ -254,6 +254,9 @@
     if ((m = b.match(/^it gains (\d+) boosts? and \[\[(fleeting|anchored|asleep)\]\]$/))) return { k: 'seq', list: [{ k: 'itBoost', n: +m[1] }, { k: 'itFlag', f: m[2] }] };
     if ((m = b.match(/^i gain (\d+) boosts? and \[\[(fleeting|anchored|asleep)\]\]$/))) return { k: 'seq', list: [{ k: 'selfBoostN', n: +m[1] }, { k: 'selfFlag', f: m[2], v: true }] };
     if (/^sacrifice it$/.test(b)) return { k: 'itDiscard' };
+    if ((m = b.match(/^place an? (\{[vmo]\}) terrain marker on target visible region$/))) return { k: 'markerChoice', t: TER[m[1]] };
+    if ((m = b.match(/^you may move an? (\{[vmo]\}) terrain marker from any region to my region$/))) return { k: 'markerMove', t: TER[m[1]] };
+    if (/^you may place one of my markers on target visible region$/.test(b)) return { k: 'heroMarker' };
     if ((m = b.match(/^draw a card and i gain (\d+) (\w+) counters?$/))) return { k: 'seq', list: [{ k: 'draw', n: 1 }, { k: 'ctr', n: +m[1], name: m[2] }] };
     if ((m = b.match(/^it gains \[\[(asleep|anchored|fleeting)\]\]$/))) return { k: 'itFlag', f: m[1] };
     if ((m = b.match(/^it gains (\d+) boosts?$/))) return { k: 'itBoost', n: +m[1] };
@@ -557,6 +560,30 @@
       case 'itBoost': { const t = ctx.target && s.cards[ctx.target]; if (t) { t.boost = Math.max(0, t.boost + a.n); log(s, '→ ' + cname(s, ctx.target, db) + ' gagne ' + a.n + ' boost(s).'); } break; }
       case 'selfBoostN': if (c && where(s, self)) { c.boost = Math.max(0, c.boost + a.n); log(s, '→ ' + nm() + (a.n >= 0 ? ' gagne ' : ' perd ') + Math.abs(a.n) + ' boost(s).'); } break;
       case 'noop': break;
+      case 'markerChoice': {
+        const TN = { F: 'Forêt', M: 'Montagne', W: 'Eau' };
+        const opts = s.adv.map((r, i) => r.up ? { label: 'Région ' + (i + 1) + ' (' + r.terr.map(x => TN[x]).join(' + ') + ') → ' + TN[a.t], acts: [{ k: 'setMarker', i, t: a.t, hero: !!a.hero }] } : null).filter(Boolean);
+        if (!opts.length) { log(s, '→ aucune région visible.'); break; }
+        if (a.opt || a.hero) opts.push({ label: 'Ne pas poser de marqueur', acts: [] });
+        s.choices.push({ p, kind: 'option', opt: false, opts, left: 1, label: 'Où poser le marqueur ' + TN[a.t] + ' ?', src: self }); break;
+      }
+      case 'setMarker': {
+        const r = s.adv[a.i]; if (!r) break; if (r.mk) { /* un marqueur recouvre l'autre */ } else r.orig = r.terr.slice();
+        r.terr = [a.t]; r.mk = a.t; if (a.hero) { const i = (P.markers || []).indexOf(a.t); if (i >= 0) P.markers.splice(i, 1); }
+        log(s, '→ marqueur de terrain posé : la région ' + (a.i + 1) + ' devient ' + ({ F: 'Forêt', M: 'Montagne', W: 'Eau' })[a.t] + '.'); break;
+      }
+      case 'markerMove': {
+        const e = expOf(s, self); if (!e) break; const to = P.pos[e];
+        const from = s.adv.map((r, i) => r.mk === a.t && i !== to ? i : -1).filter(i => i >= 0);
+        if (!from.length) { log(s, '→ aucun marqueur ' + ({ F: 'Forêt', M: 'Montagne', W: 'Eau' })[a.t] + ' à déplacer.'); break; }
+        s.choices.push({ p, kind: 'option', opt: false, left: 1, label: 'Déplacer un marqueur vers ma région ?', src: self, opts: from.map(i => ({ label: 'Depuis la région ' + (i + 1), acts: [{ k: 'liftMarker', i }, { k: 'setMarker', i: to, t: a.t }] })).concat([{ label: 'Non', acts: [] }]) }); break;
+      }
+      case 'liftMarker': { const r = s.adv[a.i]; if (r && r.mk) { r.terr = r.orig || r.terr; delete r.mk; delete r.orig; } break; }
+      case 'heroMarker': {
+        const L = P.markers || []; if (!L.length) { log(s, '→ plus de marqueur à poser.'); break; }
+        const TN = { F: 'Forêt', M: 'Montagne', W: 'Eau' };
+        s.choices.push({ p, kind: 'option', opt: false, left: 1, label: 'Poser un de tes marqueurs de terrain ?', src: self, opts: [...new Set(L)].map(t => ({ label: 'Marqueur ' + TN[t], acts: [{ k: 'markerChoice', t, hero: true }] })).concat([{ label: 'Pas maintenant', acts: [] }]) }); break;
+      }
       case 'exAllRes': for (const X of s.players) X.reserve.forEach(id => s.cards[id].ex = true); log(s, '→ toutes les cartes en réserve sont épuisées.'); break;
       case 'resBoostAll': P.reserve.forEach(id => { if (/CHARACTER/.test(typeOf(s, id, db))) s.cards[id].boost += a.n; }); log(s, '→ les personnages de la réserve de ' + P.name + ' gagnent ' + a.n + ' boost(s).'); break;
       case 'spendBoost': { const k = s.cards[self]; if (k && k.boost >= a.n) { k.boost -= a.n; log(s, '→ ' + nm() + ' dépense ' + a.n + ' boost(s).'); (a.then || []).forEach(x => doAction(s, p, self, x, db, ctx)); } else log(s, '→ pas assez de boosts.'); break; }
@@ -1082,6 +1109,7 @@
       case 'flag': if (!c || !['fleeting', 'anchored', 'asleep', 'ex'].includes(a.f)) return 'Invalide'; c[a.f] = !c[a.f]; log(s, P.name + ' : ' + name(a.id) + ' ' + fl(a.f) + (c[a.f] ? ' activé' : ' retiré') + '.'); break;
       case 'manaEx': { const m = P.mana[a.i]; if (!m) return 'Invalide'; m.ex = !m.ex; break; }
       case 'heroT': {
+        if (s.inRush === p) return 'Ruée en cours : joue ta carte d’abord (pas d’action rapide).';
         const hid = P.hero, hc = s.cards[hid], hd = hc && db[hc.ref]; if (!hd) return 'Pas de héros.';
         if (hc.ex) return 'Ton héros est déjà épuisé.';
         const mm = (hd.xe || '').match(/\{T\}\s*(?:,\s*([^:]+?))?\s*:\s*([^]*?)(?:\s{2,}|$)/i); if (!mm) return 'Ce héros n’a pas de capacité {T}.';

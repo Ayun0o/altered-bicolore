@@ -359,6 +359,8 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 #adv::before,#adv::after{content:'';position:absolute;left:4%;right:4%;height:3px;border-radius:3px;background:linear-gradient(90deg,transparent,var(--mood) 20%,var(--mood) 80%,transparent);box-shadow:0 0 8px 1px color-mix(in srgb,var(--mood) 45%,transparent);opacity:.75;pointer-events:none;transition:background 1.2s,box-shadow 1.2s}
 #adv::before{top:-6px}#adv::after{bottom:-6px}
 @media(max-width:900px){#adv::before{top:-4px}#adv::after{bottom:-4px}#adv::before,#adv::after{height:2px}}
+.tmk{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:38%;aspect-ratio:1;border-radius:50%;background-size:cover;background-position:center;box-shadow:0 0 0 3px #f3ead2,0 3px 8px #000b;display:grid;place-items:center;z-index:1}
+.tmk b{font-size:11px;padding:1px 5px;border-radius:6px;color:#fff;box-shadow:0 1px 3px #000a}
 </style>
 </head>
 <body>
@@ -427,8 +429,8 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/cloud.js?v=1795704521"></script>
-<script src="js/engine.js?v=1795706524"></script>
-<script src="js/net.js?v=1795706524"></script>
-<script src="js/play.js?v=1795706524"></script>
+<script src="js/engine.js?v=1795707133"></script>
+<script src="js/net.js?v=1795707133"></script>
+<script src="js/play.js?v=1795707133"></script>
 </body>
 </html>

@@ -302,7 +302,8 @@
       const r = V.adv[i], top = [], bot = [];
       V.players.forEach((X, p) => { if (!X) return; ['H', 'C'].forEach(e => { if (X.pos[e] === i) (p === me ? bot : top).push(marker(p, e)); }); });
       const here = top.length || bot.length;
-      return '<div class="reg ' + cls + (here ? ' here' : '') + '" title="' + (r.up ? r.terr.map(t => TL[t]).join(' + ') : 'Région face cachée') + '"><div class="mko">' + top.join('') + '</div><div class="mkm">' + bot.join('') + '</div></div>';
+      const mkB = r.mk ? '<span class="tmk" title="Marqueur de terrain : ' + TL[r.mk] + '" style="background-image:url(img/ui/' + ({ F: 'forest', M: 'mountain', W: 'water' })[r.mk] + '.svg)"><b class="ter ' + r.mk + '">' + TL[r.mk][0] + '</b></span>' : '';
+      return '<div class="reg ' + cls + (here ? ' here' : '') + '" title="' + (r.up ? r.terr.map(t => TL[t]).join(' + ') : 'Région face cachée') + '">' + mkB + '<div class="mko">' + top.join('') + '</div><div class="mkm">' + bot.join('') + '</div></div>';
     };
     const tcard = i => {
       const a = V.adv[i], b = V.adv[i + 1], up = a.up || b.up;
