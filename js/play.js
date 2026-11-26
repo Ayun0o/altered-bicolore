@@ -208,8 +208,8 @@
       const blocked = X.exp[e].some(id => { const c = card(id); return c && !c.tok && !c.asleep && E.kw(DB[c.ref]).defender; });
       const will = winT.length && !blocked;
       const tot = ['F', 'M', 'W'].map(k => '<span class="' + (terr.includes(k) ? 'act ' : 'off ') + (winT.includes(k) ? 'win w' + k : '') + '" title="' + TL[k] + (terr.includes(k) ? ' (terrain de la région actuelle)' : '') + '"><span class="ter ' + k + '">' + TL[k][0] + '</span>' + t[k] + '</span>').join('');
-      const badge = V.tie ? '' : will ? '<span class="will">▲ avance ce soir</span>' : (winT.length && blocked ? '<span class="nowill">bloquée (Défenseur)</span>' : '');
-      return '<div class="zone exp' + (mine ? ' mine' : '') + (will ? ' willz' : '') + '"' + (mine ? ' data-drop="' + e + '"' : '') + '><h3>' + (e === 'H' ? 'Héros' : 'Compagnon') + ' <span class="tot">' + tot + '</span>' + badge + (asc ? '<span class="will" style="background:#7b5cd6">élevée</span>' : '') + '<span class="sp"></span><button class="mini" data-pos="' + p + ',' + e + ',-1" title="Reculer l’expédition">◀</button><button class="mini" data-pos="' + p + ',' + e + ',1" title="Avancer l’expédition">▶</button></h3><div class="cards">' + cardsEl(X.exp[e]) + '</div></div>';
+      const badge = V.tie ? '' : (winT.length && blocked ? '<span class="nowill" title="Bloquée par un Défenseur">🛡</span>' : '');
+      return '<div class="zone exp' + (mine ? ' mine' : '') + (will ? ' willz' : '') + '"' + (mine ? ' data-drop="' + e + '"' : '') + '><h3>' + (e === 'H' ? 'Héros' : 'Compagnon') + ' <span class="tot">' + tot + '</span>' + badge + (asc ? '<span class="asc" title="Expédition élevée">⇑</span>' : '') + '<span class="sp"></span><button class="mini" data-pos="' + p + ',' + e + ',-1" title="Reculer l’expédition">◀</button><button class="mini" data-pos="' + p + ',' + e + ',1" title="Avancer l’expédition">▶</button></h3><div class="cards">' + cardsEl(X.exp[e]) + '</div></div>';
     };
     return zone('H') + '<div class="herocol">' + (X.hero ? cardEl(X.hero) : '') + '<span class="hname" style="color:' + (FC[(DB[(card(X.hero) || {}).ref] || {}).f] || 'inherit') + '">' + esc(X.name) + '</span></div>' + zone('C');
   }
@@ -257,7 +257,8 @@
     $('hand').innerHTML = P ? cardsEl(P.hand) : '';
     $('log').innerHTML = V.log.slice().reverse().slice(0, 80).map(l => '<div>' + esc(l.m) + '</div>').join('');
     const fm = P && (DB[(card(P.hero) || {}).ref] || {}).f, fo = O && (DB[(card(O.hero) || {}).ref] || {}).f;
-    document.body.style.background = 'linear-gradient(to bottom,#1d1f23 0%,' + (fo ? FC[fo] + '88' : 'transparent') + ' 24%,transparent 44%,transparent 54%,' + (fm ? FC[fm] + '88' : 'transparent') + ' 72%,#16181b 100%),var(--bg)';
+    document.body.style.background = 'var(--bg)';
+    const mainEl = document.querySelector('#game .main'); if (mainEl) mainEl.style.background = 'linear-gradient(to bottom,' + (fo ? FC[fo] + '30' : 'transparent') + ' 0%,' + (fo ? FC[fo] + '99' : 'transparent') + ' 26%,transparent 46%,transparent 54%,' + (fm ? FC[fm] + '99' : 'transparent') + ' 74%,' + (fm ? FC[fm] + '30' : 'transparent') + ' 100%),var(--bg)';
     renderPrompt(P, O); renderSide();
   }
   function renderPrompt(P, O) {

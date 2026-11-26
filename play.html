@@ -85,7 +85,7 @@ button.mini{min-height:24px;padding:0 7px;font-size:11px}
 .log{font-size:12px;display:flex;flex-direction:column;gap:3px;overflow:auto}
 .log div{padding:3px 6px;border-radius:6px;background:var(--soft)}
 .small{font-size:12px}.empty{font-size:11px}
-@media(max-width:900px){#game{grid-template-columns:minmax(0,1fr);height:auto;overflow:visible}.side{height:auto;border-left:0;border-top:1px solid var(--line)}.hand{right:0;grid-template-columns:70px minmax(0,1fr);}.actionbox{grid-column:1/-1}.c{width:50px}.hand .c{width:64px}.exprow{grid-template-columns:minmax(0,1fr) 56px minmax(0,1fr)}.herocol .c{width:52px}#zoomCard{left:50%;width:240px}}
+@media(max-width:900px){.zone.exp h3 .sp{display:none}.zone.exp h3 .mini{padding:2px 5px}.tot{font-size:11px;gap:4px}#game{grid-template-columns:minmax(0,1fr);height:auto;overflow:visible}.side{height:auto;border-left:0;border-top:1px solid var(--line)}.hand{right:0;grid-template-columns:70px minmax(0,1fr);}.actionbox{grid-column:1/-1}.c{width:50px}.hand .c{width:64px}.exprow{grid-template-columns:minmax(0,1fr) 56px minmax(0,1fr)}.herocol .c{width:52px}#zoomCard{left:50%;width:240px}}
 
 .exp .cards{justify-content:center}
 .advcard{position:relative;overflow:hidden;background:#2a2d31}
@@ -99,12 +99,13 @@ button.mini{min-height:24px;padding:0 7px;font-size:11px}
 .half>*:not(.bgs){position:relative;z-index:1}
 .mk2{background:#111c;border-radius:12px;padding:1px 5px 1px 2px}.mk2 i{color:#fff}
 
-.tot .win{outline:none;border-radius:6px;padding:0 4px;color:#fff;box-shadow:0 0 10px 2px currentColor}
+.tot .win{outline:none;border-radius:6px;padding:0 5px;color:#fff;box-shadow:0 0 0 2px #f5c518,0 0 12px 3px #f5c518aa;animation:winp 1.6s ease-in-out infinite}@keyframes winp{50%{box-shadow:0 0 0 2px #f5c518,0 0 4px 1px #f5c51855}}
+.zone.exp h3{flex-wrap:wrap;row-gap:4px}.asc{font-weight:800;color:#c8b6ff;font-size:14px}.nowill{font-size:13px}
 .tot .win.wF{background:var(--F);color:#e9ffd8}.tot .win.wM{background:var(--M);color:#ffe7cf}.tot .win.wW{background:var(--W);color:#dbeeff}
 .tot .win .ter{box-shadow:0 0 0 2px #fff}
 .will{font-size:11px;font-weight:700;background:#f5c518;color:#2a2100;border-radius:6px;padding:1px 6px}
 .nowill{font-size:11px;font-weight:700;background:#6b2a26;color:#ffd6d2;border-radius:6px;padding:1px 6px}
-.zone.willz{box-shadow:0 0 0 2px #f5c51888,0 0 18px #f5c51833}
+.zone.willz{box-shadow:0 0 0 1px #f5c51855}
 @keyframes trig{0%,100%{box-shadow:0 0 6px 2px #ffd76a99}50%{box-shadow:0 0 16px 6px #ffd76add}}
 .c.trig{outline:2px solid #ffd76a}
 @media(prefers-reduced-motion:no-preference){.c.trig{animation:trig 1.4s ease-in-out infinite}}
@@ -130,7 +131,7 @@ button.mini{min-height:24px;padding:0 7px;font-size:11px}
 <span class="lbl">Deck adverse</span><select id="sdeck" class="hidden"></select><div id="sdeckPick"></div><div class="row" style="margin-top:8px"><button id="bSolo" class="pri">Lancer la partie d'essai</button></div>
 <p class="note">Tu contrôles les deux joueurs (bouton « Changer de côté »). Pratique pour tester un deck ou apprendre les règles.</p>
 </div>
-<p class="note">Les effets des cartes s'appliquent à la main pour l'instant (boutons sur chaque carte) ; le tour de jeu, le mana, la pioche, le Crépuscule, la Nuit et la victoire sont automatiques.</p>
+<p class="note">La plupart des effets des cartes s'appliquent tout seuls ; les rares effets situationnels se règlent avec les boutons de chaque carte. Le tour de jeu, le mana, la pioche, le Crépuscule, la Nuit et la victoire sont automatiques.</p>
 </section>
 
 <section id="game" class="hidden">
@@ -155,8 +156,8 @@ button.mini{min-height:24px;padding:0 7px;font-size:11px}
 </section>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/engine.js?v=1795657985"></script>
-<script src="js/net.js?v=1795657985"></script>
-<script src="js/play.js?v=1795657985"></script>
+<script src="js/engine.js?v=1795658034"></script>
+<script src="js/net.js?v=1795658034"></script>
+<script src="js/play.js?v=1795658034"></script>
 </body>
 </html>
