@@ -593,7 +593,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 </head>
 <body>
 <section id="lobby">
-<div class="row lhead"><h1 style="font-size:30px;margin-right:auto">Table de jeu</h1><a href="index.html">← Deckbuilder</a></div>
+<div class="row lhead"><h1 style="font-size:30px;margin-right:auto">Table de jeu</h1><button id="langLobby" type="button" style="margin-right:10px" data-noi18n>FR / EN</button><a href="index.html">← Deckbuilder</a></div>
 <div class="lcols">
 <div class="lcol">
 <div class="box">
@@ -661,6 +661,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/i18n.js?v=1795733031"></script>
 <script src="js/uniques.js?v=1795716790"></script>
 <script src="js/cloud.js?v=1795716790"></script>
 <script src="js/engine.js?v=1795731536"></script>
@@ -680,23 +681,25 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 (function(){
  const $=id=>document.getElementById(id), MOB=()=>matchMedia('(max-width:900px)').matches;
  const pr=()=>($('prompt')||{}).textContent||'';
+ const EN=()=>{try{return localStorage.getItem('alt-bi-lang')==='en'}catch(e){return false}};
+ const L=(fr,en)=>EN()?en:fr;
  const S=[
-  {t:'Bienvenue dans Altered TCG !',x:'Le but : faire avancer tes deux expéditions, <b>Héros</b> et <b>Compagnon</b>, sur la piste de Tumulte, jusqu\'à ce qu\'elles se rejoignent. Ton adversaire essaie de faire pareil.',el:()=>$('adv')},
-  {t:'Ton mana',x:'Pour commencer, <b>touche 3 cartes de ta main</b> : elles deviennent ton mana pour la partie. Puis clique <b>Valider</b>.',el:()=>$('hand'),until:()=>!/Mise en place/.test(pr()),waitTxt:'Choisis 3 cartes puis Valide…'},
-  {t:'L’orbe de mana',x:'Elle montre ton mana <b>disponible / total</b>. Chaque carte que tu joues en consomme ; ton mana se recharge entièrement chaque matin. Chaque matin, tu peux aussi ajouter une carte de ta main à ton mana pour en avoir plus.',el:()=>$('myMana'),when:()=>/toi de jouer|Matin|Midi/.test(pr())},
-  {t:'Lire une carte',img:1,x:'Le mana sert à jouer tes cartes. Les cartes que tu peux payer ce tour ont un <b>fin liseré blanc</b>.',el:()=>$('hand'),when:()=>/toi de jouer/.test(pr()),waitTxt:'Attends que ce soit à toi de jouer…'},
-  {t:'Jouer une carte',get x(){return MOB()?'Touche une carte pour la voir en grand, puis touche ton expédition <b>Héros</b> ou <b>Compagnon</b> pour l’y jouer. Joue une carte maintenant !':'Glisse une carte sur ton expédition <b>Héros</b> ou <b>Compagnon</b> (ou clique-la puis clique l’expédition). Joue une carte maintenant !'},el:()=>$('myExps'),when:()=>/toi de jouer/.test(pr()),until:()=>document.querySelectorAll('#myExps .zone.exp .c[data-id]').length>0,waitTxt:'Joue une carte…'},
-  {t:'Les terrains',x:'Les pastilles <b>forêt / montagne / océan</b> additionnent la force de ton expédition. Au <b>Crépuscule</b>, ton expédition avance si elle est plus forte que celle d’en face sur un terrain de sa région (les pastilles en couleur sont celles qui comptent ; en doré, tu gagnes).',el:()=>document.querySelector('#myExps .tot')},
-  {t:'Passer',x:'Chacun joue une carte à son tour. Quand tu as fini (ou que tu n’as plus de mana), clique <b>Passer</b>'+(MOB()?'':' (ou appuie sur Espace)')+'. Une fois que tu as passé, tu ne joues plus de cartes de la journée, mais ton adversaire peut continuer à jouer les siennes jusqu’à ce qu’il passe aussi. Ensuite vient le Crépuscule.',el:()=>$('prompt')},
-  {t:'Fin de journée',get x(){return 'La journée est finie : au <b>Crépuscule</b>, tes expéditions ont avancé si elles étaient plus fortes (regarde la piste). Puis la <b>nuit</b>, les cartes que tu as jouées sont allées dans ta <b>Réserve</b> : tu pourras les rejouer plus tard pour leur coût de Réserve. '+(MOB()?'Le bouton <b>Rés.</b> à gauche de ta main affiche ta Réserve à la place de ta main.':'Ta Réserve est juste sous ton expédition Héros.')},el:()=>MOB()?($('rsvTog')||document.querySelector('#myStrip .sres')):document.querySelector('#myStrip .sres'),when:()=>document.querySelectorAll('#myStrip .sres .c[data-id]').length>0,waitTxt:'Joue tes cartes, puis passe jusqu’à la fin de la journée…'},
-  {t:'Le lexique',x:'Un mot-clé ou un symbole t’échappe ? Ouvre <b>📖 Lexique</b> dans les Outils'+(MOB()?' (languette ‹ à droite de l’écran)':'')+'. Bonne partie !',el:()=>MOB()?$('sideTab'):document.querySelector('[data-tool=lex]')}
+  {get t(){return L('Bienvenue dans Altered TCG !','Welcome to Altered TCG!')},get x(){return L('Le but : faire avancer tes deux expéditions, <b>Héros</b> et <b>Compagnon</b>, sur la piste de Tumulte, jusqu\'à ce qu\'elles se rejoignent. Ton adversaire essaie de faire pareil.','The goal: move your two expeditions, <b>Hero</b> and <b>Companion</b>, along the Tumult track until they meet. Your opponent is trying to do the same.')},el:()=>$('adv')},
+  {get t(){return L('Ton mana','Your mana')},get x(){return L('Pour commencer, <b>touche 3 cartes de ta main</b> : elles deviennent ton mana pour la partie. Puis clique <b>Valider</b>.','To begin, <b>tap 3 cards in your hand</b>: they become your mana for the game. Then click <b>Confirm</b>.')},el:()=>$('hand'),until:()=>!/Mise en place|Setup/.test(pr()),get waitTxt(){return L('Choisis 3 cartes puis Valide…','Choose 3 cards, then Confirm…')}},
+  {get t(){return L('L’orbe de mana','The mana orb')},get x(){return L('Elle montre ton mana <b>disponible / total</b>. Chaque carte que tu joues en consomme ; ton mana se recharge entièrement chaque matin. Chaque matin, tu peux aussi ajouter une carte de ta main à ton mana pour en avoir plus.','It shows your <b>available / total</b> mana. Each card you play uses some; your mana fully refills every morning. Each morning you can also add a card from your hand to your mana to have more.')},el:()=>$('myMana'),when:()=>/toi de jouer|Matin|Midi|Your turn|Morning|Noon/.test(pr())},
+  {get t(){return L('Lire une carte','Reading a card')},img:1,get x(){return L('Le mana sert à jouer tes cartes. Les cartes que tu peux payer ce tour ont un <b>fin liseré blanc</b>.','Mana is used to play your cards. Cards you can afford this turn have a <b>thin white outline</b>.')},el:()=>$('hand'),when:()=>/toi de jouer|Your turn/.test(pr()),get waitTxt(){return L('Attends que ce soit à toi de jouer…','Wait until it is your turn…')}},
+  {get t(){return L('Jouer une carte','Playing a card')},get x(){return MOB()?L('Touche une carte pour la voir en grand, puis touche ton expédition <b>Héros</b> ou <b>Compagnon</b> pour l’y jouer. Joue une carte maintenant !','Tap a card to see it large, then tap your <b>Hero</b> or <b>Companion</b> expedition to play it there. Play a card now!'):L('Glisse une carte sur ton expédition <b>Héros</b> ou <b>Compagnon</b> (ou clique-la puis clique l’expédition). Joue une carte maintenant !','Drag a card onto your <b>Hero</b> or <b>Companion</b> expedition (or click it, then click the expedition). Play a card now!')},el:()=>$('myExps'),when:()=>/toi de jouer|Your turn/.test(pr()),until:()=>document.querySelectorAll('#myExps .zone.exp .c[data-id]').length>0,get waitTxt(){return L('Joue une carte…','Play a card…')}},
+  {get t(){return L('Les terrains','Terrains')},get x(){return L('Les pastilles <b>forêt / montagne / océan</b> additionnent la force de ton expédition. Au <b>Crépuscule</b>, ton expédition avance si elle est plus forte que celle d’en face sur un terrain de sa région (les pastilles en couleur sont celles qui comptent ; en doré, tu gagnes).','The <b>forest / mountain / ocean</b> pills add up your expedition’s strength. At <b>Dusk</b>, your expedition moves forward if it is stronger than the one facing it on a terrain of its region (coloured pills are the ones that count; gold means you are winning).')},el:()=>document.querySelector('#myExps .tot')},
+  {get t(){return L('Passer','Passing')},get x(){return L('Chacun joue une carte à son tour. Quand tu as fini (ou que tu n’as plus de mana), clique <b>Passer</b>'+(MOB()?'':' (ou appuie sur Espace)')+'. Une fois que tu as passé, tu ne joues plus de cartes de la journée, mais ton adversaire peut continuer à jouer les siennes jusqu’à ce qu’il passe aussi. Ensuite vient le Crépuscule.','Players take turns playing one card. When you are done (or out of mana), click <b>Pass</b>'+(MOB()?'':' (or press Space)')+'. Once you have passed, you play no more cards that day, but your opponent can keep playing theirs until they pass too. Then comes Dusk.')},el:()=>$('prompt')},
+  {get t(){return L('Fin de journée','End of the day')},get x(){return L('La journée est finie : au <b>Crépuscule</b>, tes expéditions ont avancé si elles étaient plus fortes (regarde la piste). Puis la <b>nuit</b>, les cartes que tu as jouées sont allées dans ta <b>Réserve</b> : tu pourras les rejouer plus tard pour leur coût de Réserve. '+(MOB()?'Le bouton <b>Rés.</b> à gauche de ta main affiche ta Réserve à la place de ta main.':'Ta Réserve est juste sous ton expédition Héros.'),'The day is over: at <b>Dusk</b>, your expeditions moved forward if they were stronger (look at the track). Then at <b>night</b>, the cards you played went into your <b>Reserve</b>: you can play them again later for their Reserve cost. '+(MOB()?'The <b>Res.</b> button on the left of your hand shows your Reserve instead of your hand.':'Your Reserve is just below your Hero expedition.'))},el:()=>MOB()?($('rsvTog')||document.querySelector('#myStrip .sres')):document.querySelector('#myStrip .sres'),when:()=>document.querySelectorAll('#myStrip .sres .c[data-id]').length>0,get waitTxt(){return L('Joue tes cartes, puis passe jusqu’à la fin de la journée…','Play your cards, then pass until the end of the day…')}},
+  {get t(){return L('Le lexique','The glossary')},get x(){return L('Un mot-clé ou un symbole t’échappe ? Ouvre <b>📖 Lexique</b> dans les Outils'+(MOB()?' (languette ‹ à droite de l’écran)':'')+'. Bonne partie !','Unsure about a keyword or symbol? Open <b>📖 Glossary</b> in the Tools'+(MOB()?' (the ‹ tab on the right of the screen)':'')+'. Have a good game!')},el:()=>MOB()?$('sideTab'):document.querySelector('[data-tool=lex]')}
  ];
- const ANAT='<div class="anat"><img src="img/fr-hd/ALT_CORE_B_YZ_18_R1.webp" alt="">'+
-  '<span class="an" style="left:17%;top:2.5%">← Coût depuis la main</span>'+
-  '<span class="an" style="left:20%;top:9.5%">← Coût depuis la Réserve</span>'+
-  '<span class="an" style="left:15%;top:24%">← Forces : forêt / montagne / océan</span>'+
-  '<span class="an" style="left:50%;top:57%;transform:translateX(-50%)">Capacités ↓</span>'+
-  '<span class="an" style="left:50%;top:100.5%;transform:translateX(-50%)">↑ Effet en Réserve (Soutien)</span></div>';
+ const ANAT=()=>'<div class="anat"><img src="img/'+L('fr','en')+'-hd/ALT_CORE_B_YZ_18_R1.webp" alt="">'+
+  '<span class="an" style="left:17%;top:2.5%">'+L('← Coût depuis la main','← Cost from hand')+'</span>'+
+  '<span class="an" style="left:20%;top:9.5%">'+L('← Coût depuis la Réserve','← Cost from Reserve')+'</span>'+
+  '<span class="an" style="left:15%;top:24%">'+L('← Forces : forêt / montagne / océan','← Strengths: forest / mountain / ocean')+'</span>'+
+  '<span class="an" style="left:50%;top:57%;transform:translateX(-50%)">'+L('Capacités ↓','Abilities ↓')+'</span>'+
+  '<span class="an" style="left:50%;top:100.5%;transform:translateX(-50%)">'+L('↑ Effet en Réserve (Soutien)','↑ Reserve effect (Support)')+'</span></div>';
  let i=-1,box=null,hl=null,tm=null;
  function clear(){if(hl)hl.classList.remove('tut-hl');hl=null}
  function end(){clear();clearInterval(tm);tm=null;if(box)box.remove();box=null;try{localStorage.setItem('alt-bi-tuto','1')}catch(e){}}
@@ -708,14 +711,14 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
   const r=el?el.getBoundingClientRect():null;
   box.className=r&&r.top<innerHeight*.45?'bot':'top';
   const waiting=!ready||(st.until&&!st.until());
-  box.innerHTML='<h4>'+st.t+'</h4>'+(ready&&st.img?ANAT:'')+'<div>'+(ready?st.x:'')+'</div>'+(waiting?'<div class="wait">'+(ready?(st.waitTxt||''):(st.waitTxt||'Un instant…'))+'</div>':'')+
-   '<div class="tr"><span class="tn">'+(i+1)+' / '+S.length+'</span><span><button id="tutQ">Quitter</button> '+(waiting?'':'<button id="tutN" class="pri">'+(i===S.length-1?'Terminer':'Suivant')+'</button>')+'</span></div>';
+  box.innerHTML='<h4>'+st.t+'</h4>'+(ready&&st.img?ANAT():'')+'<div>'+(ready?st.x:'')+'</div>'+(waiting?'<div class="wait">'+(ready?(st.waitTxt||''):(st.waitTxt||L('Un instant…','One moment…')))+'</div>':'')+
+   '<div class="tr"><span class="tn">'+(i+1)+' / '+S.length+'</span><span><button id="tutQ">'+L('Quitter','Quit')+'</button> '+(waiting?'':'<button id="tutN" class="pri">'+(i===S.length-1?L('Terminer','Finish'):L('Suivant','Next'))+'</button>')+'</span></div>';
   $('tutQ').onclick=end;const n=$('tutN');if(n)n.onclick=()=>{i++;show()};
   box.dataset.w=waiting?'1':'';box.dataset.r=ready?'1':'';
  }
  function start(){
   const ai=$('soloAI');if(ai)ai.checked=true;$('bSolo').click();
-  box=document.createElement('div');box.id='tutBox';document.body.appendChild(box);i=0;
+  box=document.createElement('div');box.id='tutBox';box.setAttribute('data-noi18n','');document.body.appendChild(box);i=0;
   setTimeout(show,900);
   tm=setInterval(()=>{if(!box)return;const st=S[i];if(!st)return;const ready=!st.when||st.when(),waiting=!ready||(st.until&&!st.until());
    if((box.dataset.w==='1')!==waiting||(box.dataset.r==='1')!==ready){if(st.until&&ready&&!waiting&&box.dataset.w==='1'){i++;}show()}
@@ -724,5 +727,6 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
  $('bTuto').onclick=start;
 })();
 </script>
+<script>(function(){const b=document.getElementById('langLobby');const set=()=>{let l='fr';try{l=localStorage.getItem('alt-bi-lang')==='en'?'en':'fr'}catch(e){}b.innerHTML=l==='en'?'<b>EN</b> / fr':'<b>FR</b> / en'};set();b.onclick=()=>{let l='fr';try{l=localStorage.getItem('alt-bi-lang')==='en'?'fr':'en';localStorage.setItem('alt-bi-lang',l)}catch(e){}location.reload()}})();</script>
 </body>
 </html>
