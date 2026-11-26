@@ -518,6 +518,19 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 .tot .pill sup.dl{font-size:9px;font-weight:800;margin-left:2px;vertical-align:super;line-height:0;color:#eaffd5}
 .tot .pill sup.dl.neg{color:#ffd0d0}
 .tot .pill.chg{width:auto!important;padding:0 6px!important}
+
+/* Orbe de mana façon carte : cœur sombre, anneau bleu, liseré blanc lumineux, petites perles qui scintillent */
+.manaico{background:radial-gradient(circle closest-side at 50% 50%,#06122b 0,#0b2552 45%,#1b4f96 66%,#4f8fd6 80%,#bfe4ff 90%,#ffffff 95%,#cfeaff 100%)!important;border:none!important;box-shadow:0 0 9px 2px #a6dbffaa,0 0 22px 6px #3c9cf055,inset 0 0 6px #000a!important}
+.manaico b{font-weight:900;text-shadow:0 0 4px #0a1a3a,0 1px 2px #000}
+.manaico .spk.s3,.manaico .spk.s4{display:block!important}
+.manaico .spk::before{width:4px!important;height:4px!important;background:#eaf7ff!important;box-shadow:0 0 4px 1px #ffffff,0 0 9px 3px #6fc3ffcc!important}
+.manaico .spk{inset:-7px!important;transform:rotate(-48deg)!important;animation:twinkle 5.6s ease-in-out infinite!important}
+.manaico .spk.s2{inset:-9px!important;transform:rotate(38deg)!important;animation:twinkle 6.8s ease-in-out 1.9s infinite!important}
+.manaico .spk.s2::before{width:3px!important;height:3px!important}
+.manaico .spk.s3{inset:-6px!important;transform:rotate(97deg)!important;animation:twinkle 6.1s ease-in-out 3.4s infinite!important}
+.manaico .spk.s4{inset:-8px!important;transform:rotate(212deg)!important;animation:twinkle 7.4s ease-in-out 0.8s infinite!important}
+.manaico .spk.s4::before{width:5px!important;height:5px!important}
+.manaico .streak::before{background:linear-gradient(90deg,transparent,#e6f6ffdd,transparent)!important}
 </style>
 </head>
 <body>
