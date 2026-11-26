@@ -552,6 +552,21 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 .manaico .spk.s6::before{width:2px!important;height:2px!important}
 /* Quelques petites bulles éparses vers le bord, pas de trame régulière */
 .manaico .dots{position:absolute;inset:0;border-radius:50%;pointer-events:none;background:radial-gradient(circle at 35% 79%,#d8efff 0 0.6px,transparent 1.2px),radial-gradient(circle at 64% 22%,#bcdcff 0 0.6px,transparent 1.2px),radial-gradient(circle at 57% 81%,#d8efff 0 1.2px,transparent 1.8px),radial-gradient(circle at 52% 89%,#bcdcff 0 0.6px,transparent 1.2px),radial-gradient(circle at 74% 74%,#bcdcff 0 0.6px,transparent 1.2px),radial-gradient(circle at 24% 34%,#d8efff 0 0.8px,transparent 1.4px),radial-gradient(circle at 20% 39%,#d8efff 0 1.2px,transparent 1.8px),radial-gradient(circle at 12% 40%,#d8efff 0 0.8px,transparent 1.4px),radial-gradient(circle at 15% 30%,#d8efff 0 1px,transparent 1.6px),radial-gradient(circle at 20% 41%,#bcdcff 0 0.6px,transparent 1.2px),radial-gradient(circle at 61% 89%,#cfe6ff 0 1.2px,transparent 1.8px),radial-gradient(circle at 6% 60%,#cfe6ff 0 1px,transparent 1.6px),radial-gradient(circle at 50% 83%,#d8efff 0 0.8px,transparent 1.4px),radial-gradient(circle at 16% 33%,#bcdcff 0 1px,transparent 1.6px),radial-gradient(circle at 12% 63%,#d8efff 0 0.6px,transparent 1.2px),radial-gradient(circle at 17% 48%,#d8efff 0 1px,transparent 1.6px);opacity:.4}
+
+/* Orbe : chiffres centrés, clignotement lent, 2 perles en haut au lieu de 3 */
+.manaico{padding:0!important;align-items:center!important;justify-content:center!important}
+.manaico b{line-height:1}.manaico span{line-height:1;margin-top:.35em}
+.manaico .spk.s3{display:none!important}
+.manaico .spk{animation-duration:9.5s!important}
+.manaico .spk.s2{animation-duration:11.8s!important}
+.manaico .spk.s4{animation-duration:12.6s!important}
+.manaico .spk.s5{animation-duration:10.7s!important}
+.manaico .spk.s6{animation-duration:13.4s!important}
+@media(min-width:901px){
+ #myMana{left:44px!important;bottom:44px!important}
+ #myMana .manaico{width:66px;height:66px}
+ #myMana .manaico b{font-size:28px}#myMana .manaico span{font-size:14px}
+}
 </style>
 </head>
 <body>
