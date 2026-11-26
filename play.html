@@ -223,6 +223,25 @@ button.mini{min-height:24px;padding:0 7px;font-size:11px}
 .tot .pill.win{box-shadow:0 0 0 2px #f5c518cc,0 0 5px 1px #f5c51844;animation:winp2 4s ease-in-out infinite}
 @keyframes winp2{0%,100%{box-shadow:0 0 0 2px #f5c518cc,0 0 5px 1px #f5c51844}50%{box-shadow:0 0 0 2px #f5c518cc,0 0 9px 2px #f5c51870}}
 @media(prefers-reduced-motion:reduce){.tot .pill.win{animation:none}}
+
+/* En-tête d'expédition : nom au centre, stats côté héros, flèches au bord (miroir) */
+.zone.exp h3.xh{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:8px}
+.xh .xname{grid-column:2;grid-row:1;text-align:center}
+.zone.exp.eH h3.xh{flex-direction:initial}
+.zone.exp.eH .xstats{grid-column:3;grid-row:1;justify-self:end;margin-right:14px;display:flex;gap:6px;align-items:center}
+.zone.exp.eH .xarr{grid-column:1;grid-row:1;justify-self:start;display:flex;gap:4px}
+.zone.exp.eC .xstats{grid-column:1;grid-row:1;justify-self:start;margin-left:14px;display:flex;gap:6px;align-items:center}
+.zone.exp.eC .xarr{grid-column:3;grid-row:1;justify-self:end;display:flex;gap:4px}
+.zone.exp.eH h3 button.mini{order:initial}
+/* Dos de carte officiel */
+.deckpile{background:url(img/ui/scan/cardback.webp) center/cover;border:none;box-shadow:2px 2px 0 #3a3022,3px 3px 0 #c8c0aa,5px 5px 0 #8f856e,0 4px 10px #0009}
+.deckpile b{background:#0009;border-radius:50%;width:28px;height:28px;display:grid;place-items:center;font-size:15px}
+/* Main adverse en éventail dans sa ligne réserve / repères */
+.ofan{flex:1;display:flex;justify-content:center;align-items:flex-start;padding-top:4px;min-height:40px}
+.fback{display:block;width:40px;aspect-ratio:360/502;margin-left:-14px;border-radius:4px;background:url(img/ui/scan/cardback.webp) center/cover;box-shadow:-1px 1px 4px #000a;transform-origin:50% 120%}
+.fback:first-child{margin-left:0}
+@media(max-width:900px){.fback{width:26px;margin-left:-10px}.zone.exp.eH .xstats{margin-right:4px}.zone.exp.eC .xstats{margin-left:4px}}
+.zone.exp.eH .xarr button.mini{order:0!important}
 </style>
 </head>
 <body>
@@ -269,8 +288,8 @@ button.mini{min-height:24px;padding:0 7px;font-size:11px}
 </section>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/engine.js?v=1795698521"></script>
-<script src="js/net.js?v=1795698521"></script>
-<script src="js/play.js?v=1795698521"></script>
+<script src="js/engine.js?v=1795699474"></script>
+<script src="js/net.js?v=1795699474"></script>
+<script src="js/play.js?v=1795699474"></script>
 </body>
 </html>
