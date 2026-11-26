@@ -72,7 +72,7 @@ a{color:var(--acc)}
 <div class="row"><h1 style="font-size:30px;margin-right:auto">Table de jeu</h1><a href="index.html">← Deckbuilder</a></div>
 <div class="box">
 <label><span class="lbl">Ton pseudo</span><input id="pname" maxlength="24" style="width:100%"></label>
-<label style="display:block;margin-top:10px"><span class="lbl">Ton deck (les tiens ou un deck de départ officiel)</span><select id="pdeck" style="width:100%"></select></label>
+<div style="margin-top:10px"><span class="lbl">Ton deck (les tiens ou un deck de départ officiel)</span><select id="pdeck" class="hidden"></select><div id="pdeckPick"></div></div>
 <p class="note" id="deckNote"></p>
 </div>
 <div class="box">
@@ -83,7 +83,7 @@ a{color:var(--acc)}
 </div>
 <div class="box">
 <h2 style="font-size:20px;margin-bottom:8px">S'entraîner seul</h2>
-<div class="row"><span class="small">Deck adverse :</span><select id="sdeck"></select><button id="bSolo">Partie d'essai</button></div>
+<span class="lbl">Deck adverse</span><select id="sdeck" class="hidden"></select><div id="sdeckPick"></div><div class="row" style="margin-top:8px"><button id="bSolo" class="pri">Lancer la partie d'essai</button></div>
 <p class="note">Tu contrôles les deux joueurs (bouton « Changer de côté »). Pratique pour tester un deck ou apprendre les règles.</p>
 </div>
 <p class="note">Les effets des cartes s'appliquent à la main pour l'instant (boutons sur chaque carte) ; le tour de jeu, le mana, la pioche, le Crépuscule, la Nuit et la victoire sont automatiques.</p>
@@ -111,8 +111,8 @@ a{color:var(--acc)}
 </section>
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-<script src="js/engine.js?v=1795653811"></script>
-<script src="js/net.js?v=1795653811"></script>
-<script src="js/play.js?v=1795653811"></script>
+<script src="js/engine.js?v=1795654078"></script>
+<script src="js/net.js?v=1795654078"></script>
+<script src="js/play.js?v=1795654078"></script>
 </body>
 </html>

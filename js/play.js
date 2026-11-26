@@ -20,6 +20,26 @@
     const st = STARTERS.map(s => '<option value="' + esc(s.id) + '"' + (s.id === sel ? ' selected' : '') + '>' + esc(s.name) + ' — ' + esc(NM(DB[s.hero])) + '</option>').join('');
     return (mine ? '<optgroup label="Mes decks">' + mine + '</optgroup>' : '') + '<optgroup label="Decks de départ officiels">' + st + '</optgroup>';
   }
+  const FC = { AX: '#a0661c', BR: '#c83a35', LY: '#c5487a', MU: '#4f8a1f', OR: '#2f74c0', YZ: '#6c5fcf' };
+  const FN = { AX: 'Axiom', BR: 'Bravos', LY: 'Lyra', MU: 'Muna', OR: 'Ordis', YZ: 'Yzmir' };
+  function deckList() {
+    const all = store.get('alt-bi-decks', {});
+    const mine = decks().map(([k, v]) => ({ id: k, name: v.name || 'Sans nom', hero: v.hero, sec: v.sec || '', n: Object.values(v.cards || {}).reduce((a, b) => a + b, 0), g: 'Mes decks' }));
+    const st = STARTERS.map(s => ({ id: s.id, name: s.name, hero: s.hero, sec: '', n: 39, g: 'Decks de départ officiels' }));
+    return mine.concat(st);
+  }
+  function dot(f) { return '<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:' + FC[f] + ';flex:none"></span>'; }
+  function picker(selId, cur) {
+    const L = deckList(); let g = '';
+    return '<div style="display:grid;gap:6px">' + L.map(d => {
+      const f = DB[d.hero] ? DB[d.hero].f : null; const head = d.g !== g ? '<span class="lbl" style="margin-top:6px">' + esc(d.g) + '</span>' : ''; g = d.g;
+      const on = d.id === cur;
+      return head + '<button type="button" data-pick="' + esc(selId) + '" data-val="' + esc(d.id) + '" style="display:flex;gap:8px;align-items:center;text-align:left;justify-content:flex-start;' + (on ? 'outline:2px solid ' + (FC[f] || 'var(--acc)') + ';background:var(--soft)' : '') + '">' +
+        (f ? dot(f) : '') + (d.sec && FC[d.sec] ? dot(d.sec) : '') +
+        '<span style="flex:1"><b>' + esc(d.name) + '</b><br><span class="small"><span style="color:' + (FC[f] || 'inherit') + ';font-weight:600">' + esc(FN[f] || '') + '</span>' + (d.sec && FN[d.sec] ? ' + <span style="color:' + FC[d.sec] + ';font-weight:600">' + FN[d.sec] + '</span>' : '') + ' · ' + esc(NM(DB[d.hero])) + ' · ' + d.n + ' cartes</span></span></button>';
+    }).join('') + '</div>';
+  }
+  function renderPickers() { for (const id of ['pdeck', 'sdeck']) { const box = $(id + 'Pick'); if (box) box.innerHTML = picker(id, $(id).value); } }
   function getDeck(id) {
     const s = STARTERS.find(x => x.id === id); if (s) return { hero: s.hero, cards: s.cards, name: s.name };
     const d = store.get('alt-bi-decks', {})[id]; return d && d.hero ? { hero: d.hero, cards: d.cards || {}, name: d.name } : null;
@@ -34,7 +54,8 @@
         id = id || ('d' + Date.now().toString(36)); all[id] = { name, hero: o.h, sec: o.s || '', cards, uniques: Array.isArray(o.u) ? o.u : [], updated: Date.now() };
         store.set('alt-bi-decks', all); store.set('alt-bi-lastdeck', id); } } catch (e) { } history.replaceState(null, '', location.pathname + (new URLSearchParams(location.search).get('join') ? '?join=' + new URLSearchParams(location.search).get('join') : '')); }
     $('pname').value = store.get('alt-bi-name', '');
-    $('pdeck').innerHTML = deckOpts(store.get('alt-bi-lastdeck', '')); $('sdeck').innerHTML = deckOpts('');
+    $('pdeck').innerHTML = deckOpts(store.get('alt-bi-lastdeck', '')); $('sdeck').innerHTML = deckOpts(''); renderPickers();
+    document.addEventListener('click', e => { const b = e.target.closest('[data-pick]'); if (!b) return; $(b.dataset.pick).value = b.dataset.val; if (b.dataset.pick === 'pdeck') store.set('alt-bi-lastdeck', b.dataset.val); renderPickers(); });
     $('deckNote').textContent = decks().length ? '' : 'Pas encore de deck perso sur ce navigateur : joue avec un deck de départ officiel, ou crée le tien dans le deckbuilder.';
     $('pname').oninput = () => store.set('alt-bi-name', $('pname').value);
     $('pdeck').onchange = () => store.set('alt-bi-lastdeck', $('pdeck').value);

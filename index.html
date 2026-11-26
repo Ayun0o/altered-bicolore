@@ -94,7 +94,7 @@ textarea{width:100%;min-height:140px;font-size:13px}
 <body>
 <header class="top">
 <h1>Altered bicolore</h1>
-<select id="deckSel" aria-label="Deck"></select>
+<span id="deckDots" style="display:inline-flex;gap:4px"></span><select id="deckSel" aria-label="Deck"></select>
 <button id="newDeck">Nouveau deck</button>
 <a href="play.html"><button tabindex="-1" class="on">Jouer en ligne</button></a>
 <button id="fmtBtn">Format</button>
@@ -281,8 +281,9 @@ function renderDeck(){
  if(d.uniques.length)h+='<h3>Uniques ('+d.uniques.length+')</h3>'+d.uniques.map((u,i)=>'<div class="li"><span class="fd" style="background:var(--'+esc(u.f)+')"></span><span>'+esc(u.n)+' <span class="x">unique</span></span><span>×1</span><span><button data-urm="'+i+'">−</button></span></div>').join('');
  $('dlist').innerHTML=h||'<p class="note">Choisis un héros, puis ajoute des cartes avec le bouton +.</p>';
 }
-function renderSel(){const ids=Object.keys(decks).sort((a,b)=>(decks[b].updated||0)-(decks[a].updated||0));$('deckSel').innerHTML=ids.map(id=>'<option value="'+esc(id)+'"'+(id===cur?' selected':'')+'>'+esc(decks[id].name||'Sans nom')+'</option>').join('')}
-function renderAll(){renderSel();renderDeck();renderGrid()}
+function renderDots(){const d=D();if(!d)return;const P=BY[d.hero]?.f;$('deckDots').innerHTML=[P,d.sec].filter(Boolean).map(f=>'<span class="fd" style="width:16px;height:16px;background:var(--'+f+')" title="'+FN[f]+'"></span>').join('')}
+function renderSel(){const ids=Object.keys(decks).sort((a,b)=>(decks[b].updated||0)-(decks[a].updated||0));$('deckSel').innerHTML=ids.map(id=>'<option value="'+esc(id)+'"'+(id===cur?' selected':'')+'>'+esc(decks[id].name||'Sans nom')+(BY[decks[id].hero]?' · '+FN[BY[decks[id].hero].f]+(decks[id].sec?' + '+FN[decks[id].sec]:''):'')+'</option>').join('')}
+function renderAll(){renderSel();renderDeck();renderGrid();renderDots()}
 
 function touch(){const d=D();d.updated=Date.now();dirty.add(cur);try{localStorage.setItem('alt-bi-decks',JSON.stringify(decks));localStorage.setItem('alt-bi-cur',cur)}catch(e){}
  clearTimeout(saveT);saveT=setTimeout(flush,800);$('saveNote').textContent='Modifications en cours…'}
@@ -295,8 +296,9 @@ document.addEventListener('click',e=>{const im=e.target.closest('img.art');if(im
  else if(b.dataset.rm){const r=b.dataset.rm;if(d.cards[r]){d.cards[r]--;if(!d.cards[r])delete d.cards[r]}touch();renderDeck();renderGrid()}
  else if(b.dataset.hero){d.hero=b.dataset.hero;const P=BY[d.hero].f;if(d.sec&&(d.sec===P||!neighbours(P).includes(d.sec)))d.sec='';touch();renderDeck();renderGrid()}
  else if(b.dataset.urm!==undefined){d.uniques.splice(+b.dataset.urm,1);touch();renderDeck()}});
+$('dHero').addEventListener('change',()=>setTimeout(renderDots,0));
 $('dHero').onchange=e=>{const d=D();d.hero=e.target.value;const P=BY[d.hero]?.f;if(d.sec&&(d.sec===P||(P&&!neighbours(P).includes(d.sec))))d.sec='';touch();renderDeck();renderGrid()};
-$('dSec').onchange=e=>{D().sec=e.target.value;touch();renderDeck();renderGrid()};
+$('dSec').onchange=e=>{D().sec=e.target.value;touch();renderDeck();renderGrid();renderDots()};
 $('dName').oninput=e=>{D().name=e.target.value;$('asideTitle').textContent=e.target.value||'Mon deck';touch();renderSel()};
 $('deckSel').onchange=e=>{cur=e.target.value;try{localStorage.setItem('alt-bi-cur',cur)}catch(x){}shown=60;renderAll()};
 $('newDeck').onclick=()=>{const id='d'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);decks[id]=newDeckObj('Nouveau deck');cur=id;touch();renderAll();$('dName').focus();$('dName').select()};
