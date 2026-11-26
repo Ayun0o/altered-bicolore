@@ -385,6 +385,9 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 
 
 #sideTab,#sideBg{display:none}
+@keyframes drawn{0%{transform:translate(-60px,-40px) rotate(-8deg) scale(.7);opacity:0}60%{opacity:1}100%{transform:none;opacity:1}}
+@media(prefers-reduced-motion:no-preference){.hand .c.drawn{animation:drawn .45s cubic-bezier(.2,.8,.3,1) both}}
+.oinfo{display:none}
 @media(max-width:900px){
  .side{position:fixed;top:0;right:0;bottom:0;width:min(320px,86vw);height:100dvh!important;z-index:60;border-top:0!important;border-left:1px solid var(--line)!important;box-shadow:-8px 0 30px #0004;transform:translateX(105%);transition:transform .22s ease;overflow:auto}
  body.sideopen .side{transform:none}
@@ -393,6 +396,30 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
  body.sideopen #sideTab{display:none}
  body.sideopen #sideBg{display:block;position:fixed;inset:0;z-index:58;background:#0005}
 }
+
+@media(max-width:900px){
+ .zone .slot,.cards.rz .slot{display:none}
+ .lbl .mx{display:none}
+ .note.empty{display:none}
+ .zone.exp .xarr{display:none!important}
+ body.arrows .zone.exp .xarr{display:flex!important}
+ #hand{transition:max-height .25s ease}
+ #game .main{padding-bottom:calc(var(--handh,300px) + 12px)!important}
+ body.handdown #hand{max-height:34px;overflow:hidden!important;cursor:pointer}
+ body.handdown #hand .c{pointer-events:none}
+ .oinfo{flex-direction:row}
+ .zone.exp .xname{display:none}
+ #adv{cursor:pointer}
+ .exp{min-height:64px}
+ .oinfo{display:flex!important;flex-wrap:wrap;justify-content:center;gap:3px;margin-top:2px;cursor:pointer}
+ .oinfo b{font-size:10px;font-weight:600;background:#0006;border-radius:7px;padding:1px 4px;white-space:nowrap}
+ #zoomCard.selz{position:fixed;left:50%;top:max(8px,env(safe-area-inset-top));transform:translateX(-50%);width:min(62vw,300px);z-index:45;pointer-events:none}
+ .actionbox{position:relative}
+ .actionbox .row{justify-content:flex-end}
+}
+@media(hover:none){.hand .c:hover{transform:none}}
+@media(pointer:coarse){.c,.c img{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none;-webkit-user-drag:none}}
+.c.sel{outline-offset:-3px}
 </style>
 </head>
 <body>
@@ -466,7 +493,7 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 <script src="js/engine.js?v=1795716790"></script>
 <script src="js/ai.js?v=1795716790"></script>
 <script src="js/net.js?v=1795716790"></script>
-<script src="js/play.js?v=1795723250"></script>
+<script src="js/play.js?v=1795723800"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
  t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');

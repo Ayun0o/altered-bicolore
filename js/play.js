@@ -283,14 +283,14 @@
       return '<div class="zone exp e' + e + (mine ? ' mine' : '') + (will ? ' willz' : '') + '"' + (mine ? ' data-drop="' + e + '"' : '') + '><h3 class="xh"><span class="xstats"><span class="tot" id="tot-' + p + e + '">' + tot + '</span>' + badge + (asc ? '<span class="asc" title="Expédition élevée">⇑</span>' : '') + '</span><span class="xname">' + (e === 'H' ? 'Héros' : 'Compagnon') + '</span><span class="xarr"><button class="mini" data-pos="' + p + ',' + e + ',' + (e === 'C' ? 1 : -1) + '" title="' + (e === 'C' ? 'Avancer' : 'Reculer') + ' l’expédition">◀</button><button class="mini" data-pos="' + p + ',' + e + ',' + (e === 'C' ? -1 : 1) + '" title="' + (e === 'C' ? 'Reculer' : 'Avancer') + ' l’expédition">▶</button></span></h3><div class="cards">' + cardsEl(X.exp[e]) + '</div></div>';
     };
     const hn = '<span class="hname" style="color:' + (FC[(DB[(card(X.hero) || {}).ref] || {}).f] || 'inherit') + '">' + esc(X.name) + '</span>';
-    return zone('H') + '<div class="herocol' + (mine ? ' mine' : '') + '">' + (mine ? hn : '') + '<div class="herowrap">' + (X.hero ? cardEl(X.hero) : '') + '<span class="pass' + (V.passed && V.passed[p] ? ' done' : '') + '" title="' + (V.passed && V.passed[p] ? 'A passé : ne joue plus de cartes aujourd’hui' : 'Peut encore jouer des cartes') + '"><img class="pf" src="img/ui/scan/pass_blue.webp" alt=""><img class="pb" src="img/ui/scan/pass_gold.webp" alt=""></span>' + '</div>' + (mine ? '' : hn) + '</div>' + zone('C');
+    return zone('H') + '<div class="herocol' + (mine ? ' mine' : '') + '">' + (mine ? hn : '') + '<div class="herowrap">' + (X.hero ? cardEl(X.hero) : '') + '<span class="pass' + (V.passed && V.passed[p] ? ' done' : '') + '" title="' + (V.passed && V.passed[p] ? 'A passé : ne joue plus de cartes aujourd’hui' : 'Peut encore jouer des cartes') + '"><img class="pf" src="img/ui/scan/pass_blue.webp" alt=""><img class="pb" src="img/ui/scan/pass_gold.webp" alt=""></span>' + '</div>' + (mine ? '' : hn + '<span class="oinfo" data-oinfo="1" title="Main · deck · défausse · réserve · repères de l’adversaire"><b>✋' + (X.handCount || 0) + '</b><b>🂠' + (X.deckCount || 0) + '</b><b>🗑' + X.discard.length + '</b>' + (X.reserve.length ? '<b>Rés ' + X.reserve.length + '</b>' : '') + (X.lm.length ? '<b>Rep ' + X.lm.length + '</b>' : '') + '</span>') + '</div>' + zone('C');
   }
   const slots = n => n > 0 ? '<i class="slot"></i>'.repeat(Math.min(n, 4)) : '';
   const backs = (n, cls) => { n = Math.min(n, 12); return Array.from({ length: n }, (x, i) => '<i class="' + cls + '" style="transform:rotate(' + ((i - (n - 1) / 2) * 6) + 'deg)"></i>').join(''); };
   function strip(X, p) {
     const top = X.discard[X.discard.length - 1];
-    const res = '<div class="sres"><span class="lbl">Réserve (max ' + X.rl + ')</span><div class="cards rz">' + (X.reserve.length ? cardsEl(X.reserve) : '') + slots(X.rl - X.reserve.length) + '</div></div>';
-    const lm = '<div class="slm"><span class="lbl">Repères (max ' + X.ll + ')</span><div class="cards rz">' + (X.lm.length ? cardsEl(X.lm) : '') + slots(X.ll - X.lm.length) + '</div></div>';
+    const res = '<div class="sres"><span class="lbl">Réserve<span class="mx"> (max ' + X.rl + ')</span></span><div class="cards rz">' + (X.reserve.length ? cardsEl(X.reserve) : '') + slots(X.rl - X.reserve.length) + '</div></div>';
+    const lm = '<div class="slm"><span class="lbl">Repères<span class="mx"> (max ' + X.ll + ')</span></span><div class="cards rz">' + (X.lm.length ? cardsEl(X.lm) : '') + slots(X.ll - X.lm.length) + '</div></div>';
     const disc = '<div class="discz" data-disc="' + p + '" title="Voir la défausse"><span class="lbl">Défausse (' + X.discard.length + ')</span><div class="cards rz">' + (top ? cardEl(top) : '<i class="slot"></i>') + '</div></div>';
     const deck = '<div class="deckz"><span class="lbl">Deck</span><div class="deckpile" title="Cartes restantes dans le deck"><b>' + (X.deckCount || 0) + '</b></div></div>';
     const mid = p !== me ? '<div class="ofan" title="Cartes en main de l’adversaire : ' + (X.handCount || 0) + '">' + backs(X.handCount || 0, 'fback') + '</div>' : '<div></div>';
@@ -394,7 +394,7 @@
     document.body.style.background = 'var(--bg)';
     const mainEl = document.querySelector('#game .main'); if (mainEl) mainEl.style.background = 'linear-gradient(to bottom,' + (fo ? FC[fo] + '30' : 'transparent') + ' 0%,' + (fo ? FC[fo] + '99' : 'transparent') + ' 26%,transparent 46%,transparent 54%,' + (fm ? FC[fm] + '99' : 'transparent') + ' 74%,' + (fm ? FC[fm] + '30' : 'transparent') + ' 100%),var(--bg)';
     renderPrompt(P, O); renderSide();
-    animate(); recordStats();
+    animate(); recordStats(); selPreview();
   }
 
   // Petits sons générés à la volée (Web Audio), discrets et coupables
@@ -431,10 +431,10 @@
   function animate() {
     const cur = {};
     for (const id in V.cards) { const c = V.cards[id], L = locate(id); if (!L) continue; cur[id] = { z: L.z, b: c.boost || 0, st: (c.fleeting ? 'f' : '') + (c.anchored ? 'a' : '') + (c.asleep ? 's' : '') + (c.completed ? 'c' : ''), ct: c.ctr ? Object.values(c.ctr).reduce((a, v) => a + v, 0) : 0 }; }
-    let sCard = false, sTok = false;
+    let sCard = false, sTok = false, nDrawn = 0;
     if (SNAP) {
       document.querySelectorAll('#game .main .c[data-id]').forEach(el => {
-        const id = el.dataset.id, n = cur[id], o = SNAP[id]; if (!n || el.closest('.hand')) return;
+        const id = el.dataset.id, n = cur[id], o = SNAP[id]; if (n && el.closest('.hand')) { if (!o || o.z !== n.z) { el.style.animationDelay = (nDrawn++ * 90) + 'ms'; el.classList.add('drawn'); } return; } if (!n) return;
         if ((!o && (n.z === 'exp' || n.z === 'lm')) || (o && o.z !== n.z && ['exp', 'lm', 'reserve'].includes(n.z))) { el.classList.add('landed'); sCard = true; }
         if (o && n.b > o.b) { const b = el.querySelector('.bd b.bst'); if (b) { b.classList.add('drop'); sTok = true; } }
         if (o && n.ct > o.ct) { el.querySelectorAll('.bd b:not(.bst)').forEach(b => b.classList.add('drop')); sTok = true; }
@@ -447,6 +447,7 @@
     if (sCard) SFX.card(); else if (sDraw) SFX.draw();
     if (sTok) setTimeout(() => SFX.token(), 140);
     if (sMove) setTimeout(() => SFX.move(), 60);
+    document.querySelectorAll('#hand .c[data-id]').forEach(el => { const id = el.dataset.id, n = cur[id], o = SNAP && SNAP[id]; if (n && (!o || o.z !== 'hand')) { el.style.animationDelay = (nDrawn++ * 90) + 'ms'; el.classList.add('drawn'); } });
     SNAP = cur;
     if (V.log.length < LOGN) LOGN = V.log.length;
     const fresh = V.log.slice(LOGN); LOGN = V.log.length;
@@ -551,7 +552,21 @@
   const zoomEl = document.createElement('div'); zoomEl.id = 'zoomCard'; document.body.appendChild(zoomEl);
   function zoomHtml(x) { const d = DB[x.ref] || {}; if (!d.u) return '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(x.ref) + '.webp">';
     return '<span class="uqw"><img alt="" style="width:100%;display:block;border-radius:14px" src="img/' + LANG + '-hd/' + encodeURIComponent(uqBase(AltUniques.familyOf(x.ref), d.f, DB)) + '.webp">' + uqOverlay(d) + '</span><div class="uqz"><b>' + esc(NM(d)) + ' — unique</b><span>Coût ' + esc(d.c) + ' / ' + esc(d.rc) + ' · <i class="F">' + esc(d.p[0]) + '</i> <i class="M">' + esc(d.p[1]) + '</i> <i class="W">' + esc(d.p[2]) + '</i></span><span>' + esc(LANG === 'en' ? d.xe : d.x) + '</span>' + (d.e ? '<span><i>' + esc(LANG === 'en' ? d.ee : d.e) + '</i></span>' : '') + '</div>'; }
-  function hideZoom() { zoomEl.style.display = 'none'; }
+  function hideZoom() { if (zoomEl.classList.contains('selz')) return; zoomEl.style.display = 'none'; }
+  const MOB = () => matchMedia('(max-width:900px)').matches;
+  { const h = document.querySelector('.hand'); if (h && window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty('--handh', h.offsetHeight + 'px')).observe(h); }
+  // Téléphone : toucher le plateau replie la main (on voit le haut des cartes), toucher la main la ressort
+  document.addEventListener('click', e => {
+    if (!MOB() || !V) return; const b = document.body, t = e.target;
+    if (t.closest('#hand')) { if (b.classList.contains('handdown')) { b.classList.remove('handdown'); e.stopPropagation(); e.preventDefault(); } return; }
+    if (t.closest('.hand') || t.closest('.side') || t.closest('#sideTab') || t.closest('dialog')) return;
+    if (t.closest('#game .main')) b.classList.add('handdown');
+  }, true);
+  function selPreview() {
+    const x = sel && V && MOB() ? card(sel) : null, L = x && locate(sel);
+    if (x && !x.tok && L && L.p === me && (L.z === 'hand' || L.z === 'reserve')) { zoomEl.innerHTML = zoomHtml(x); zoomEl.classList.remove('touch'); zoomEl.classList.add('selz'); zoomEl.style.display = 'block'; }
+    else if (zoomEl.classList.contains('selz')) { zoomEl.classList.remove('selz'); zoomEl.style.display = 'none'; }
+  }
   function bindZoom() {
     document.addEventListener('mouseover', e => {
       if (sel && !DRAG) { const z = e.target.closest && e.target.closest('[data-drop]'); const zk = z ? z.dataset.drop : null; if (zk !== PREVZ) { PREVZ = zk; if (zk) { const c = card(sel); if (c && V.players[me] && (V.players[me].hand.includes(sel) || V.players[me].reserve.includes(sel))) previewPlay(sel, zk); } else clearPreview(); } }
@@ -561,9 +576,10 @@
     });
     // Téléphone : appui long sur une carte = zoom, on relâche = ça se ferme
     let lpT = null;
-    document.addEventListener('touchstart', e => { const c = e.target.closest && e.target.closest('.c[data-id]'); if (!c || !V) return; clearTimeout(lpT); lpT = setTimeout(() => { const x = card(c.dataset.id); if (!x || x.tok) return; zoomEl.innerHTML = zoomHtml(x); zoomEl.style.display = 'block'; zoomEl.classList.add('touch'); }, 320); }, { passive: true });
-    const endLP = () => { clearTimeout(lpT); if (zoomEl.classList.contains('touch')) { zoomEl.classList.remove('touch'); hideZoom(); } };
-    document.addEventListener('touchend', endLP, { passive: true }); document.addEventListener('touchcancel', endLP, { passive: true }); document.addEventListener('touchmove', () => clearTimeout(lpT), { passive: true });
+    let lpX = 0, lpY = 0;
+    document.addEventListener('touchstart', e => { const c = e.target.closest && e.target.closest('.c[data-id]'); if (!c || !V) return; const t0 = e.touches[0]; lpX = t0.clientX; lpY = t0.clientY; clearTimeout(lpT); lpT = setTimeout(() => { const x = card(c.dataset.id); if (!x || x.tok) return; zoomEl.classList.remove('selz'); zoomEl.innerHTML = zoomHtml(x); zoomEl.style.display = 'block'; zoomEl.classList.add('touch'); }, 380); }, { passive: true });
+    const endLP = () => { clearTimeout(lpT); if (zoomEl.classList.contains('touch')) { zoomEl.classList.remove('touch'); zoomEl.style.display = 'none'; selPreview(); } };
+    document.addEventListener('touchend', endLP, { passive: true }); document.addEventListener('touchcancel', endLP, { passive: true }); document.addEventListener('touchmove', e => { const t = e.touches[0]; if (t && Math.hypot(t.clientX - lpX, t.clientY - lpY) > 12) clearTimeout(lpT); }, { passive: true });
     document.addEventListener('contextmenu', e => { if (e.target.closest && e.target.closest('.c[data-id]') && zoomEl.classList.contains('touch')) e.preventDefault(); });
     document.addEventListener('mouseout', e => { const c = e.target.closest && e.target.closest('.c[data-id]'); if (c && !(e.relatedTarget && c.contains(e.relatedTarget))) hideZoom(); });
   }
@@ -592,6 +608,8 @@
         else if (k === 'mkToken') { const pv = $('tkPre').value; if (pv === 'custom') dispatch({ type: 'token', n: $('tkN').value || 'Jeton', f: +$('tkF').value || 0, m: +$('tkM').value || 0, w: +$('tkW').value || 0, e: $('tkE').value }); else { const t = TOKENS[+pv]; if (t) dispatch({ type: 'token', n: t.en, f: t.p[0], m: t.p[1], w: t.p[2], e: $('tkE').value }); } sideView = 'card'; }
         return;
       }
+      if (MOB() && t.closest('#adv')) { document.body.classList.toggle('arrows'); clearTimeout(window.__arrT); if (document.body.classList.contains('arrows')) window.__arrT = setTimeout(() => document.body.classList.remove('arrows'), 8000); return; }
+      if (t.closest('[data-oinfo]')) { const st = document.querySelector('#game .main .strip2'); if (st) st.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
       const tool = t.closest('[data-tool]');
       if (tool) {
         const k = tool.dataset.tool;
@@ -623,7 +641,7 @@
           if (set.has(id)) set.delete(id); else { if (lim === 1) set.clear(); if (set.size < lim) set.add(id); }
           render(); return;
         }
-        sel = id; sideView = 'card'; render();
+        sel = (sel === id && MOB()) ? null : id; sideView = 'card'; render();
       }
     });
     $('bSwitch').onclick = () => { if (mode !== 'solo') return; me = 1 - me; sel = null; keep = { R: new Set(), L: new Set() }; push(); };
