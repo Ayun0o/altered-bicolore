@@ -396,30 +396,68 @@
     renderPrompt(P, O); renderSide();
     animate(); recordStats();
   }
+
+  // Petits sons générés à la volée (Web Audio), discrets et coupables
+  const SFX = (() => {
+    let ctx = null, on = true; try { on = localStorage.getItem('alt-bi-sfx') !== '0'; } catch (x) { }
+    const ac = () => { if (!on) return null; try { ctx = ctx || new (window.AudioContext || window.webkitAudioContext)(); if (ctx.state === 'suspended') ctx.resume(); } catch (x) { return null; } return ctx; };
+    const noise = (c, dur) => { const b = c.createBuffer(1, Math.max(1, c.sampleRate * dur | 0), c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1; const s = c.createBufferSource(); s.buffer = b; return s; };
+    const burst = (c, t, { dur = .08, f = 2500, q = .8, type = 'bandpass', vol = .12, att = .004 } = {}) => {
+      const s = noise(c, dur), fl = c.createBiquadFilter(), g = c.createGain(); fl.type = type; fl.frequency.value = f; fl.Q.value = q;
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + att); g.gain.exponentialRampToValueAtTime(.0008, t + dur);
+      s.connect(fl).connect(g).connect(c.destination); s.start(t); s.stop(t + dur + .02);
+    };
+    const tone = (c, t, { f = 600, f2 = 300, dur = .09, vol = .08, type = 'sine' } = {}) => {
+      const o = c.createOscillator(), g = c.createGain(); o.type = type; o.frequency.setValueAtTime(f, t); o.frequency.exponentialRampToValueAtTime(f2, t + dur);
+      g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + .004); g.gain.exponentialRampToValueAtTime(.0008, t + dur);
+      o.connect(g).connect(c.destination); o.start(t); o.stop(t + dur + .02);
+    };
+    let last = {};
+    const gate = (k, ms) => { const n = performance.now(); if (last[k] && n - last[k] < ms) return false; last[k] = n; return true; };
+    return {
+      get on() { return on; },
+      toggle() { on = !on; try { localStorage.setItem('alt-bi-sfx', on ? '1' : '0'); } catch (x) { } if (on) this.card(); return on; },
+      card() { const c = ac(); if (!c || !gate('card', 120)) return; const t = c.currentTime; burst(c, t, { dur: .07, f: 3200, q: .6, vol: .10 }); burst(c, t + .035, { dur: .09, f: 900, q: .7, vol: .09, type: 'lowpass' }); },
+      draw() { const c = ac(); if (!c || !gate('draw', 120)) return; burst(c, c.currentTime, { dur: .06, f: 4200, q: 1, vol: .05 }); },
+      shuffle() { const c = ac(); if (!c || !gate('shuf', 600)) return; const t = c.currentTime; for (let i = 0; i < 16; i++) burst(c, t + i * .028 + Math.random() * .01, { dur: .035, f: 2600 + Math.random() * 1600, q: 1.2, vol: .05 + i / 16 * .04 }); burst(c, t + .5, { dur: .09, f: 1200, q: .5, vol: .08 }); },
+      die() { const c = ac(); if (!c || !gate('die', 300)) return; const t = c.currentTime; let k = 0; for (let i = 0; i < 7; i++) { k += .05 + i * .018; burst(c, t + k, { dur: .03, f: 1800 + Math.random() * 900, q: 3, vol: .14 * (1 - i / 9) }); tone(c, t + k, { f: 900 + Math.random() * 300, f2: 500, dur: .03, vol: .025 * (1 - i / 9), type: 'triangle' }); } },
+      token() { const c = ac(); if (!c || !gate('tok', 90)) return; const t = c.currentTime; tone(c, t, { f: 520, f2: 260, dur: .08, vol: .07 }); burst(c, t, { dur: .03, f: 2000, q: 2, vol: .05 }); },
+      move() { const c = ac(); if (!c || !gate('mv', 200)) return; const t = c.currentTime; burst(c, t, { dur: .22, f: 700, q: .6, vol: .05, att: .06, type: 'lowpass' }); tone(c, t + .2, { f: 440, f2: 220, dur: .1, vol: .07 }); }
+    };
+  })();
+  { const b = document.querySelector('[data-tool="sfx"]'); if (b && !SFX.on) b.textContent = '🔇 Sons'; }
   // Petites animations non bloquantes : carte posée, boosts / statuts qui tombent sur la carte, dé lancé
-  let SNAP = null, LOGN = 0;
+  let SNAP = null, LOGN = 0, POSS = null, HANDN = null;
   function animate() {
     const cur = {};
     for (const id in V.cards) { const c = V.cards[id], L = locate(id); if (!L) continue; cur[id] = { z: L.z, b: c.boost || 0, st: (c.fleeting ? 'f' : '') + (c.anchored ? 'a' : '') + (c.asleep ? 's' : '') + (c.completed ? 'c' : ''), ct: c.ctr ? Object.values(c.ctr).reduce((a, v) => a + v, 0) : 0 }; }
+    let sCard = false, sTok = false;
     if (SNAP) {
       document.querySelectorAll('#game .main .c[data-id]').forEach(el => {
         const id = el.dataset.id, n = cur[id], o = SNAP[id]; if (!n || el.closest('.hand')) return;
-        if ((!o && (n.z === 'exp' || n.z === 'lm')) || (o && o.z !== n.z && ['exp', 'lm', 'reserve'].includes(n.z))) el.classList.add('landed');
-        if (o && n.b > o.b) { const b = el.querySelector('.bd b.bst'); if (b) b.classList.add('drop'); }
-        if (o && n.ct > o.ct) el.querySelectorAll('.bd b:not(.bst)').forEach(b => b.classList.add('drop'));
-        if (o && n.st !== o.st) { const T = { f: 'Fugace', a: 'Ancré', s: 'Endormi', c: 'Accomplie' }; [...n.st].filter(k => !o.st.includes(k)).forEach((k, i) => { const it = el.querySelector('.st i[title="' + T[k] + '"]'); if (it) { it.style.animationDelay = (i * 90) + 'ms'; it.classList.add('drop'); } }); }
+        if ((!o && (n.z === 'exp' || n.z === 'lm')) || (o && o.z !== n.z && ['exp', 'lm', 'reserve'].includes(n.z))) { el.classList.add('landed'); sCard = true; }
+        if (o && n.b > o.b) { const b = el.querySelector('.bd b.bst'); if (b) { b.classList.add('drop'); sTok = true; } }
+        if (o && n.ct > o.ct) { el.querySelectorAll('.bd b:not(.bst)').forEach(b => b.classList.add('drop')); sTok = true; }
+        if (o && n.st !== o.st) { const T = { f: 'Fugace', a: 'Ancré', s: 'Endormi', c: 'Accomplie' }; [...n.st].filter(k => !o.st.includes(k)).forEach((k, i) => { const it = el.querySelector('.st i[title="' + T[k] + '"]'); if (it) { it.style.animationDelay = (i * 90) + 'ms'; it.classList.add('drop'); sTok = true; } }); }
       });
     }
+    const poss = JSON.stringify(V.players.map(X => X ? X.pos : null)), hn = V.players.map(X => X && X.hand ? X.hand.length : 0).join(',');
+    const sMove = POSS !== null && poss !== POSS, sDraw = SNAP && HANDN !== null && hn !== HANDN && V.players[me] && V.players[me].hand && HANDN.split(',')[me] < V.players[me].hand.length;
+    POSS = poss; HANDN = hn;
+    if (sCard) SFX.card(); else if (sDraw) SFX.draw();
+    if (sTok) setTimeout(() => SFX.token(), 140);
+    if (sMove) setTimeout(() => SFX.move(), 60);
     SNAP = cur;
     if (V.log.length < LOGN) LOGN = V.log.length;
     const fresh = V.log.slice(LOGN); LOGN = V.log.length;
+    if (fresh.some(l => /m[ée]lange/.test(l.m)) || (LOGN && fresh.length === LOGN && LOGN < 12)) SFX.shuffle();
     fresh.filter(l => /🎲/.test(l.m)).slice(-3).forEach((l, i) => { const m = l.m.match(/🎲\s*(.+?) lance un dé : (\d)/); if (m) setTimeout(() => showDie(+m[2], m[1]), i * 450); });
   }
   const PIPS = { 1: [4], 2: [0, 8], 3: [0, 4, 8], 4: [0, 2, 6, 8], 5: [0, 2, 4, 6, 8], 6: [0, 2, 3, 5, 6, 8] };
   function showDie(n, who) {
     const d = document.createElement('div'); d.className = 'diefx';
     d.innerHTML = '<div class="die">' + Array.from({ length: 9 }, (x, i) => '<i' + (PIPS[n].includes(i) ? ' class="on"' : '') + '></i>').join('') + '</div><span>' + esc(who) + ' · ' + n + '</span>';
-    document.body.appendChild(d); setTimeout(() => d.remove(), 2600);
+    document.body.appendChild(d); SFX.die(); setTimeout(() => d.remove(), 2600);
   }
   function renderPrompt(P, O) {
     const pr = $('prompt'); let h = '';
@@ -560,6 +598,7 @@
         if (k === 'draw') dispatch({ type: 'draw', n: 1 }); else if (k === 'resupply') dispatch({ type: 'resupply' }); else if (k === 'shuffle') dispatch({ type: 'shuffle' });
         else if (k === 'manaAdd') dispatch({ type: 'manaAdd' }); else if (k === 'manaDel') dispatch({ type: 'manaDel' });
         else if (k === 'token') { sideView = 'token'; renderSide(); } else if (k === 'discard') { sideView = 'discard'; renderSide(); }
+        else if (k === 'sfx') { const o = SFX.toggle(); tool.textContent = o ? '🔊 Sons' : '🔇 Sons'; }
         else if (k === 'lang') { LANG = LANG === 'en' ? 'fr' : 'en'; try { localStorage.setItem('alt-bi-lang', LANG); } catch (x) { } render(); }
         return;
       }
