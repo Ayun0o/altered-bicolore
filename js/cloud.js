@@ -11,7 +11,8 @@
     if (sb) return sb;
     if (!root.supabase || !root.supabase.createClient) return null;
     sb = root.supabase.createClient(URL, KEY, { auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true } });
-    sb.auth.onAuthStateChange((ev, session) => { const u = session ? session.user : null; if ((u && u.id) !== (user && user.id)) { user = u; subs.forEach(f => { try { f(user); } catch (e) { } }); } });
+    sb.auth.onAuthStateChange((ev, session) => {
+      if (ev === 'PASSWORD_RECOVERY') setTimeout(async () => { const np = prompt('Choisis ton nouveau mot de passe (6 caractères minimum) :'); if (np && np.length >= 6) { const r = await sb.auth.updateUser({ password: np }); alert(r.error ? 'Échec : ' + r.error.message : 'Mot de passe changé, tu es connecté.'); } }, 300); const u = session ? session.user : null; if ((u && u.id) !== (user && user.id)) { user = u; subs.forEach(f => { try { f(user); } catch (e) { } }); } });
     return sb;
   }
   async function init() {
@@ -38,6 +39,10 @@
     const c = client(); if (!c) throw new Error('Module de connexion indisponible.');
     const r = await c.auth.signUp({ email, password }); if (r.error) throw r.error;
     if (!r.data.session) { const s = await c.auth.signInWithPassword({ email, password }); if (s.error) throw new Error('Compte créé, mais la confirmation par e-mail est activée dans Supabase : désactive « Confirm email ».'); }
+  }
+  async function resetPwd(email) {
+    const c = client(); if (!c) throw new Error('Module de connexion indisponible.');
+    const { error } = await c.auth.resetPasswordForEmail(email, { redirectTo: location.origin + location.pathname }); if (error) throw error;
   }
   async function signOut() { const c = client(); if (c) await c.auth.signOut(); user = null; subs.forEach(f => f(null)); }
 
@@ -74,5 +79,5 @@
   async function addGame(g) { const c = client(); if (!c || !user) return false; const { error } = await c.from('games').insert({ user_id: user.id, data: g }); return !error; }
   async function games() { const c = client(); if (!c || !user) return null; const { data, error } = await c.from('games').select('data,created_at').eq('user_id', user.id).order('created_at', { ascending: true }).limit(1000); if (error) return null; return (data || []).map(r => r.data); }
 
-  root.AltCloud = { init, signIn, verify, signInPwd, signUpPwd, signOut, db, addGame, games, user: () => user, onChange: f => subs.push(f), ready: () => !!client() };
+  root.AltCloud = { init, signIn, verify, signInPwd, signUpPwd, resetPwd, signOut, db, addGame, games, user: () => user, onChange: f => subs.push(f), ready: () => !!client() };
 })(window);
