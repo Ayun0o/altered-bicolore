@@ -1,0 +1,368 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Altered bicolore</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+/* VOICE: atelier de deckbuilding, calme et précis, la carte au centre
+   IDEA: un classeur de cartes ouvert à côté d'un registre de deck
+   PICTURE: la grille de cartes elle-même, bordées de la couleur de faction
+   COLOUR and TYPE: papier chaud / encre de nuit, six couleurs de faction en accent ; Spectral + Inter
+   LAYOUT: barre de deck en haut, filtres + grille à gauche, registre du deck à droite, empilés sur mobile */
+:root{color-scheme:light dark;--bg:light-dark(#f6f3ee,#15131a);--panel:light-dark(#ffffff,#1e1b24);--soft:light-dark(#ece7df,#2a2631);--ink:light-dark(#1d1a22,#ece8f0);--mute:light-dark(#6b6572,#a59fae);--line:light-dark(#ddd6cc,#36313d);--ok:light-dark(#2f7a3c,#7fcf8b);--bad:light-dark(#b3261e,#ff8a80);--warn:light-dark(#9a6200,#f3c26b);
+--AX:#a0661c;--BR:#c83a35;--LY:#c5487a;--MU:#4f8a1f;--OR:#2f74c0;--YZ:#6c5fcf}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:Spectral,Georgia,serif;font-weight:600;margin:0;line-height:1.1}
+button,select,input,textarea{font:inherit;color:inherit}
+button{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 12px;min-height:36px;cursor:pointer}
+button:hover{border-color:var(--mute)}button.on{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--OR);outline-offset:2px}
+input,select,textarea{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-height:36px;font-size:16px}
+.top{display:flex;flex-wrap:wrap;gap:10px;align-items:center;padding:14px max(3vw,14px);border-bottom:1px solid var(--line);background:var(--panel);position:sticky;top:0;z-index:5}
+.top h1{font-size:24px;margin-right:auto}
+.top .sync{font-size:12px;color:var(--mute)}
+.wrap{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:0;align-items:start}
+.lib{padding:16px max(3vw,14px)}
+.deck{border-left:1px solid var(--line);background:var(--panel);padding:16px;position:sticky;top:66px;max-height:calc(100vh - 66px);overflow:auto}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:10px}
+.filters input[type=search]{flex:1 1 240px}
+.chip{display:inline-flex;align-items:center;gap:6px}
+.fd{width:12px;height:12px;border-radius:50%;display:inline-block;flex:none}
+.count{font-size:13px;color:var(--mute);margin:4px 0 12px}
+.art{width:100%;height:auto;aspect-ratio:360/502;border-radius:8px;display:block;background:var(--soft);cursor:zoom-in}
+.txt summary{font-size:12px;color:var(--mute);cursor:pointer}
+.txt[open]{display:flex;flex-direction:column;gap:6px}
+#zoom{padding:0;border:0;background:transparent;max-width:min(520px,94vw)}#zoom img{width:100%;height:auto;border-radius:14px;display:block}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-top:5px solid var(--fc);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.card.off{opacity:.45}
+.card .hd{display:flex;gap:8px;align-items:flex-start}
+.card .nm{font-family:Spectral,serif;font-weight:600;font-size:17px;line-height:1.15;flex:1}
+.cost{display:flex;gap:4px;flex:none}
+.cost span{min-width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:13px;background:var(--soft)}
+.meta{font-size:12px;color:var(--mute);display:flex;flex-wrap:wrap;gap:4px 8px}
+.badge{font-size:11px;font-weight:600;padding:1px 7px;border-radius:6px;background:var(--soft)}
+.badge.R{background:light-dark(#e6ecfa,#24304a);color:light-dark(#2a4c99,#a9c1f5)}
+.badge.oof{background:light-dark(#fbeede,#3a2b19);color:light-dark(#8a5510,#f0c48a)}
+.pw{display:flex;gap:10px;font-size:13px;font-weight:600}
+.pw i{font-style:normal;font-weight:500;color:var(--mute);margin-right:2px}
+.fx{font-size:13px;line-height:1.45}
+.chg{color:var(--OR);text-decoration:underline dotted}
+.fx em{font-style:normal;background:light-dark(#fff1c2,#4a3d10);border-radius:3px;padding:0 2px}
+.sym{display:inline-block;min-width:18px;padding:0 4px;border-radius:9px;background:var(--soft);font-size:11px;font-weight:600;text-align:center;line-height:17px}
+.act{display:flex;gap:6px;align-items:center;margin-top:auto;padding-top:4px}
+.act .n{font-weight:600;min-width:20px;text-align:center}
+.act a{margin-left:auto;font-size:12px;color:var(--mute)}
+.more{display:block;margin:16px auto}
+.deck h2{font-size:20px;margin-bottom:8px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:8px}
+.lbl{font-size:12px;color:var(--mute);display:block;margin-bottom:3px}
+.rules{list-style:none;padding:0;margin:10px 0;display:grid;gap:4px;font-size:13px}
+.rules li{display:flex;justify-content:space-between;gap:8px;padding:5px 8px;border-radius:6px;background:var(--soft)}
+.rules li.bad{color:var(--bad);font-weight:600}.rules li.ok b{color:var(--ok)}
+.status{font-weight:600;padding:8px 10px;border-radius:8px;margin:8px 0}
+.status.ok{background:light-dark(#e3f3e5,#1d3322);color:var(--ok)}.status.bad{background:light-dark(#fbe4e2,#3d1f1d);color:var(--bad)}
+.dl h3{font-size:14px;font-family:Inter,sans-serif;font-weight:600;color:var(--mute);margin:12px 0 4px}
+.li{display:grid;grid-template-columns:22px minmax(0,1fr) auto auto;gap:6px;align-items:center;font-size:13px;padding:3px 0;border-bottom:1px solid var(--line)}
+.li button{min-height:26px;padding:0 8px}
+.li .x{color:var(--mute);font-size:11px}
+.curve{display:flex;align-items:flex-end;gap:4px;height:60px;margin:6px 0 2px}
+.curve div{flex:1;background:var(--OR);border-radius:3px 3px 0 0;min-height:2px}
+.curvel{display:flex;gap:4px;font-size:11px;color:var(--mute)}.curvel span{flex:1;text-align:center}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);max-width:560px;width:calc(100% - 24px)}
+dialog::backdrop{background:rgba(0,0,0,.45)}
+.wheelrow{display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.set{display:grid;grid-template-columns:minmax(0,1fr) 80px;gap:8px;align-items:center;font-size:14px;margin:4px 0}
+textarea{width:100%;min-height:140px;font-size:13px}
+.note{font-size:12px;color:var(--mute)}
+.setup{display:flex;gap:14px;align-items:center;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:12px;margin:4px 0 12px}
+.sgrid{flex:1;display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px;align-items:end}
+.heroimg{width:72px;height:auto;border-radius:6px;flex:none;cursor:zoom-in}
+.ministat{display:flex;align-items:center;min-height:36px;padding:0 10px;border-radius:8px;font-weight:600;font-size:14px;text-decoration:none}
+.ministat.ok{background:light-dark(#e3f3e5,#1d3322);color:var(--ok)}.ministat.bad{background:light-dark(#fbe4e2,#3d1f1d);color:var(--bad)}
+@media(max-width:600px){.heroimg{width:56px}}
+.mobtoggle{display:none}
+@media(max-width:900px){.wrap{grid-template-columns:minmax(0,1fr)}.deck{position:static;max-height:none;border-left:0;border-top:1px solid var(--line)}.mobtoggle{display:inline-flex}.top{position:static}}
+@media(prefers-reduced-motion:no-preference){.card{transition:opacity .15s}}
+</style>
+</head>
+<body>
+<header class="top">
+<h1>Altered bicolore</h1>
+<select id="deckSel" aria-label="Deck"></select>
+<button id="newDeck">Nouveau deck</button>
+<button id="fmtBtn">Format</button>
+<button id="langBtn" aria-label="Langue des cartes"></button>
+<a class="mobtoggle" href="#deckpanel"><button tabindex="-1">Voir le deck</button></a>
+<span class="sync" id="sync">Chargement…</span>
+</header>
+<div class="wrap">
+<main class="lib">
+<div class="filters">
+<input type="search" id="q" placeholder="Nom, effet, sous-type, en français ou en anglais (ex. fugace, fleeting)">
+<select id="fType" aria-label="Type"><option value="">Tous les types</option><option value="HERO">Héros</option><option value="CHARACTER">Personnage</option><option value="SPELL">Sort</option><option value="LANDMARK_PERMANENT">Repère</option><option value="EXPEDITION_PERMANENT">Permanent d'expédition</option><option value="PERMANENT">Permanent</option></select>
+<select id="fRar" aria-label="Rareté"><option value="">Toutes raretés</option><option value="C">Communes</option><option value="R">Rares</option><option value="OOF">Rares hors faction</option></select>
+<select id="fSet" aria-label="Set"><option value="">Tous les sets</option></select>
+<select id="fCost" aria-label="Coût"><option value="">Tous coûts</option></select>
+<select id="fSort" aria-label="Tri"><option value="cost">Tri : coût de main</option><option value="name">Tri : nom A→Z</option><option value="set">Tri : set et numéro</option></select>
+</div>
+<div class="filters" id="facF"></div>
+<section class="setup">
+<img id="heroImg" class="heroimg" alt="" hidden>
+<div class="sgrid">
+<label><span class="lbl">Nom du deck</span><input id="dName" style="width:100%;font-family:Spectral,serif;font-weight:600"></label>
+<label><span class="lbl">Héros (faction principale)</span><select id="dHero" style="width:100%"></select></label>
+<label><span class="lbl">Faction secondaire</span><select id="dSec" style="width:100%"></select></label>
+<div><span class="lbl">État du deck</span><a href="#deckpanel" id="miniStat" class="ministat"></a></div>
+</div>
+</section>
+<div class="filters"><label class="chip"><input type="checkbox" id="onlyLegal" checked> Afficher seulement le pool du deck (décoche pour tout voir)</label></div>
+<div class="count" id="count"></div>
+<div class="grid" id="grid"></div>
+<button class="more" id="more">Afficher plus</button>
+</main>
+<aside class="deck" id="deckpanel">
+<h2 id="asideTitle">Mon deck</h2>
+<div id="status"></div>
+<ul class="rules" id="rules"></ul>
+<div class="curve" id="curve"></div><div class="curvel" id="curvel"></div>
+<div class="dl" id="dlist"></div>
+<div class="row" style="margin-top:14px">
+<button id="addU">Ajouter un unique</button>
+<button id="exp">Copier la liste</button>
+<button id="imp">Importer</button>
+<button id="del" style="margin-left:auto;color:var(--bad)">Supprimer</button>
+</div>
+<p class="note" id="saveNote"></p>
+</aside>
+</div>
+
+<dialog id="zoom"><img id="zoomImg" alt=""></dialog>
+<dialog id="fmtDlg">
+<h2 style="margin-bottom:8px">Règles du format</h2>
+<p class="note">Partagées par tous ceux qui utilisent cette page.</p>
+<div id="fmtFields"></div>
+<h3 style="font-size:16px;margin:14px 0 6px">Roue des factions</h3>
+<p class="note">Chaque faction peut s'allier à ses deux voisines dans cet ordre (le dernier touche le premier).</p>
+<div class="wheelrow" id="wheelEd"></div>
+<div class="row" style="margin-top:14px;justify-content:flex-end"><button id="fmtReset">Valeurs par défaut</button><button id="fmtCancel">Annuler</button><button id="fmtSave" class="on">Enregistrer</button></div>
+</dialog>
+
+<dialog id="uDlg">
+<h2 style="margin-bottom:8px">Ajouter un unique</h2>
+<p class="note">Les uniques ne sont pas dans la base : choisis le personnage dont c'est la version unique. Il compte dans la limite d'exemplaires du nom.</p>
+<input type="search" id="uQ" placeholder="Nom du personnage" style="width:100%;margin:8px 0">
+<select id="uPick" size="8" style="width:100%"></select>
+<div class="row" style="margin-top:10px"><span class="lbl" style="margin:0">Faction de l'unique</span><select id="uFac"></select></div>
+<div class="row" style="justify-content:flex-end"><button id="uCancel">Annuler</button><button id="uOk" class="on">Ajouter</button></div>
+</dialog>
+
+<dialog id="ioDlg">
+<h2 id="ioT" style="margin-bottom:8px"></h2>
+<textarea id="ioTx"></textarea>
+<p class="note" id="ioNote"></p>
+<div class="row" style="justify-content:flex-end"><button id="ioClose">Fermer</button><button id="ioOk" class="on"></button></div>
+</dialog>
+
+<script>
+{
+const FN={AX:'Axiom',BR:'Bravos',LY:'Lyra',MU:'Muna',OR:'Ordis',YZ:'Yzmir'};
+const FAC=Object.keys(FN);
+const SETN={CORE:'Au-delà des portes',ALIZE:'Épreuve du froid',BISE:'Murmures du labyrinthe',CYCLONE:'Odyssée céleste',DUSTER:'Graines d\'unité',EOLE:'Racines de la corruption'};
+const TYN={HERO:'Héros',CHARACTER:'Personnage',SPELL:'Sort',LANDMARK_PERMANENT:'Repère',EXPEDITION_PERMANENT:'Permanent d\'expédition',PERMANENT:'Permanent'};
+const DEF={deck:39,copies:3,monoR:15,monoU:3,biR:12,secMax:12,secR:3,uP:1,uS:1,wheel:['MU','OR','YZ','AX','LY','BR']};
+const FIELDS=[['deck','Cartes dans le deck (hors héros)'],['copies','Exemplaires max par nom'],['monoR','Mono : rares max'],['monoU','Mono : uniques max'],['biR','Bicolore : rares max au total'],['secMax','Bicolore : cartes secondaires max'],['secR','Bicolore : rares secondaires max'],['uP','Bicolore : uniques de la faction principale'],['uS','Bicolore : uniques de la faction secondaire']];
+const SYM={T:'épuiser',H:'joué depuis la main',R:'joué depuis la réserve',J:'quand je suis joué',D:'défaussez-moi de la réserve',V:'forêt',M:'montagne',O:'océan'};
+let LANG='fr';try{LANG=localStorage.getItem('alt-bi-lang')==='en'?'en':'fr'}catch(e){}
+const TYE={HERO:'Hero',CHARACTER:'Character',SPELL:'Spell',LANDMARK_PERMANENT:'Landmark',EXPEDITION_PERMANENT:'Expedition permanent',PERMANENT:'Permanent'};
+const SETE={CORE:'Beyond the Gates',ALIZE:'Trial by Frost',BISE:'Whispers from the Maze',CYCLONE:'Skybound Odyssey',DUSTER:'Seeds of Unity',EOLE:'Roots of Corruption'};
+const EN=()=>LANG==='en';const NM=c=>EN()?c.en:c.n;const TX=c=>EN()?c.xe:c.x;const EC=c=>EN()?c.ee:c.e;const ST=c=>EN()?c.ste:c.st;const TYL=t=>(EN()?TYE:TYN)[t];const SETL=s=>(EN()?SETE:SETN)[s];
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const norm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
+const $=id=>document.getElementById(id);
+let CARDS=[],BY={},fmt=structuredClone(DEF),decks={},cur=null,shown=60,db=null,fac=new Set();
+let saveT=null,saving=false,dirty=new Set();
+
+function fxHtml(t){t=String(t||'');let o='',last=0,m;const re=/#([^#]*)#|\[\]|\[([^\]]+)\]|\{([^}]+)\}/g;
+ while((m=re.exec(t))){o+=esc(t.slice(last,m.index));last=re.lastIndex;
+  if(m[1]!==undefined)o+='<em>'+fxHtml(m[1])+'</em>';else if(m[2]!==undefined)o+='<b>'+fxHtml(m[2])+'</b>';
+  else if(m[3]!==undefined){const k=m[3],u=k.toUpperCase();o+='<span class="sym" title="'+esc(SYM[u]||(/\d|X/.test(k)?'mana':''))+'">'+esc(k)+'</span>'}}
+ return o+esc(t.slice(last))}
+const cst=v=>{v=String(v??'');return v.includes('#')?'<span class="chg" title="Modifié par rapport à la commune">'+esc(v.replace(/#/g,''))+'</span>':esc(v)};
+const neighbours=f=>{const w=fmt.wheel,i=w.indexOf(f);return i<0?[]:[w[(i+5)%6],w[(i+1)%6]]};
+const D=()=>decks[cur];
+
+function newDeckObj(name){return{name,hero:'',sec:'',cards:{},uniques:[],updated:Date.now()}}
+
+function analyse(d){
+ const hero=BY[d.hero],P=hero?hero.f:'',S=d.sec||'',bi=!!S;
+ let total=0,rares=0,sec=0,secR=0,bad=0;const names={},types={},curve=[0,0,0,0,0,0,0,0];
+ for(const [r,n] of Object.entries(d.cards)){const c=BY[r];if(!c||!n)continue;total+=n;
+  if(c.y==='R')rares+=n;if(bi&&c.f===S){sec+=n;if(c.y==='R')secR+=n}
+  if(c.f!==P&&c.f!==S)bad+=n;names[norm(c.n)]=(names[norm(c.n)]||0)+n;types[c.t]=(types[c.t]||0)+n;
+  const k=Math.min(7,parseInt(String(c.c).replace(/#/g,''),10)||0);curve[k]+=n}
+ let uP=0,uS=0;for(const u of d.uniques){total++;names[norm(u.n)]=(names[norm(u.n)]||0)+1;if(u.f===P)uP++;else if(u.f===S){uS++;sec++}else bad++}
+ const over=Object.entries(names).filter(([k,v])=>v>fmt.copies);
+ const R=[];const add=(label,val,max,okc)=>R.push({label,val,max,ok:okc});
+ R.push({label:'Héros choisi',val:hero?NM(hero):'aucun',ok:!!hero});
+ add('Cartes (hors héros)',total,fmt.deck,total===fmt.deck);
+ if(bi){R.push({label:'Faction secondaire voisine sur la roue',val:FN[S],ok:!P||neighbours(P).includes(S)});
+  add('Rares au total',rares,fmt.biR,rares<=fmt.biR);add('Cartes secondaires',sec,fmt.secMax,sec<=fmt.secMax);add('Rares secondaires',secR,fmt.secR,secR<=fmt.secR);
+  add('Uniques faction principale',uP,fmt.uP,uP<=fmt.uP);add('Uniques faction secondaire',uS,fmt.uS,uS<=fmt.uS)}
+ else{add('Rares',rares,fmt.monoR,rares<=fmt.monoR);add('Uniques',uP,fmt.monoU,uP<=fmt.monoU)}
+ R.push({label:'Exemplaires max par nom ('+fmt.copies+')',val:over.length?over.length+' nom(s) en trop':'ok',ok:!over.length});
+ R.push({label:'Cartes hors des factions du deck',val:bad,ok:!bad});
+ return{R,ok:R.every(x=>x.ok),P,S,total,types,curve,overNames:new Set(over.map(o=>o[0]))};
+}
+
+function legal(c){const d=D();if(!d)return true;const h=BY[d.hero];if(!h)return true;if(c.t==='HERO')return true;return c.f===h.f||(d.sec&&c.f===d.sec)}
+
+function cardHtml(c){
+ const d=D(),n=d?(c.t==='HERO'?(d.hero===c.r?1:0):(d.cards[c.r]||0)):0,oof=c.y==='R'&&c.f!==c.h;
+ const pw=c.p?'<div class="pw"><span><i>F</i>'+esc(c.p[0])+'</span><span><i>M</i>'+esc(c.p[1])+'</span><span><i>O</i>'+esc(c.p[2])+'</span></div>':'';
+ const cost=c.t==='HERO'?'':'<div class="cost" title="Coût de main / coût de réserve">'+'<span>'+cst(c.c)+'</span><span>'+cst(c.rc)+'</span></div>';
+ const rb=c.t==='HERO'?'<span class="badge">Héros</span>':c.y==='R'?'<span class="badge R">Rare</span>':'<span class="badge">Commune</span>';
+ const ob=oof?'<span class="badge oof">hors faction · origine '+esc(FN[c.h])+'</span>':'';
+ const btn=c.t==='HERO'?'<button data-hero="'+esc(c.r)+'">'+(n?'Héros choisi':'Choisir ce héros')+'</button>':'<button data-rm="'+esc(c.r)+'" aria-label="Retirer">−</button><span class="n">'+n+'</span><button data-add="'+esc(c.r)+'" aria-label="Ajouter">+</button>';
+ return '<article class="card'+(legal(c)?'':' off')+'" style="--fc:var(--'+c.f+')"><img class="art" decoding="async" data-r="'+esc(c.r)+'" alt="'+esc(NM(c))+'" width="360" height="502"><div class="hd"><div class="nm">'+esc(NM(c))+'</div>'+cost+'</div><div class="meta"><span class="chip"><span class="fd" style="background:var(--'+c.f+')"></span>'+esc(FN[c.f])+'</span>'+rb+ob+'</div><div class="meta">'+esc(TYL(c.t))+(ST(c).length?' · '+esc(ST(c).join(', ')):'')+' · '+esc(SETL(c.s))+'</div>'+'<details class="txt"><summary>Texte et stats</summary>'+pw+'<div class="fx">'+fxHtml(TX(c))+(EC(c)?'<br><span class="sym">'+(EN()?'echo':'écho')+'</span> '+fxHtml(EC(c)):'')+'</div></details><div class="act">'+btn+'</div></article>';
+}
+
+const BUN=new Map();
+function bundle_unused(r){const p=r.split('_'),k0=p[1]+'_'+p[3],k=LANG+':'+k0;if(!BUN.has(k))BUN.set(k,fetch((EN()?'imgb_en/':'imgb/')+k0+'.json').then(x=>x.ok?x.json():{}).catch(()=>({})));return BUN.get(k)}
+function imgFor(r){return Promise.resolve(/^ALT_[A-Z0-9_]+$/.test(r)?'img/'+LANG+'/'+r+'.webp':'')}
+function fillImgs(){document.querySelectorAll('img.art[data-r]:not([src])').forEach(im=>{const r=im.dataset.r;imgFor(r).then(u=>{if(u&&im.dataset.r===r)im.src=u})})}
+function filtered(){
+ const q=norm($('q').value.trim()),t=$('fType').value,r=$('fRar').value,s=$('fSet').value,co=$('fCost').value,only=$('onlyLegal').checked;
+ return CARDS.filter(c=>{
+  if(t&&c.t!==t)return false;if(s&&c.s!==s)return false;
+  if(r==='C'&&c.y!=='C')return false;if(r==='R'&&c.y!=='R')return false;if(r==='OOF'&&!(c.y==='R'&&c.f!==c.h))return false;
+  if(co&&c.t!=='HERO'){const v=String(c.c).replace(/#/g,'');if(co==='7'?+v<7:v!==co)return false}if(co&&c.t==='HERO')return false;
+  if(fac.size&&!fac.has(c.f))return false;
+  if(only){const d=D(),hh=d&&BY[d.hero];if(!hh){if(c.t!=='HERO')return false}else{if(c.t==='HERO'&&t!=='HERO')return false;if(!legal(c))return false}}
+  if(q&&!c._s.includes(q))return false;return true});
+}
+function poolFacs(){const d=D(),hh=d&&BY[d.hero];if(!$('onlyLegal').checked||!hh)return FAC;return [hh.f].concat(d.sec?[d.sec]:[])}
+function renderFacChips(){const P=poolFacs();for(const f of [...fac])if(!P.includes(f))fac.delete(f);
+ $('facF').innerHTML=P.map(f=>'<button class="chip'+(fac.has(f)?' on':'')+'" data-fac="'+f+'"><span class="fd" style="background:var(--'+f+')"></span>'+FN[f]+'</button>').join('')}
+const CV=c=>c.t==='HERO'?-1:(parseInt(String(c.c).replace(/#/g,''),10)||0);
+function sorted(L){const m=$('fSort').value,col=new Intl.Collator(EN()?'en':'fr',{sensitivity:'base'});
+ if(m==='set')return L;const byName=(a,b)=>col.compare(NM(a),NM(b))||(a.y<b.y?-1:a.y>b.y?1:0)||(a.r<b.r?-1:1);
+ return L.slice().sort(m==='name'?byName:(a,b)=>CV(a)-CV(b)||byName(a,b))}
+function renderGrid(){renderFacChips();const L=sorted(filtered()),d=D(),hh=d&&BY[d.hero],only=$('onlyLegal').checked;
+ const n=L.length+' carte'+(L.length>1?'s':'');
+ $('count').textContent=!only?n+' (toutes factions)':!hh?'Commence par choisir ton héros : '+n:'Pool du deck : '+FN[hh.f]+' (principale)'+(d.sec?' + '+FN[d.sec]+' (secondaire)':'')+' · '+n;$('grid').innerHTML=L.slice(0,shown).map(cardHtml).join('');$('more').style.display=L.length>shown?'block':'none';fillImgs()}
+
+function renderDeck(){
+ const d=D();if(!d)return;
+ $('dName').value=d.name;
+ const heroes=CARDS.filter(c=>c.t==='HERO');
+ $('dHero').innerHTML='<option value="">Choisir un héros…</option>'+FAC.map(f=>'<optgroup label="'+FN[f]+'">'+heroes.filter(h=>h.f===f).map(h=>'<option value="'+esc(h.r)+'"'+(h.r===d.hero?' selected':'')+'>'+esc(NM(h))+'</option>').join('')+'</optgroup>').join('');
+ const P=BY[d.hero]?.f,nb=P?neighbours(P):FAC;
+ $('dSec').innerHTML='<option value="">Aucune (mono)</option>'+FAC.filter(f=>f!==P).map(f=>'<option value="'+f+'"'+(f===d.sec?' selected':'')+(nb.includes(f)?'':' disabled')+'>'+FN[f]+(nb.includes(f)?'':' (pas voisine)')+'</option>').join('');
+ const A=analyse(d);
+ $('status').innerHTML='<div class="status '+(A.ok?'ok':'bad')+'">'+(A.ok?'Deck valide':'Deck pas encore valide')+'</div>';
+ const nbad=A.R.filter(x=>!x.ok).length;const ms=$('miniStat');ms.className='ministat '+(A.ok?'ok':'bad');ms.textContent=(A.ok?'Valide':nbad+' règle'+(nbad>1?'s':'')+' à revoir')+' · '+A.total+'/'+fmt.deck+' cartes';
+ $('asideTitle').textContent=d.name||'Mon deck';
+ const hi=$('heroImg');if(d.hero){hi.hidden=false;hi.dataset.r=d.hero;hi.classList.add('art');hi.removeAttribute('src');imgFor(d.hero).then(u=>{if(u&&hi.dataset.r===d.hero)hi.src=u})}else{hi.hidden=true;hi.removeAttribute('src')}
+ $('rules').innerHTML=A.R.map(x=>'<li class="'+(x.ok?'ok':'bad')+'"><span>'+esc(x.label)+'</span><b>'+esc(x.val)+(x.max!==undefined?' / '+x.max:'')+'</b></li>').join('');
+ const mx=Math.max(1,...A.curve);$('curve').innerHTML=A.curve.map(v=>'<div style="height:'+Math.round(v/mx*100)+'%" title="'+v+'"></div>').join('');$('curvel').innerHTML=A.curve.map((v,i)=>'<span>'+(i===7?'7+':i)+' ('+v+')</span>').join('');
+ const groups={};for(const [r,n] of Object.entries(d.cards)){const c=BY[r];if(!c||!n)continue;(groups[c.t]=groups[c.t]||[]).push([c,n])}
+ let h='';for(const t of ['CHARACTER','SPELL','LANDMARK_PERMANENT','EXPEDITION_PERMANENT','PERMANENT']){const g=groups[t];if(!g)continue;const cv=x=>parseInt(String(x.c).replace(/#/g,''),10)||0;g.sort((a,b)=>cv(a[0])-cv(b[0])||a[0].n.localeCompare(b[0].n));
+  h+='<h3>'+TYL(t)+' ('+g.reduce((s,x)=>s+x[1],0)+')</h3>'+g.map(([c,n])=>'<div class="li"><span class="fd" style="background:var(--'+c.f+')" title="'+esc(FN[c.f])+'"></span><span data-pv="'+esc(c.r)+'" style="cursor:zoom-in">'+cst(c.c)+' · '+esc(NM(c))+' <span class="x">'+(c.y==='R'?'R':'C')+(A.overNames.has(norm(c.n))?' · trop d\'exemplaires':'')+'</span></span><span>×'+n+'</span><span><button data-rm="'+esc(c.r)+'">−</button><button data-add="'+esc(c.r)+'">+</button></span></div>').join('')}
+ if(d.uniques.length)h+='<h3>Uniques ('+d.uniques.length+')</h3>'+d.uniques.map((u,i)=>'<div class="li"><span class="fd" style="background:var(--'+esc(u.f)+')"></span><span>'+esc(u.n)+' <span class="x">unique</span></span><span>×1</span><span><button data-urm="'+i+'">−</button></span></div>').join('');
+ $('dlist').innerHTML=h||'<p class="note">Choisis un héros, puis ajoute des cartes avec le bouton +.</p>';
+}
+function renderSel(){const ids=Object.keys(decks).sort((a,b)=>(decks[b].updated||0)-(decks[a].updated||0));$('deckSel').innerHTML=ids.map(id=>'<option value="'+esc(id)+'"'+(id===cur?' selected':'')+'>'+esc(decks[id].name||'Sans nom')+'</option>').join('')}
+function renderAll(){renderSel();renderDeck();renderGrid()}
+
+function touch(){const d=D();d.updated=Date.now();dirty.add(cur);try{localStorage.setItem('alt-bi-decks',JSON.stringify(decks));localStorage.setItem('alt-bi-cur',cur)}catch(e){}
+ clearTimeout(saveT);saveT=setTimeout(flush,800);$('saveNote').textContent='Modifications en cours…'}
+async function flush(){if(!db){$('saveNote').textContent='Enregistré dans ce navigateur.';return}if(saving){saveT=setTimeout(flush,500);return}saving=true;
+ try{for(const id of [...dirty]){dirty.delete(id);if(decks[id])await db.collection('decks').doc(id).set(decks[id]);else await db.collection('decks').doc(id).delete()}$('saveNote').textContent='Enregistré et partagé.'}
+ catch(e){$('saveNote').textContent=e&&e.code==='invalid_argument'?'Lecture seule : tu n\'as pas le droit de modifier ces decks.':'Échec de l\'enregistrement, nouvel essai à la prochaine modification.'}saving=false}
+
+document.addEventListener('click',e=>{const im=e.target.closest('img.art');if(im){$('zoomImg').src=im.src;$('zoomImg').alt=im.alt;$('zoom').showModal();return}if(e.target.closest('#zoom')){$('zoom').close();return}const pv=e.target.closest('[data-pv]');if(pv&&!e.target.closest('button')){$('zoomImg').removeAttribute('src');imgFor(pv.dataset.pv).then(u=>{if(u)$('zoomImg').src=u});$('zoomImg').alt='';$('zoom').showModal();return}const b=e.target.closest('button');if(!b)return;const d=D();
+ if(b.dataset.add){const c=BY[b.dataset.add];d.cards[c.r]=(d.cards[c.r]||0)+1;touch();renderDeck();renderGrid()}
+ else if(b.dataset.rm){const r=b.dataset.rm;if(d.cards[r]){d.cards[r]--;if(!d.cards[r])delete d.cards[r]}touch();renderDeck();renderGrid()}
+ else if(b.dataset.hero){d.hero=b.dataset.hero;const P=BY[d.hero].f;if(d.sec&&(d.sec===P||!neighbours(P).includes(d.sec)))d.sec='';touch();renderDeck();renderGrid()}
+ else if(b.dataset.urm!==undefined){d.uniques.splice(+b.dataset.urm,1);touch();renderDeck()}});
+$('dHero').onchange=e=>{const d=D();d.hero=e.target.value;const P=BY[d.hero]?.f;if(d.sec&&(d.sec===P||(P&&!neighbours(P).includes(d.sec))))d.sec='';touch();renderDeck();renderGrid()};
+$('dSec').onchange=e=>{D().sec=e.target.value;touch();renderDeck();renderGrid()};
+$('dName').oninput=e=>{D().name=e.target.value;$('asideTitle').textContent=e.target.value||'Mon deck';touch();renderSel()};
+$('deckSel').onchange=e=>{cur=e.target.value;try{localStorage.setItem('alt-bi-cur',cur)}catch(x){}shown=60;renderAll()};
+$('newDeck').onclick=()=>{const id='d'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);decks[id]=newDeckObj('Nouveau deck');cur=id;touch();renderAll();$('dName').focus();$('dName').select()};
+let delArm=false;$('del').onclick=()=>{if(!delArm){delArm=true;$('del').textContent='Confirmer la suppression';setTimeout(()=>{delArm=false;$('del').textContent='Supprimer'},4000);return}
+ delArm=false;$('del').textContent='Supprimer';const id=cur;delete decks[id];dirty.add(id);if(!Object.keys(decks).length){const n='d'+Date.now().toString(36);decks[n]=newDeckObj('Mon premier deck');dirty.add(n)}cur=Object.keys(decks)[0];touch();renderAll()};
+['q','fType','fRar','fSet','fCost','fSort','onlyLegal'].forEach(id=>$(id).addEventListener('input',()=>{shown=60;renderGrid()}));
+$('more').onclick=()=>{shown+=60;renderGrid()};
+
+$('exp').onclick=()=>{const d=D(),h=BY[d.hero];let t='Deck : '+d.name+'\nHéros : '+(h?NM(h)+' ['+h.r+']':'aucun')+'\nSecondaire : '+(d.sec?FN[d.sec]:'aucune')+'\n\n';
+ for(const [r,n] of Object.entries(d.cards)){const c=BY[r];if(c)t+=n+' '+NM(c)+' ['+r+']\n'}for(const u of d.uniques)t+='1 '+u.n+' [UNIQUE:'+u.f+']\n';
+ $('ioT').textContent='Copier la liste';$('ioTx').value=t;$('ioOk').textContent='Copier';$('ioNote').textContent='';$('ioOk').onclick=async()=>{try{await navigator.clipboard.writeText(t);$('ioNote').textContent='Copié.'}catch(e){$('ioTx').select();$('ioNote').textContent='Copie bloquée : sélectionne le texte et copie-le à la main.'}};$('ioDlg').showModal()};
+$('imp').onclick=()=>{$('ioT').textContent='Importer une liste';$('ioTx').value='';$('ioOk').textContent='Remplacer le deck';$('ioNote').textContent='Colle une liste copiée depuis cette page. Elle remplace le contenu du deck actuel.';
+ $('ioOk').onclick=()=>{const d=D(),tx=$('ioTx').value;d.cards={};d.uniques=[];let miss=0;
+  for(const line of tx.split('\n')){const hm=line.match(/H[ée]ros.*\[(ALT_[^\]]+)\]/);if(hm&&BY[hm[1]]){d.hero=hm[1];continue}
+   const sm=line.match(/^Secondaire : (.+)$/);if(sm){const f=FAC.find(k=>FN[k]===sm[1].trim());d.sec=f||'';continue}
+   const m=line.match(/^(\d+)\s+(.+?)\s+\[([^\]]+)\]/);if(!m)continue;
+   if(m[3].startsWith('UNIQUE:')){d.uniques.push({n:m[2],f:m[3].slice(7)});continue}
+   if(BY[m[3]])d.cards[m[3]]=(d.cards[m[3]]||0)+(+m[1]);else miss++}
+  touch();renderAll();$('ioNote').textContent=miss?miss+' ligne(s) non reconnue(s).':'Importé.'};$('ioDlg').showModal()};
+$('ioClose').onclick=()=>$('ioDlg').close();
+
+let uList=[];function uRender(){const q=norm($('uQ').value);const seen=new Set();uList=CARDS.filter(c=>c.t==='CHARACTER'&&(!q||norm(c.n+' '+c.en).includes(q))).filter(c=>{const k=norm(c.n);if(seen.has(k))return false;seen.add(k);return true}).slice(0,80);$('uPick').innerHTML=uList.map((c,i)=>'<option value="'+i+'">'+esc(NM(c))+' ('+esc(FN[c.h])+')</option>').join('')}
+$('addU').onclick=()=>{const d=D(),P=BY[d.hero]?.f;$('uFac').innerHTML=[P,d.sec].filter(Boolean).map(f=>'<option value="'+f+'">'+FN[f]+'</option>').join('')||FAC.map(f=>'<option value="'+f+'">'+FN[f]+'</option>').join('');$('uQ').value='';uRender();$('uDlg').showModal()};
+$('uQ').oninput=uRender;$('uPick').onchange=()=>{const c=uList[+$('uPick').value];if(c&&[...$('uFac').options].some(o=>o.value===c.h))$('uFac').value=c.h};
+$('uCancel').onclick=()=>$('uDlg').close();
+$('uOk').onclick=()=>{const c=uList[+$('uPick').value];if(!c)return;D().uniques.push({n:c.n,f:$('uFac').value});touch();renderDeck();$('uDlg').close()};
+
+let wDraft=[];function wRender(){$('wheelEd').innerHTML=wDraft.map((f,i)=>'<span class="chip" style="border:1px solid var(--line);border-radius:8px;padding:4px 6px"><button data-wl="'+i+'" aria-label="Vers la gauche">‹</button><span class="fd" style="background:var(--'+f+')"></span>'+FN[f]+'<button data-wr="'+i+'" aria-label="Vers la droite">›</button></span>').join('')}
+$('wheelEd').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;e.stopPropagation();const i=+(b.dataset.wl??b.dataset.wr),j=b.dataset.wl!==undefined?(i+5)%6:(i+1)%6;[wDraft[i],wDraft[j]]=[wDraft[j],wDraft[i]];wRender()});
+function fmtOpen(src){$('fmtFields').innerHTML=FIELDS.map(([k,l])=>'<label class="set"><span>'+l+'</span><input type="number" min="0" max="99" step="1" id="f_'+k+'" value="'+(+src[k])+'"></label>').join('');wDraft=src.wheel.slice();wRender()}
+$('fmtBtn').onclick=()=>{fmtOpen(fmt);$('fmtDlg').showModal()};
+$('fmtReset').onclick=()=>fmtOpen(DEF);$('fmtCancel').onclick=()=>$('fmtDlg').close();
+$('fmtSave').onclick=async()=>{const n={};for(const [k] of FIELDS){const v=parseInt($('f_'+k).value,10);n[k]=Number.isFinite(v)&&v>=0?v:DEF[k]}n.wheel=wDraft.slice();fmt=n;try{localStorage.setItem('alt-bi-fmt',JSON.stringify(fmt))}catch(e){}
+ $('fmtDlg').close();renderAll();if(db){try{await db.doc('config/format').set(fmt)}catch(e){$('saveNote').textContent='Règles gardées dans ce navigateur seulement.'}}};
+
+function validFmt(o){if(!o||!Array.isArray(o.wheel)||o.wheel.length!==6||!FAC.every(f=>o.wheel.includes(f)))return null;const n={wheel:o.wheel.slice()};for(const [k] of FIELDS){const v=+o[k];n[k]=Number.isFinite(v)&&v>=0?Math.round(v):DEF[k]}return n}
+function cleanDeck(o){if(!o||typeof o!=='object')return null;const c={};if(o.cards&&typeof o.cards==='object')for(const [r,n] of Object.entries(o.cards))if(BY[r]&&+n>0)c[r]=Math.min(9,Math.round(+n));
+ return{name:String(o.name||'Sans nom').slice(0,80),hero:BY[o.hero]?o.hero:'',sec:FAC.includes(o.sec)?o.sec:'',cards:c,uniques:Array.isArray(o.uniques)?o.uniques.filter(u=>u&&FAC.includes(u.f)).map(u=>({n:String(u.n).slice(0,80),f:u.f})):[],updated:+o.updated||0}}
+
+async function start(){
+ try{const r=await fetch('cards.json');CARDS=await r.json()}catch(e){$('sync').textContent='Impossible de charger les cartes.';return}
+ for(const c of CARDS){BY[c.r]=c;c._s=norm(c.n+' '+c.en+' '+c.x+' '+c.e+' '+c.xe+' '+c.ee+' '+c.st.join(' ')+' '+c.ste.join(' '))}
+ $('fSet').innerHTML+=Object.entries(SETN).map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('');
+ $('fCost').innerHTML+=[0,1,2,3,4,5,6].map(v=>'<option value="'+v+'">Coût '+v+'</option>').join('')+'<option value="7">Coût 7+</option>';
+ 
+ $('facF').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;e.stopPropagation();const f=b.dataset.fac;fac.has(f)?fac.delete(f):fac.add(f);shown=60;renderGrid()});
+ try{const f=validFmt(JSON.parse(localStorage.getItem('alt-bi-fmt')||'null'));if(f)fmt=f;const ds=JSON.parse(localStorage.getItem('alt-bi-decks')||'null');if(ds)for(const [k,v] of Object.entries(ds)){const c=cleanDeck(v);if(c)decks[k]=c}cur=localStorage.getItem('alt-bi-cur')}catch(e){}
+ if(!Object.keys(decks).length){decks.d0=newDeckObj('Mon premier deck')}
+ if(!decks[cur])cur=Object.keys(decks)[0];
+ renderAll();$('sync').textContent='Decks gardés dans ce navigateur (copie la liste pour les partager)';
+ const cl=window.claude;if(!cl||!cl.use)return;
+ db=await cl.use('db').catch(()=>null);if(!db){$('sync').textContent='Decks gardés dans ce navigateur';return}
+ const timer=setTimeout(()=>{$('sync').textContent='Partage injoignable pour l\'instant'},10000);
+ db.doc('config/format').onSnapshot(s=>{const f=s.exists?validFmt(s.data()):null;if(f){fmt=f;renderAll()}},()=>{});
+ let first=true;
+ db.collection('decks').onSnapshot(s=>{clearTimeout(timer);$('sync').textContent='Decks partagés';
+  if(first){first=false;const remote=new Set(s.docs.map(x=>x.id));for(const id of Object.keys(decks))if(!remote.has(id)&&Object.keys(decks[id].cards).length)dirty.add(id);
+   for(const id of Object.keys(decks))if(!remote.has(id)&&!Object.keys(decks[id].cards).length&&s.docs.length)delete decks[id];if(dirty.size)flush()}
+  for(const x of s.docs){if(dirty.has(x.id))continue;const c=cleanDeck(x.data());if(c&&(!decks[x.id]||c.updated>=(decks[x.id].updated||0)))decks[x.id]=c}
+  for(const ch of s.docChanges())if(ch.type==='removed'&&!dirty.has(ch.doc.id))delete decks[ch.doc.id];
+  if(!Object.keys(decks).length)decks['d'+Date.now().toString(36)]=newDeckObj('Mon premier deck');
+  if(!decks[cur])cur=Object.keys(decks)[0];
+  const a=document.activeElement;if(a&&a.id==='dName'){renderSel();return}renderAll()},
+  e=>{clearTimeout(timer);$('sync').textContent='Decks gardés dans ce navigateur';db=null});
+}
+function setLangBtn(){$('langBtn').innerHTML=(EN()?'<b>EN</b> / fr':'<b>FR</b> / en')}
+$('langBtn').onclick=()=>{LANG=EN()?'fr':'en';try{localStorage.setItem('alt-bi-lang',LANG)}catch(e){}setLangBtn();renderAll()};
+setLangBtn();
+start();
+}
+</script>
+</body>
+</html>
