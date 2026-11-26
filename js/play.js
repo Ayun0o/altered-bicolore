@@ -387,9 +387,11 @@
     $('adv').innerHTML = track();
     $('myExps').innerHTML = P ? expRow(me) : '';
     $('myStrip').innerHTML = P ? strip(P, me) : '';
-    $('myInfo').innerHTML = '';
+    if (HV === 'R' && !(P && P.reserve.length)) HV = 'H';
+    $('myInfo').innerHTML = P && MOB() && (P.reserve.length || HV === 'R') ? '<button id="rsvTog" class="' + (HV === 'R' ? 'on' : '') + '" title="Basculer entre ta main et ta réserve">' + (HV === 'R' ? '✋ Main ' + P.hand.length : '<span class="rmini">' + P.reserve.slice(0, 3).map(() => '<i></i>').join('') + '</span>Rés. ' + P.reserve.length) + '</button>' : '';
     $('myMana').innerHTML = P ? manaIcon(P, true) : '';
-    $('hand').innerHTML = P ? cardsEl(P.hand) : '';
+    $('hand').innerHTML = P ? cardsEl(HV === 'R' && MOB() ? P.reserve : P.hand) : '';
+    $('hand').classList.toggle('rsv', HV === 'R' && MOB());
     $('log').innerHTML = V.log.slice().reverse().slice(0, 80).map(l => logLine(l.m)).join('');
     const fm = P && (DB[(card(P.hero) || {}).ref] || {}).f, fo = O && (DB[(card(O.hero) || {}).ref] || {}).f;
     document.body.style.background = 'var(--bg)';
@@ -449,7 +451,7 @@
     if (sCard) SFX.card(); else if (sDraw) SFX.draw();
     if (sTok) setTimeout(() => SFX.token(), 140);
     if (sMove) setTimeout(() => SFX.move(), 60);
-    document.querySelectorAll('#hand .c[data-id]').forEach(el => { const id = el.dataset.id, n = cur[id], o = SNAP && SNAP[id]; if (n && (!o || o.z !== 'hand')) { el.style.animationDelay = (nDrawn++ * 90) + 'ms'; el.classList.add('drawn'); } });
+    document.querySelectorAll('#hand .c[data-id]').forEach(el => { const id = el.dataset.id, n = cur[id], o = SNAP && SNAP[id]; if (n && n.z === 'hand' && (!o || o.z !== 'hand')) { el.style.animationDelay = (nDrawn++ * 90) + 'ms'; el.classList.add('drawn'); } });
     SNAP = cur;
     if (V.log.length < LOGN) LOGN = V.log.length;
     const fresh = V.log.slice(LOGN); LOGN = V.log.length;
@@ -558,7 +560,7 @@
   const MOB = () => matchMedia('(max-width:900px)').matches;
   { const h = document.querySelector('.hand'); if (h && window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty('--handh', h.offsetHeight + 'px')).observe(h); }
 
-  let PEEK = null, PEEKSTEP = null;
+  let PEEK = null, PEEKSTEP = null, HV = 'H';
   function selPreview() {
     if (V && V.step !== PEEKSTEP) { PEEK = null; PEEKSTEP = V.step; }
     const sid = sel || PEEK, x = sid && V && MOB() ? card(sid) : null, L = x && locate(sid);
@@ -607,6 +609,7 @@
         return;
       }
       if (MOB() && t.closest('#adv')) { document.body.classList.toggle('arrows'); clearTimeout(window.__arrT); if (document.body.classList.contains('arrows')) window.__arrT = setTimeout(() => document.body.classList.remove('arrows'), 8000); return; }
+      if (t.closest('#rsvTog')) { HV = HV === 'R' ? 'H' : 'R'; render(); return; }
       const tool = t.closest('[data-tool]');
       if (tool) {
         const k = tool.dataset.tool;
