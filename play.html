@@ -535,6 +535,23 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 /* Halo de l'orbe à la couleur de la faction du héros */
 .manaico{box-shadow:0 0 0 2px color-mix(in srgb,var(--orb,#4aa3f0) 70%,#fff),0 0 10px 3px color-mix(in srgb,var(--orb,#4aa3f0) 75%,transparent),0 0 24px 7px color-mix(in srgb,var(--orb,#4aa3f0) 40%,transparent),inset 0 0 6px #000a!important}
 .manaico .spk::before{box-shadow:0 0 4px 1px #ffffff,0 0 9px 3px color-mix(in srgb,var(--orb,#6fc3ff) 80%,transparent)!important}
+
+/* Perles disposées comme sur la carte : 3 serrées en haut, 1 à droite, 1 en bas à gauche, 1 minuscule en bas ; vide entre le sud et la droite */
+.manaico .spk{display:block!important;position:absolute}
+.manaico .spk{inset:-7px!important;transform:rotate(-40deg)!important;animation:twinkle 5.8s ease-in-out 0s infinite!important}
+.manaico .spk::before{width:5px!important;height:5px!important}
+.manaico .spk.s2{inset:-9px!important;transform:rotate(-12deg)!important;animation:twinkle 7.1s ease-in-out 1.6s infinite!important}
+.manaico .spk.s2::before{width:3px!important;height:3px!important}
+.manaico .spk.s3{inset:-6px!important;transform:rotate(17deg)!important;animation:twinkle 6.3s ease-in-out 3.1s infinite!important}
+.manaico .spk.s3::before{width:4px!important;height:4px!important}
+.manaico .spk.s4{inset:-5px!important;transform:rotate(68deg)!important;animation:twinkle 8.2s ease-in-out .7s infinite!important}
+.manaico .spk.s4::before{width:3.5px!important;height:3.5px!important}
+.manaico .spk.s5{inset:-8px!important;transform:rotate(232deg)!important;animation:twinkle 6.7s ease-in-out 4.3s infinite!important}
+.manaico .spk.s5::before{width:4.5px!important;height:4.5px!important}
+.manaico .spk.s6{inset:-4px!important;transform:rotate(198deg)!important;animation:twinkle 7.7s ease-in-out 2.4s infinite!important}
+.manaico .spk.s6::before{width:2px!important;height:2px!important}
+/* Trame de petites bulles à l'intérieur, plus visible vers le bord */
+.manaico .dots{position:absolute;inset:2px;border-radius:50%;pointer-events:none;background-image:radial-gradient(circle,#cfeaff 0 .7px,transparent 1.1px),radial-gradient(circle,#cfeaff 0 .5px,transparent .9px);background-size:4px 4px,4px 4px;background-position:0 0,2px 2px;opacity:.38;-webkit-mask:radial-gradient(circle closest-side,transparent 38%,#000 72%,#000 88%,transparent 100%);mask:radial-gradient(circle closest-side,transparent 38%,#000 72%,#000 88%,transparent 100%)}
 </style>
 </head>
 <body>
@@ -611,7 +628,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 <script src="js/engine.js?v=1795728589"></script>
 <script src="js/ai.js?v=1795716790"></script>
 <script src="js/net.js?v=1795716790"></script>
-<script src="js/play.js?v=1795728974"></script>
+<script src="js/play.js?v=1795729163"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
  t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');

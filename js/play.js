@@ -260,7 +260,7 @@
   function manaIcon(X, mine) {
     const r = X.mana.filter(m => !m.ex).length;
     const fcol = FC[(DB[(card(X.hero) || {}).ref] || {}).f] || '#4aa3f0';
-    return '<div class="manabox' + (mine ? ' mine' : '') + '" style="--orb:' + fcol + '" title="Mana disponible / total"><div class="manaico"' + (mine ? ' data-manaview="1" title="Voir les cartes en mana"' : '') + '><i class="spk"></i><i class="spk s2"></i><i class="spk s3"></i><i class="spk s4"></i><i class="streak"></i><b>' + r + '</b><span>/' + X.mana.length + '</span></div>' +
+    return '<div class="manabox' + (mine ? ' mine' : '') + '" style="--orb:' + fcol + '" title="Mana disponible / total"><div class="manaico"' + (mine ? ' data-manaview="1" title="Voir les cartes en mana"' : '') + '><i class="dots"></i><i class="spk"></i><i class="spk s2"></i><i class="spk s3"></i><i class="spk s4"></i><i class="spk s5"></i><i class="spk s6"></i><i class="streak"></i><b>' + r + '</b><span>/' + X.mana.length + '</span></div>' +
       (mine ? '<div class="orbs">' + X.mana.map((m, i) => '<span class="orb' + (m.ex ? ' ex' : '') + '" data-orb="' + i + '" title="Épuiser / redresser"></span>').join('') + '</div>' : '') + '</div>';
   }
   function totPills(t, terr, winT, base) {
