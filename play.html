@@ -388,6 +388,7 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 @keyframes drawn{0%{transform:translate(-60px,-40px) rotate(-8deg) scale(.7);opacity:0}60%{opacity:1}100%{transform:none;opacity:1}}
 @media(prefers-reduced-motion:no-preference){.hand .c.drawn{animation:drawn .45s cubic-bezier(.2,.8,.3,1) both}}
 .oinfo{display:none}
+.lbl .dn{display:none}
 @media(max-width:900px){
  .side{position:fixed;top:0;right:0;bottom:0;width:min(320px,86vw);height:100dvh!important;z-index:60;border-top:0!important;border-left:1px solid var(--line)!important;box-shadow:-8px 0 30px #0004;transform:translateX(105%);transition:transform .22s ease;overflow:auto}
  body.sideopen .side{transform:none}
@@ -400,6 +401,13 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 @media(max-width:900px){
  .zone .slot,.cards.rz .slot{display:none}
  .lbl .mx{display:none}
+ .strip2 .deckz .deckpile{display:none!important}
+ .lbl .dn{display:inline;font-weight:700;color:var(--ink)}
+ .strip2 .deckz{flex:none;width:auto!important;min-width:0}
+ .strip2 .sL,.strip2 .sR{gap:8px!important}
+ .strip2 .sL{justify-content:flex-start!important}
+ .strip2 .sres{flex:1;min-width:0}
+ .strip2 .sres .cards.rz{flex-wrap:nowrap;overflow-x:auto}
  .note.empty{display:none}
  .zone.exp .xarr{display:none!important}
  body.arrows .zone.exp .xarr{display:flex!important}
@@ -493,7 +501,7 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 <script src="js/engine.js?v=1795716790"></script>
 <script src="js/ai.js?v=1795716790"></script>
 <script src="js/net.js?v=1795716790"></script>
-<script src="js/play.js?v=1795723800"></script>
+<script src="js/play.js?v=1795723859"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
  t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');

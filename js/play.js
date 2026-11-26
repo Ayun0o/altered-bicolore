@@ -292,7 +292,7 @@
     const res = '<div class="sres"><span class="lbl">Réserve<span class="mx"> (max ' + X.rl + ')</span></span><div class="cards rz">' + (X.reserve.length ? cardsEl(X.reserve) : '') + slots(X.rl - X.reserve.length) + '</div></div>';
     const lm = '<div class="slm"><span class="lbl">Repères<span class="mx"> (max ' + X.ll + ')</span></span><div class="cards rz">' + (X.lm.length ? cardsEl(X.lm) : '') + slots(X.ll - X.lm.length) + '</div></div>';
     const disc = '<div class="discz" data-disc="' + p + '" title="Voir la défausse"><span class="lbl">Défausse (' + X.discard.length + ')</span><div class="cards rz">' + (top ? cardEl(top) : '<i class="slot"></i>') + '</div></div>';
-    const deck = '<div class="deckz"><span class="lbl">Deck</span><div class="deckpile" title="Cartes restantes dans le deck"><b>' + (X.deckCount || 0) + '</b></div></div>';
+    const deck = '<div class="deckz"><span class="lbl">Deck<span class="dn"> ' + (X.deckCount || 0) + '</span></span><div class="deckpile" title="Cartes restantes dans le deck"><b>' + (X.deckCount || 0) + '</b></div></div>';
     const mid = p !== me ? '<div class="ofan" title="Cartes en main de l’adversaire : ' + (X.handCount || 0) + '">' + backs(X.handCount || 0, 'fback') + '</div>' : '<div></div>';
     return '<div class="strip2"><div class="sL">' + deck + res + '</div>' + mid + '<div class="sR">' + lm + disc + '</div></div>';
   }
