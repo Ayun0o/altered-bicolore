@@ -1,0 +1,247 @@
+// Interface de la table de jeu
+(function () {
+  'use strict';
+  const E = window.AlteredEngine, NET = window.AlteredNet;
+  const $ = id => document.getElementById(id);
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+  const store = { get(k, d) { try { const v = localStorage.getItem(k); return v === null ? d : JSON.parse(v); } catch (e) { return d; } }, set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { } } };
+  let LANG = 'fr'; try { LANG = localStorage.getItem('alt-bi-lang') === 'en' ? 'en' : 'fr'; } catch (e) { }
+
+  let DB = {}, mode = null, S = null, V = null, me = 0, net = null, sel = null, sideView = 'card', keep = { R: new Set(), L: new Set() }, decksUsed = [], names = [];
+  const NM = d => d ? (LANG === 'en' ? d.en : d.n) : '?';
+  const TX = d => d ? (LANG === 'en' ? d.xe : d.x) : '';
+  const TL = { F: 'Forêt', M: 'Montagne', W: 'Eau' };
+
+  // ---------- Lobby ----------
+  function decks() { const d = store.get('alt-bi-decks', {}); return Object.entries(d).filter(([k, v]) => v && v.hero && DB[v.hero]); }
+  function deckOpts(sel) { const L = decks(); return L.length ? L.map(([k, v]) => { const n = Object.values(v.cards || {}).reduce((a, b) => a + b, 0); return '<option value="' + esc(k) + '"' + (k === sel ? ' selected' : '') + '>' + esc(v.name || 'Sans nom') + ' — ' + esc(NM(DB[v.hero])) + ' (' + n + ' cartes)</option>'; }).join('') : '<option value="">Aucun deck : crée-en un dans le deckbuilder</option>'; }
+  function getDeck(id) { const d = store.get('alt-bi-decks', {})[id]; return d && d.hero ? { hero: d.hero, cards: d.cards || {}, name: d.name } : null; }
+
+  async function init() {
+    try { const r = await fetch('cards.json'); for (const c of await r.json()) DB[c.r] = c; } catch (e) { $('lobbyMsg').textContent = 'Impossible de charger les cartes.'; return; }
+    $('pname').value = store.get('alt-bi-name', '');
+    $('pdeck').innerHTML = deckOpts(store.get('alt-bi-lastdeck', '')); $('sdeck').innerHTML = deckOpts('');
+    $('deckNote').textContent = decks().length ? '' : 'Tu n’as pas encore de deck sur ce navigateur : ouvre le deckbuilder, crée un deck avec un héros, puis reviens ici.';
+    $('pname').oninput = () => store.set('alt-bi-name', $('pname').value);
+    $('pdeck').onchange = () => store.set('alt-bi-lastdeck', $('pdeck').value);
+    $('bHost').onclick = startHost; $('bJoin').onclick = () => startJoin($('jcode').value.trim());
+    $('bSolo').onclick = startSolo;
+    const q = new URLSearchParams(location.search).get('join'); if (q) $('jcode').value = q;
+    bindGame();
+  }
+  const myName = () => ($('pname').value.trim() || 'Joueur').slice(0, 24);
+  function needDeck() { const d = getDeck($('pdeck').value); if (!d) { $('lobbyMsg').innerHTML = '<span class="err">Choisis un deck avec un héros.</span>'; } return d; }
+
+  function startHost() {
+    const d = needDeck(); if (!d) return;
+    if (typeof Peer === 'undefined') { $('lobbyMsg').innerHTML = '<span class="err">Le module réseau n’a pas pu se charger.</span>'; return; }
+    mode = 'host'; me = 0; decksUsed[0] = d; names[0] = myName();
+    S = E.newGame({}); E.addPlayer(S, 0, names[0], d, DB);
+    $('lobbyMsg').textContent = 'Création de la partie…';
+    net = NET.host(onHostMsg, (st, x) => {
+      if (st === 'open') { const link = location.origin + location.pathname + '?join=' + x; $('lobbyMsg').innerHTML = 'Code de la partie : <b style="font-size:20px">' + esc(x) + '</b><br>Envoie ce code (ou ce lien : <a href="' + esc(link) + '">' + esc(link) + '</a>) à ton adversaire. La partie commence dès qu’il rejoint. Garde cette page ouverte.'; showGame(); setConn('En attente de l’adversaire · code ' + x); }
+      else if (st === 'peer') setConn('Adversaire connecté');
+      else if (st === 'left') setConn('Adversaire déconnecté : il peut revenir avec le même code.');
+      else if (st === 'error') { $('lobbyMsg').innerHTML = '<span class="err">' + esc(x) + '</span>'; setConn('Erreur réseau : ' + x); }
+    });
+  }
+  function onHostMsg(m) {
+    if (!m || typeof m !== 'object') return;
+    if (m.type === 'hello') {
+      if (!S.players[1]) { const deck = sanitizeDeck(m.deck); if (!deck) { net.send({ type: 'err', m: 'Deck invalide.' }); return; } decksUsed[1] = deck; names[1] = String(m.name || 'Invité').slice(0, 24); E.addPlayer(S, 1, names[1], deck, DB); E.advance(S, DB); }
+      push();
+    } else if (m.type === 'act' && m.a && typeof m.a === 'object') {
+      const err = E.act(S, 1, m.a, DB); if (err) net.send({ type: 'err', m: err }); push();
+    } else if (m.type === 'rematch') rematch();
+  }
+  function sanitizeDeck(d) { if (!d || !DB[d.hero]) return null; const c = {}; let n = 0; for (const [r, k] of Object.entries(d.cards || {})) if (DB[r] && DB[r].t !== 'HERO') { const v = Math.max(0, Math.min(9, k | 0)); if (v) { c[r] = v; n += v; } } return n && n <= 80 ? { hero: d.hero, cards: c } : null; }
+
+  function startJoin(code) {
+    const d = needDeck(); if (!d) return;
+    if (!/^[A-Za-z0-9]{6}$/.test(code)) { $('lobbyMsg').innerHTML = '<span class="err">Le code fait 6 caractères.</span>'; return; }
+    if (typeof Peer === 'undefined') { $('lobbyMsg').innerHTML = '<span class="err">Le module réseau n’a pas pu se charger.</span>'; return; }
+    mode = 'guest'; me = 1; $('lobbyMsg').textContent = 'Connexion…';
+    net = NET.join(code, m => {
+      if (!m) return;
+      if (m.type === 'state') { V = m.v; showGame(); render(); }
+      else if (m.type === 'err') flash(m.m);
+      else if (m.type === 'full') { $('lobbyMsg').innerHTML = '<span class="err">Cette partie a déjà deux joueurs.</span>'; }
+    }, (st, x) => {
+      if (st === 'connected') { net.send({ type: 'hello', name: myName(), deck: { hero: d.hero, cards: d.cards } }); setConn('Connecté'); }
+      else if (st === 'left') setConn('Connexion perdue avec l’hôte.');
+      else if (st === 'error') { $('lobbyMsg').innerHTML = '<span class="err">' + esc(x) + '</span>'; setConn('Erreur : ' + x); }
+    });
+  }
+
+  function startSolo() {
+    const a = needDeck(); if (!a) return; const b = getDeck($('sdeck').value) || a;
+    mode = 'solo'; me = 0; decksUsed = [a, b]; names = [myName(), 'Adversaire (toi aussi)'];
+    S = E.newGame({}); E.addPlayer(S, 0, names[0], a, DB); E.addPlayer(S, 1, names[1], b, DB); E.advance(S, DB);
+    $('bSwitch').classList.remove('hidden'); setConn('Partie d’essai');
+    showGame(); push();
+  }
+  function rematch() {
+    if (mode === 'guest') { net.send({ type: 'rematch' }); return; }
+    if (!decksUsed[1]) return;
+    S = E.newGame({}); E.addPlayer(S, 0, names[0], decksUsed[0], DB); E.addPlayer(S, 1, names[1], decksUsed[1], DB); E.advance(S, DB); sel = null; push();
+  }
+
+  function dispatch(a) {
+    if (mode === 'guest') { net.send({ type: 'act', a }); return; }
+    const err = E.act(S, me, a, DB); if (err) flash(err); push();
+  }
+  function push() {
+    if (mode === 'host' && net && S.players[1]) net.send({ type: 'state', v: E.view(S, 1) });
+    V = E.view(S, me); render();
+  }
+  function showGame() { $('lobby').classList.add('hidden'); $('game').classList.remove('hidden'); if (!V && S) V = E.view(S, me); render(); }
+  function setConn(t) { $('conn').textContent = t; }
+  let flashT; function flash(m) { const p = $('prompt'); p.classList.remove('hidden'); p.innerHTML = '<span class="err">' + esc(m) + '</span>'; clearTimeout(flashT); flashT = setTimeout(render, 2500); }
+
+  // ---------- Rendu ----------
+  const card = id => V.cards[id];
+  const data = c => c && (c.tok ? null : DB[c.ref]);
+  function img(c) { return c.tok ? '<div class="tok"><b>' + esc(c.tok.n) + '</b><span>F' + c.tok.p[0] + ' M' + c.tok.p[1] + ' E' + c.tok.p[2] + '</span></div>' : '<img loading="lazy" alt="' + esc(NM(DB[c.ref])) + '" src="img/' + LANG + '/' + encodeURIComponent(c.ref) + '.webp">'; }
+  function cardEl(id, extra) {
+    const c = card(id); if (!c) return '<div class="c"><div class="tok">?</div></div>';
+    const b = []; if (c.boost) b.push('+' + c.boost); if (c.fleeting) b.push('fugace'); if (c.anchored) b.push('ancré'); if (c.asleep) b.push('endormi');
+    const k = keep.R.has(id) || keep.L.has(id);
+    return '<div class="c' + (c.ex ? ' ex' : '') + (sel === id || k ? ' sel' : '') + '" data-id="' + esc(id) + '"' + (extra || '') + '>' + img(c) + (b.length ? '<div class="bd">' + b.map(x => '<b>' + esc(x) + '</b>').join('') + '</div>' : '') + '</div>';
+  }
+  const cardsEl = ids => ids.map(id => cardEl(id)).join('') || '<span class="note">—</span>';
+  const PH = { SETUP_MANA: 'Mise en place', MORNING: 'Matin', EXPAND: 'Matin', NOON: 'Midi', AFTERNOON: 'Après-midi', DUSK: 'Crépuscule', NIGHT: 'Nuit', CLEANUP: 'Nuit', END: 'Fin de partie' };
+
+  function render() {
+    if (!V) return;
+    const P = V.players[me], O = V.players[1 - me];
+    $('phase').textContent = 'Jour ' + V.day + ' · ' + (PH[V.step] || V.step) + (V.tie ? ' · Arène' : '');
+    $('turnInfo').textContent = !O ? 'En attente du deuxième joueur…' : 'Premier joueur : ' + V.players[V.first].name + (V.step === 'AFTERNOON' ? ' · Au tour de ' + V.players[V.turn].name : '');
+    renderPrompt(P, O);
+    $('adv').innerHTML = V.adv.map((r, i) => {
+      const mk = []; V.players.forEach((X, p) => { if (!X) return; ['H', 'C'].forEach(e => { if (X.pos[e] === i) mk.push('<span class="mk ' + (p === me ? 'me' : 'opp') + '" title="' + esc(X.name) + '">' + (p === me ? 'Moi' : 'Adv') + ' ' + (e === 'H' ? 'Hé' : 'Co') + '</span>'); }); });
+      return '<div class="reg' + (r.up ? '' : ' down') + '"><span class="note">' + (r.kind === 'H' ? 'Départ Héros' : r.kind === 'C' ? 'Départ Compagnon' : (r.up ? 'Tumulte' : '?')) + '</span><div class="t">' + (r.up ? r.terr.map(t => '<span class="ter ' + t + '" title="' + TL[t] + '">' + TL[t][0] + '</span>').join('') : '') + '</div>' + mk.join('') + '</div>';
+    }).join('');
+    $('oppTop').innerHTML = O ? sideTop(O, 1 - me, true) : '<p class="note">En attente de l’adversaire…</p>';
+    $('oppExps').innerHTML = O ? exps(1 - me) : '';
+    $('myExps').innerHTML = P ? exps(me) : '';
+    $('myBottom').innerHTML = P ? sideTop(P, me, false) : '';
+    $('handTitle').textContent = 'Ta main (' + (P ? P.hand.length : 0) + ')';
+    $('hand').innerHTML = P ? cardsEl(P.hand) : '';
+    $('log').innerHTML = V.log.slice().reverse().slice(0, 80).map(l => '<div>' + esc(l.m) + '</div>').join('');
+    renderSide();
+  }
+  function sideTop(X, p, opp) {
+    const hero = X.hero ? cardEl(X.hero) : '';
+    const rdy = X.mana.filter(m => !m.ex).length;
+    const orbs = X.mana.map((m, i) => '<span class="orb' + (m.ex ? ' ex' : '') + '"' + (!opp ? ' data-orb="' + i + '" title="Épuiser / redresser"' : '') + '></span>').join('');
+    return '<h3>' + esc(X.name) + (opp ? ' · main : ' + (X.handCount || 0) : '') + ' · deck : ' + (X.deckCount || 0) + ' · défausse : ' + X.discard.length + ' · mana : ' + rdy + '/' + X.mana.length + ' · limites réserve ' + X.rl + ' / repères ' + X.ll + '</h3>' +
+      '<div class="row" style="align-items:flex-start;gap:14px"><div>' + hero + '</div><div><span class="lbl">Mana</span><div class="mana">' + (orbs || '<span class="note">—</span>') + '</div></div>' +
+      '<div><span class="lbl">Réserve</span><div class="cards">' + cardsEl(X.reserve) + '</div></div><div><span class="lbl">Repères</span><div class="cards">' + cardsEl(X.lm) + '</div></div></div>';
+  }
+  function exps(p) {
+    const X = V.players[p], o = 1 - p;
+    return ['H', 'C'].map(e => {
+      const t = E.totals(V, p, e, DB), ot = V.players[o] ? E.totals(V, o, e, DB) : { F: 0, M: 0, W: 0 };
+      const reg = V.adv[X.pos[e]]; const terr = reg ? reg.terr : [];
+      const tot = ['F', 'M', 'W'].map(k => '<span class="' + (terr.includes(k) && t[k] > ot[k] && t[k] > 0 ? 'win' : '') + '" title="' + TL[k] + (terr.includes(k) ? ' (terrain de la région)' : '') + '"><span class="ter ' + k + '">' + TL[k][0] + '</span>' + t[k] + '</span>').join('');
+      return '<div class="zone"><h3>' + (p === me ? 'Mon expédition ' : 'Expédition adverse ') + (e === 'H' ? 'Héros' : 'Compagnon') + ' <span class="tot">' + tot + '</span><span style="margin-left:auto"></span><button class="small" data-pos="' + p + ',' + e + ',-1" title="Reculer">◀</button><button class="small" data-pos="' + p + ',' + e + ',1" title="Avancer">▶</button></h3><div class="cards">' + cardsEl(X.exp[e]) + '</div></div>';
+    }).join('');
+  }
+
+  function renderPrompt(P, O) {
+    const pr = $('prompt'); let h = '';
+    if (!O || !P) { pr.classList.add('hidden'); return; }
+    const r = V.ready[me];
+    if (V.step === 'END') h = '<b>' + esc(V.players[V.winner].name) + ' gagne la partie !</b> <button class="pri" data-do="rematch">Revanche</button>';
+    else if (V.step === 'SETUP_MANA') h = r ? 'En attente de l’adversaire…' : 'Mise en place : choisis 3 cartes de ta main à mettre en mana (clique une carte → « Mettre en mana »). ' + P.mana.length + '/3 <button class="pri" data-do="ready"' + (P.mana.length < 3 ? ' disabled' : '') + '>Valider</button>';
+    else if (V.step === 'EXPAND') h = r ? 'En attente de l’adversaire…' : 'Matin : tu peux mettre une carte de ta main en mana (clique une carte → « Mettre en mana »). <button data-do="ready">Ne rien mettre</button>';
+    else if (V.pending && ['noon', 'dusk', 'night'].includes(V.pending)) h = r ? 'En attente de l’adversaire…' : ({ noon: 'Midi', dusk: 'Crépuscule', night: 'Nuit' })[V.pending] + ' : des cartes en jeu ont un effet à ce moment. Applique-les avec les outils, puis <button class="pri" data-do="ready">Continuer</button>';
+    else if (V.step === 'AFTERNOON') h = V.turn === me ? '<b>À toi de jouer.</b> Joue une carte de ta main ou de ta réserve, ou <button class="pri" data-do="pass">Passer</button>' + (V.passed[1 - me] ? ' <span class="note">(l’adversaire a passé : tu peux jouer plusieurs cartes)</span>' : '') : (V.passed[me] ? 'Tu as passé. L’adversaire termine sa journée…' : 'Tour de l’adversaire…');
+    else if (V.step === 'CLEANUP') {
+      const over = P.reserve.length > P.rl || P.lm.length > P.ll;
+      h = r || !over ? 'En attente de l’adversaire…' : 'Nuit : garde au plus ' + P.rl + ' carte(s) en réserve et ' + P.ll + ' repère(s). Clique les cartes à garder (' + keep.R.size + '/' + Math.min(P.rl, P.reserve.length) + ' en réserve, ' + keep.L.size + '/' + Math.min(P.ll, P.lm.length) + ' repères), le reste sera défaussé. <button class="pri" data-do="cleanup">Valider</button>';
+    }
+    pr.classList.toggle('hidden', !h); pr.innerHTML = h;
+  }
+
+  function locate(id) {
+    for (let p = 0; p < V.players.length; p++) {
+      const X = V.players[p]; if (!X) continue;
+      for (const z of ['hand', 'reserve', 'lm', 'discard']) if (X[z].includes(id)) return { p, z };
+      for (const e of ['H', 'C']) if (X.exp[e].includes(id)) return { p, z: 'exp', e };
+      if (X.hero === id) return { p, z: 'hero' };
+    }
+    return null;
+  }
+
+  function renderSide() {
+    const D = $('detail');
+    if (sideView === 'discard') { D.innerHTML = '<div class="row" style="justify-content:space-between"><b>Défausses</b><button data-do="closeSide">Fermer</button></div>' + V.players.map((X, p) => X ? '<span class="lbl" style="margin-top:8px">' + esc(X.name) + '</span><div class="cards">' + cardsEl(X.discard) + '</div>' : '').join(''); return; }
+    if (sideView === 'token') { D.innerHTML = '<b>Créer un jeton</b><div style="display:grid;gap:6px;margin-top:6px"><input id="tkN" placeholder="Nom (ex. Scarabot)"><div class="row"><label>F <input id="tkF" type="number" value="2" style="width:56px"></label><label>M <input id="tkM" type="number" value="2" style="width:56px"></label><label>E <input id="tkW" type="number" value="2" style="width:56px"></label></div><select id="tkE"><option value="H">Expédition Héros</option><option value="C">Expédition Compagnon</option></select><div class="row"><button class="pri" data-do="mkToken">Créer</button><button data-do="closeSide">Annuler</button></div></div>'; return; }
+    if (!sel || !card(sel)) { D.innerHTML = '<p class="note">Clique sur une carte pour voir ses actions.</p>'; return; }
+    const c = card(sel), d = data(c), L = locate(sel); if (!L) { sel = null; return renderSide(); }
+    const mine = L.p === me, A = [];
+    const b = (label, act, pri) => A.push('<button' + (pri ? ' class="pri"' : '') + " data-act='" + esc(JSON.stringify(act)) + "'>" + esc(label) + '</button>');
+    const isBody = d && (d.t === 'CHARACTER' || d.t === 'EXPEDITION_PERMANENT');
+    let costBox = '';
+    if (mine && (L.z === 'hand' || L.z === 'reserve') && d) {
+      const fromRes = L.z === 'reserve'; const cost = E.num(fromRes ? d.rc : d.c);
+      costBox = '<label class="small">Coût payé <input id="costIn" type="number" min="0" value="' + cost + '" style="width:64px"></label> ';
+      if (isBody) { b('Jouer → Héros', { type: 'play', id: sel, e: 'H' }, 1); b('Jouer → Compagnon', { type: 'play', id: sel, e: 'C' }, 1); }
+      else b('Jouer', { type: 'play', id: sel }, 1);
+    }
+    if (mine && L.z === 'hand') { b('Mettre en mana', { type: 'toMana', id: sel, free: !['SETUP_MANA', 'EXPAND'].includes(V.step) }); b('Vers la réserve', { type: 'move', id: sel, to: 'reserve' }); b('Défausser', { type: 'move', id: sel, to: 'discard' }); b('Sur le deck', { type: 'move', id: sel, to: 'deck', top: true }); b('Sous le deck', { type: 'move', id: sel, to: 'deck' }); }
+    if (L.z === 'exp') { b('+1 boost', { type: 'boost', id: sel, n: 1 }); b('−1 boost', { type: 'boost', id: sel, n: -1 }); b('Fugace', { type: 'flag', id: sel, f: 'fleeting' }); b('Ancré', { type: 'flag', id: sel, f: 'anchored' }); b('Endormi', { type: 'flag', id: sel, f: 'asleep' }); b('Épuisé', { type: 'flag', id: sel, f: 'ex' }); b('Autre expédition', { type: 'move', id: sel, to: 'exp', e: L.e === 'H' ? 'C' : 'H' }); b('Vers la réserve', { type: 'move', id: sel, to: 'reserve' }); b('Vers la main', { type: 'move', id: sel, to: 'hand' }); b('Défausser', { type: 'move', id: sel, to: 'discard' }); }
+    if (L.z === 'reserve') { b('Épuiser / redresser', { type: 'flag', id: sel, f: 'ex' }); b('Défausser', { type: 'move', id: sel, to: 'discard' }); b('Vers la main', { type: 'move', id: sel, to: 'hand' }); }
+    if (L.z === 'lm') { b('Épuiser / redresser', { type: 'flag', id: sel, f: 'ex' }); b('Vers la réserve', { type: 'move', id: sel, to: 'reserve' }); b('Vers la main', { type: 'move', id: sel, to: 'hand' }); b('Défausser', { type: 'move', id: sel, to: 'discard' }); }
+    if (L.z === 'discard') { b('Vers la main', { type: 'move', id: sel, to: 'hand' }); b('Vers la réserve', { type: 'move', id: sel, to: 'reserve' }); b('Sur le deck', { type: 'move', id: sel, to: 'deck', top: true }); }
+    if (L.z === 'hero' && mine) b('Épuiser / redresser', { type: 'flag', id: sel, f: 'ex' });
+    const info = d ? '<p class="small" style="margin:6px 0">' + esc(NM(d)) + ' · coût ' + esc(String(d.c ?? '').replace(/#/g, '')) + ' / ' + esc(String(d.rc ?? '').replace(/#/g, '')) + (mine ? '' : ' · <i>carte adverse</i>') + '</p>' : '<p class="small">' + esc(c.tok ? 'Jeton ' + c.tok.n : '') + '</p>';
+    D.innerHTML = (c.tok ? img(c) : '<img alt="" src="img/' + LANG + '/' + encodeURIComponent(c.ref) + '.webp">') + info + (TX(d) ? '<p class="small note" style="margin:0 0 8px">' + esc(TX(d).replace(/[#\[\]]/g, '')) + '</p>' : '') + costBox + '<div class="acts" style="margin-top:6px">' + A.join('') + '</div>';
+  }
+
+  // ---------- Événements ----------
+  function bindGame() {
+    document.addEventListener('click', e => {
+      const t = e.target;
+      const actB = t.closest('[data-act]');
+      if (actB) { let a; try { a = JSON.parse(actB.dataset.act); } catch (x) { return; } if (a.type === 'play') { const v = parseInt(($('costIn') || {}).value, 10); if (Number.isFinite(v)) a.cost = v; } dispatch(a); if (a.type === 'play' || a.type === 'toMana' || (a.type === 'move')) sel = null; return; }
+      const doB = t.closest('[data-do]');
+      if (doB) {
+        const k = doB.dataset.do;
+        if (k === 'ready') dispatch({ type: 'ready' });
+        else if (k === 'pass') dispatch({ type: 'pass' });
+        else if (k === 'rematch') rematch();
+        else if (k === 'cleanup') { dispatch({ type: 'cleanup', keepR: [...keep.R], keepL: [...keep.L] }); keep = { R: new Set(), L: new Set() }; }
+        else if (k === 'closeSide') { sideView = 'card'; renderSide(); }
+        else if (k === 'mkToken') { dispatch({ type: 'token', n: $('tkN').value || 'Jeton', f: +$('tkF').value || 0, m: +$('tkM').value || 0, w: +$('tkW').value || 0, e: $('tkE').value }); sideView = 'card'; }
+        return;
+      }
+      const tool = t.closest('[data-tool]');
+      if (tool) {
+        const k = tool.dataset.tool;
+        if (k === 'draw') dispatch({ type: 'draw', n: 1 }); else if (k === 'resupply') dispatch({ type: 'resupply' }); else if (k === 'shuffle') dispatch({ type: 'shuffle' });
+        else if (k === 'token') { sideView = 'token'; renderSide(); } else if (k === 'discard') { sideView = 'discard'; renderSide(); }
+        else if (k === 'lang') { LANG = LANG === 'en' ? 'fr' : 'en'; try { localStorage.setItem('alt-bi-lang', LANG); } catch (x) { } render(); }
+        return;
+      }
+      const pos = t.closest('[data-pos]');
+      if (pos) { const [p, ex, n] = pos.dataset.pos.split(','); dispatch({ type: 'pos', p: +p, e: ex, n: +n }); return; }
+      const orb = t.closest('[data-orb]');
+      if (orb) { dispatch({ type: 'manaEx', i: +orb.dataset.orb }); return; }
+      const ce = t.closest('.c[data-id]');
+      if (ce && V) {
+        const id = ce.dataset.id, L = locate(id);
+        if (V.step === 'CLEANUP' && L && L.p === me && !V.ready[me] && (L.z === 'reserve' || L.z === 'lm')) {
+          const set = L.z === 'reserve' ? keep.R : keep.L, lim = L.z === 'reserve' ? V.players[me].rl : V.players[me].ll;
+          if (set.has(id)) set.delete(id); else if (set.size < lim) set.add(id);
+          render(); return;
+        }
+        sel = id; sideView = 'card'; render();
+      }
+    });
+    $('bSwitch').onclick = () => { if (mode !== 'solo') return; me = 1 - me; sel = null; keep = { R: new Set(), L: new Set() }; push(); };
+  }
+
+  init();
+})();

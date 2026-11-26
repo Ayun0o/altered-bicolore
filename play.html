@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Altered bicolore · Table</title>
+<link href="https://fonts.googleapis.com/css2?family=Spectral:wght@600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{color-scheme:light dark;--bg:light-dark(#efe9df,#121017);--panel:light-dark(#fff,#1d1a23);--soft:light-dark(#e7e0d4,#2a2631);--ink:light-dark(#1d1a22,#ece8f0);--mute:light-dark(#6b6572,#a59fae);--line:light-dark(#d8d0c4,#36313d);--ok:light-dark(#2f7a3c,#7fcf8b);--bad:light-dark(#b3261e,#ff8a80);--acc:#2f74c0;
+--F:#4f8a1f;--M:#a0661c;--W:#2f74c0;--me:#2f74c0;--opp:#c83a35}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 Inter,system-ui,sans-serif}
+h1,h2,h3{font-family:Spectral,Georgia,serif;margin:0;line-height:1.1}
+button,input,select{font:inherit;color:inherit}
+button{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 11px;min-height:34px;cursor:pointer}
+button:hover{border-color:var(--mute)}button.pri{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+button:disabled{opacity:.45;cursor:default}
+input,select{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:6px 9px;min-height:34px;font-size:16px}
+a{color:var(--acc)}
+.hidden{display:none!important}
+#lobby{max-width:620px;margin:40px auto;padding:0 16px;display:grid;gap:14px}
+.box{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.lbl{font-size:12px;color:var(--mute);display:block;margin-bottom:3px}
+.note{font-size:12px;color:var(--mute)}
+.err{color:var(--bad);font-weight:600}
+#game{display:grid;grid-template-columns:minmax(0,1fr) 300px;min-height:100vh}
+.main{padding:8px 12px 140px;display:grid;gap:8px;align-content:start}
+.side{border-left:1px solid var(--line);background:var(--panel);padding:10px;display:flex;flex-direction:column;gap:10px;position:sticky;top:0;height:100vh;overflow:auto}
+.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:8px 10px}
+.bar .ph{font-weight:600}
+.prompt{background:light-dark(#fff4d6,#3a3115);border:1px solid light-dark(#e6c97a,#6b5a20);border-radius:10px;padding:8px 10px;display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.adv{display:grid;grid-template-columns:repeat(8,minmax(0,1fr));gap:4px}
+.reg{background:var(--panel);border:1px solid var(--line);border-radius:8px;min-height:62px;padding:4px;display:flex;flex-direction:column;align-items:center;gap:3px;position:relative}
+.reg.down{background:repeating-linear-gradient(45deg,var(--soft),var(--soft) 6px,transparent 6px,transparent 12px)}
+.reg .t{display:flex;gap:2px}
+.ter{width:16px;height:16px;border-radius:50%;display:grid;place-items:center;color:#fff;font-size:10px;font-weight:700}
+.ter.F{background:var(--F)}.ter.M{background:var(--M)}.ter.W{background:var(--W)}
+.mk{font-size:10px;font-weight:700;border-radius:5px;padding:0 4px;color:#fff}
+.mk.me{background:var(--me)}.mk.opp{background:var(--opp)}
+.zone{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 8px}
+.zone h3{font:600 12px Inter,sans-serif;color:var(--mute);margin-bottom:4px;display:flex;gap:8px;align-items:center}
+.cards{display:flex;flex-wrap:wrap;gap:6px;min-height:40px}
+.exps{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.tot{display:flex;gap:6px;font-weight:600;font-size:12px}
+.tot span{display:inline-flex;gap:3px;align-items:center}
+.tot .win{outline:2px solid var(--ok);border-radius:4px;padding:0 2px}
+.c{position:relative;width:84px;cursor:pointer;border-radius:6px}
+.c img{width:100%;display:block;border-radius:6px;aspect-ratio:360/502;background:var(--soft)}
+.c.ex img{filter:grayscale(.6) brightness(.8)}
+.c.ex::after{content:'épuisée';position:absolute;left:0;right:0;bottom:4px;text-align:center;font-size:10px;font-weight:700;color:#fff;text-shadow:0 0 3px #000}
+.c .bd{position:absolute;top:2px;left:2px;display:flex;flex-direction:column;gap:2px}
+.c .bd b{font-size:10px;padding:0 4px;border-radius:4px;color:#fff;background:#000c}
+.c.sel{outline:3px solid var(--acc)}
+.tok{width:84px;aspect-ratio:360/502;border-radius:6px;background:var(--soft);display:flex;flex-direction:column;justify-content:center;align-items:center;font-size:11px;text-align:center;padding:4px}
+.mana{display:flex;gap:4px;flex-wrap:wrap}
+.orb{width:24px;height:24px;border-radius:50%;background:var(--acc);border:2px solid var(--panel);cursor:pointer}
+.orb.ex{background:var(--soft)}
+.hand{position:fixed;left:0;right:300px;bottom:0;background:var(--panel);border-top:1px solid var(--line);padding:6px 12px;overflow-x:auto;z-index:4}
+.hand .cards{flex-wrap:nowrap}
+.hand .c{width:92px;flex:none}
+.det img{width:100%;border-radius:10px}
+.acts{display:flex;flex-wrap:wrap;gap:6px}
+.log{font-size:12px;display:flex;flex-direction:column;gap:3px;overflow:auto;max-height:40vh}
+.log div{padding:3px 6px;border-radius:6px;background:var(--soft)}
+.small{font-size:12px}
+@media(max-width:900px){#game{grid-template-columns:minmax(0,1fr)}.side{position:static;height:auto;border-left:0;border-top:1px solid var(--line)}.hand{right:0}.c{width:64px}.hand .c{width:72px}.tok{width:64px}.adv{gap:2px}}
+</style>
+</head>
+<body>
+<section id="lobby">
+<div class="row"><h1 style="font-size:30px;margin-right:auto">Table de jeu</h1><a href="index.html">← Deckbuilder</a></div>
+<div class="box">
+<label><span class="lbl">Ton pseudo</span><input id="pname" maxlength="24" style="width:100%"></label>
+<label style="display:block;margin-top:10px"><span class="lbl">Ton deck (créé dans le deckbuilder de ce site)</span><select id="pdeck" style="width:100%"></select></label>
+<p class="note" id="deckNote"></p>
+</div>
+<div class="box">
+<h2 style="font-size:20px;margin-bottom:8px">Jouer contre un ami</h2>
+<div class="row"><button class="pri" id="bHost">Créer une partie</button><span class="note">Tu obtiens un code à envoyer à ton adversaire.</span></div>
+<div class="row" style="margin-top:10px"><input id="jcode" placeholder="Code reçu (ex. K7P2QX)" maxlength="6" style="text-transform:uppercase;width:180px"><button id="bJoin">Rejoindre</button></div>
+<p id="lobbyMsg" class="note"></p>
+</div>
+<div class="box">
+<h2 style="font-size:20px;margin-bottom:8px">S'entraîner seul</h2>
+<div class="row"><select id="sdeck"></select><button id="bSolo">Partie d'essai</button></div>
+<p class="note">Tu contrôles les deux joueurs (bouton « Changer de côté »). Pratique pour tester un deck ou apprendre les règles.</p>
+</div>
+<p class="note">Les effets des cartes s'appliquent à la main pour l'instant (boutons sur chaque carte) ; le tour de jeu, le mana, la pioche, le Crépuscule, la Nuit et la victoire sont automatiques.</p>
+</section>
+
+<section id="game" class="hidden">
+<div class="main">
+<div class="bar"><span class="ph" id="phase"></span><span id="turnInfo" class="small"></span><span style="margin-left:auto" class="small" id="conn"></span><button id="bSwitch" class="hidden">Changer de côté</button></div>
+<div id="prompt" class="prompt hidden"></div>
+<div class="zone" id="oppTop"></div>
+<div class="exps" id="oppExps"></div>
+<div class="adv" id="adv"></div>
+<div class="exps" id="myExps"></div>
+<div class="zone" id="myBottom"></div>
+</div>
+<aside class="side">
+<div id="detail" class="det"><p class="note">Clique sur une carte pour voir ses actions.</p></div>
+<div class="zone"><h3>Outils</h3><div class="acts">
+<button data-tool="draw">Piocher 1</button><button data-tool="resupply">Ravitailler</button><button data-tool="shuffle">Mélanger le deck</button><button data-tool="token">Créer un jeton</button>
+<button data-tool="discard">Voir défausses</button><button data-tool="lang">FR / EN</button>
+</div></div>
+<div class="zone" style="flex:1;display:flex;flex-direction:column"><h3>Journal</h3><div class="log" id="log"></div></div>
+</aside>
+<div class="hand"><div class="zone" style="border:0;padding:0"><h3 id="handTitle">Ta main</h3><div class="cards" id="hand"></div></div></div>
+</section>
+
+<script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+<script src="js/engine.js"></script>
+<script src="js/net.js"></script>
+<script src="js/play.js"></script>
+</body>
+</html>
