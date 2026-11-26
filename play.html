@@ -387,7 +387,7 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 #sideTab,#sideBg{display:none}
 @keyframes drawn{0%{transform:translate(-60px,-40px) rotate(-8deg) scale(.7);opacity:0}60%{opacity:1}100%{transform:none;opacity:1}}
 @media(prefers-reduced-motion:no-preference){.hand .c.drawn{animation:drawn .45s cubic-bezier(.2,.8,.3,1) both}}
-.oinfo{display:none}
+.ofan2,.dico{display:none}
 .lbl .dn{display:none}
 @media(max-width:900px){
  .side{position:fixed;top:0;right:0;bottom:0;width:min(320px,86vw);height:100dvh!important;z-index:60;border-top:0!important;border-left:1px solid var(--line)!important;box-shadow:-8px 0 30px #0004;transform:translateX(105%);transition:transform .22s ease;overflow:auto}
@@ -411,17 +411,17 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
  .note.empty{display:none}
  .zone.exp .xarr{display:none!important}
  body.arrows .zone.exp .xarr{display:flex!important}
- #hand{transition:max-height .25s ease}
  #game .main{padding-bottom:calc(var(--handh,300px) + 12px)!important}
- body.handdown #hand{max-height:34px;overflow:hidden!important;cursor:pointer}
- body.handdown #hand .c{pointer-events:none}
- .oinfo{flex-direction:row}
  .zone.exp .xname{display:none}
  #adv{cursor:pointer}
  .exp{min-height:64px}
- .oinfo{display:flex!important;flex-wrap:wrap;justify-content:center;gap:3px;margin-top:2px;cursor:pointer}
- .oinfo b{font-size:10px;font-weight:600;background:#0006;border-radius:7px;padding:1px 4px;white-space:nowrap}
- #zoomCard.selz{position:fixed;left:50%;top:max(8px,env(safe-area-inset-top));transform:translateX(-50%);width:min(62vw,300px);z-index:45;pointer-events:none}
+ .ofan2{display:flex;justify-content:center;margin-top:3px;height:22px}
+ .ofan2 .fback{width:15px;margin-left:-8px}
+ .strip2 .ofan{display:none}
+ .discz .cards,.discz>.lbl{display:none!important}
+ .discz .dico{display:inline-flex;align-items:center;gap:3px;font-size:13px;font-weight:600;background:#0005;border-radius:9px;padding:3px 8px;cursor:pointer}
+ body.sideopen #zoomCard.selz{display:none!important}
+ #zoomCard.selz{position:fixed;left:6px;right:auto;top:max(6px,env(safe-area-inset-top));transform:none;width:min(40vw,190px);z-index:45;pointer-events:none}
  .actionbox{position:relative}
  .actionbox .row{justify-content:flex-end}
 }
@@ -501,7 +501,7 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
 <script src="js/engine.js?v=1795716790"></script>
 <script src="js/ai.js?v=1795716790"></script>
 <script src="js/net.js?v=1795716790"></script>
-<script src="js/play.js?v=1795723859"></script>
+<script src="js/play.js?v=1795724354"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
  t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');

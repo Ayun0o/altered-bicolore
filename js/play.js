@@ -283,7 +283,7 @@
       return '<div class="zone exp e' + e + (mine ? ' mine' : '') + (will ? ' willz' : '') + '"' + (mine ? ' data-drop="' + e + '"' : '') + '><h3 class="xh"><span class="xstats"><span class="tot" id="tot-' + p + e + '">' + tot + '</span>' + badge + (asc ? '<span class="asc" title="Expédition élevée">⇑</span>' : '') + '</span><span class="xname">' + (e === 'H' ? 'Héros' : 'Compagnon') + '</span><span class="xarr"><button class="mini" data-pos="' + p + ',' + e + ',' + (e === 'C' ? 1 : -1) + '" title="' + (e === 'C' ? 'Avancer' : 'Reculer') + ' l’expédition">◀</button><button class="mini" data-pos="' + p + ',' + e + ',' + (e === 'C' ? -1 : 1) + '" title="' + (e === 'C' ? 'Reculer' : 'Avancer') + ' l’expédition">▶</button></span></h3><div class="cards">' + cardsEl(X.exp[e]) + '</div></div>';
     };
     const hn = '<span class="hname" style="color:' + (FC[(DB[(card(X.hero) || {}).ref] || {}).f] || 'inherit') + '">' + esc(X.name) + '</span>';
-    return zone('H') + '<div class="herocol' + (mine ? ' mine' : '') + '">' + (mine ? hn : '') + '<div class="herowrap">' + (X.hero ? cardEl(X.hero) : '') + '<span class="pass' + (V.passed && V.passed[p] ? ' done' : '') + '" title="' + (V.passed && V.passed[p] ? 'A passé : ne joue plus de cartes aujourd’hui' : 'Peut encore jouer des cartes') + '"><img class="pf" src="img/ui/scan/pass_blue.webp" alt=""><img class="pb" src="img/ui/scan/pass_gold.webp" alt=""></span>' + '</div>' + (mine ? '' : hn + '<span class="oinfo" data-oinfo="1" title="Main · deck · défausse · réserve · repères de l’adversaire"><b>✋' + (X.handCount || 0) + '</b><b>🂠' + (X.deckCount || 0) + '</b><b>🗑' + X.discard.length + '</b>' + (X.reserve.length ? '<b>Rés ' + X.reserve.length + '</b>' : '') + (X.lm.length ? '<b>Rep ' + X.lm.length + '</b>' : '') + '</span>') + '</div>' + zone('C');
+    return zone('H') + '<div class="herocol' + (mine ? ' mine' : '') + '">' + (mine ? hn : '') + '<div class="herowrap">' + (X.hero ? cardEl(X.hero) : '') + '<span class="pass' + (V.passed && V.passed[p] ? ' done' : '') + '" title="' + (V.passed && V.passed[p] ? 'A passé : ne joue plus de cartes aujourd’hui' : 'Peut encore jouer des cartes') + '"><img class="pf" src="img/ui/scan/pass_blue.webp" alt=""><img class="pb" src="img/ui/scan/pass_gold.webp" alt=""></span>' + '</div>' + (mine ? '' : hn + '<span class="ofan2">' + backs(X.handCount || 0, 'fback') + '</span>') + '</div>' + zone('C');
   }
   const slots = n => n > 0 ? '<i class="slot"></i>'.repeat(Math.min(n, 4)) : '';
   const backs = (n, cls) => { n = Math.min(n, 12); return Array.from({ length: n }, (x, i) => '<i class="' + cls + '" style="transform:rotate(' + ((i - (n - 1) / 2) * 6) + 'deg)"></i>').join(''); };
@@ -291,7 +291,7 @@
     const top = X.discard[X.discard.length - 1];
     const res = '<div class="sres"><span class="lbl">Réserve<span class="mx"> (max ' + X.rl + ')</span></span><div class="cards rz">' + (X.reserve.length ? cardsEl(X.reserve) : '') + slots(X.rl - X.reserve.length) + '</div></div>';
     const lm = '<div class="slm"><span class="lbl">Repères<span class="mx"> (max ' + X.ll + ')</span></span><div class="cards rz">' + (X.lm.length ? cardsEl(X.lm) : '') + slots(X.ll - X.lm.length) + '</div></div>';
-    const disc = '<div class="discz" data-disc="' + p + '" title="Voir la défausse"><span class="lbl">Défausse (' + X.discard.length + ')</span><div class="cards rz">' + (top ? cardEl(top) : '<i class="slot"></i>') + '</div></div>';
+    const disc = '<div class="discz" data-disc="' + p + '" title="Voir la défausse"><span class="lbl">Défausse (' + X.discard.length + ')</span><span class="dico">🗑 ' + X.discard.length + '</span><div class="cards rz">' + (top ? cardEl(top) : '<i class="slot"></i>') + '</div></div>';
     const deck = '<div class="deckz"><span class="lbl">Deck<span class="dn"> ' + (X.deckCount || 0) + '</span></span><div class="deckpile" title="Cartes restantes dans le deck"><b>' + (X.deckCount || 0) + '</b></div></div>';
     const mid = p !== me ? '<div class="ofan" title="Cartes en main de l’adversaire : ' + (X.handCount || 0) + '">' + backs(X.handCount || 0, 'fback') + '</div>' : '<div></div>';
     return '<div class="strip2"><div class="sL">' + deck + res + '</div>' + mid + '<div class="sR">' + lm + disc + '</div></div>';
@@ -371,6 +371,7 @@
   }
   function render() {
     if (!V) return;
+    const _sy = window.scrollY, _mn = document.querySelector('#game .main'), _mt = _mn ? _mn.scrollTop : 0;
     if (V.step !== lastStep) { pick = new Set(); lastStep = V.step; }
     computeGlow();
     const P = V.players[me], O = V.players[1 - me];
@@ -395,6 +396,7 @@
     const mainEl = document.querySelector('#game .main'); if (mainEl) mainEl.style.background = 'linear-gradient(to bottom,' + (fo ? FC[fo] + '30' : 'transparent') + ' 0%,' + (fo ? FC[fo] + '99' : 'transparent') + ' 26%,transparent 46%,transparent 54%,' + (fm ? FC[fm] + '99' : 'transparent') + ' 74%,' + (fm ? FC[fm] + '30' : 'transparent') + ' 100%),var(--bg)';
     renderPrompt(P, O); renderSide();
     animate(); recordStats(); selPreview();
+    if (window.scrollY !== _sy) window.scrollTo(0, _sy); if (_mn && _mn.scrollTop !== _mt) _mn.scrollTop = _mt;
   }
 
   // Petits sons générés à la volée (Web Audio), discrets et coupables
@@ -555,13 +557,7 @@
   function hideZoom() { if (zoomEl.classList.contains('selz')) return; zoomEl.style.display = 'none'; }
   const MOB = () => matchMedia('(max-width:900px)').matches;
   { const h = document.querySelector('.hand'); if (h && window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty('--handh', h.offsetHeight + 'px')).observe(h); }
-  // Téléphone : toucher le plateau replie la main (on voit le haut des cartes), toucher la main la ressort
-  document.addEventListener('click', e => {
-    if (!MOB() || !V) return; const b = document.body, t = e.target;
-    if (t.closest('#hand')) { if (b.classList.contains('handdown')) { b.classList.remove('handdown'); e.stopPropagation(); e.preventDefault(); } return; }
-    if (t.closest('.hand') || t.closest('.side') || t.closest('#sideTab') || t.closest('dialog')) return;
-    if (t.closest('#game .main')) b.classList.add('handdown');
-  }, true);
+
   function selPreview() {
     const x = sel && V && MOB() ? card(sel) : null, L = x && locate(sel);
     if (x && !x.tok && L && L.p === me && (L.z === 'hand' || L.z === 'reserve')) { zoomEl.innerHTML = zoomHtml(x); zoomEl.classList.remove('touch'); zoomEl.classList.add('selz'); zoomEl.style.display = 'block'; }
@@ -592,7 +588,7 @@
       const actB = t.closest('[data-act]');
       if (actB) { let a; try { a = JSON.parse(actB.dataset.act); } catch (x) { return; } if (a.type === 'play') { const v = parseInt(($('costIn') || {}).value, 10); if (Number.isFinite(v)) a.cost = v; } dispatch(a); if (a.type === 'play' || a.type === 'toMana' || (a.type === 'move')) sel = null; return; }
       const dsc = t.closest('[data-disc]');
-      if (dsc && !t.closest('.c[data-id]')) { sideView = 'discard'; renderSide(); return; }
+      if (dsc && (MOB() || !t.closest('.c[data-id]'))) { sideView = 'discard'; renderSide(); if (MOB()) document.body.classList.add('sideopen'); return; }
       const chB = t.closest('[data-choose]');
       if (chB) { const v = chB.dataset.choose; dispatch({ type: 'choose', target: v === 'none' ? null : v }); return; }
       const doB = t.closest('[data-do]');
@@ -609,7 +605,6 @@
         return;
       }
       if (MOB() && t.closest('#adv')) { document.body.classList.toggle('arrows'); clearTimeout(window.__arrT); if (document.body.classList.contains('arrows')) window.__arrT = setTimeout(() => document.body.classList.remove('arrows'), 8000); return; }
-      if (t.closest('[data-oinfo]')) { const st = document.querySelector('#game .main .strip2'); if (st) st.scrollIntoView({ behavior: 'smooth', block: 'start' }); return; }
       const tool = t.closest('[data-tool]');
       if (tool) {
         const k = tool.dataset.tool;
