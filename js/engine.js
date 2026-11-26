@@ -244,6 +244,11 @@
     if ((m = b.match(/^it gains (\d+) boosts? and \[\[(fleeting|anchored|asleep)\]\]$/))) return { k: 'seq', list: [{ k: 'itBoost', n: +m[1] }, { k: 'itFlag', f: m[2] }] };
     if ((m = b.match(/^i gain (\d+) boosts? and \[\[(fleeting|anchored|asleep)\]\]$/))) return { k: 'seq', list: [{ k: 'selfBoostN', n: +m[1] }, { k: 'selfFlag', f: m[2], v: true }] };
     if (/^sacrifice it$/.test(b)) return { k: 'itDiscard' };
+    if (/^ready (a|one) mana orb$/.test(b)) return { k: 'readyOrbs', n: 1 };
+    if (/^ready two mana orbs$/.test(b)) return { k: 'readyOrbs', n: 2 };
+    if (/^you may discard target non-companion token$/.test(b)) return { k: 'choose', kind: 'char', opt: true, tokOnly: true, act: { k: 'discard' }, label: 'Choisis un jeton à défausser' };
+    if ((m = b.match(/^create an? \[(.+?) (\d+)\/(\d+)\/(\d+)\] (.+?) token in an opponent's expedition, then draw a card$/))) { const tok = { n: m[1].replace(/\b\w/g, c => c.toUpperCase()), p: [+m[2], +m[3], +m[4]], type: m[5] }; return { k: 'seq', list: [{ k: 'options', n: 1, opts: [{ label: 'Héros adverse', acts: [{ k: 'tokenAt', rel: 1, e: 'H', tok }] }, { label: 'Compagnon adverse', acts: [{ k: 'tokenAt', rel: 1, e: 'C', tok }] }] }, { k: 'draw', n: 1 }] }; }
+    if ((m = b.match(/^create an? \[(.+?) (\d+)\/(\d+)\/(\d+)\] (.+?) token in the expedition facing me\. it gains \[\[asleep\]\]$/))) return { k: 'tokFacing', tok: { n: m[1].replace(/\b\w/g, c => c.toUpperCase()), p: [+m[2], +m[3], +m[4]], type: m[5] }, f: 'asleep' };
     if (/^complete me$/.test(b)) return { k: 'complete' };
     if (/^you win the game$/.test(b)) return { k: 'win' };
     if ((m = b.match(/^(you may )?discard target (character or permanent|character|permanent) with base cost \{(\d+)\} or less$/))) return { k: 'choose', kind: m[2] === 'character' ? 'char' : m[2] === 'permanent' ? 'perm' : 'any', opt: !!m[1], max: +m[3], act: { k: 'discard' }, label: 'Choisis une cible de coût ' + m[3] + ' ou moins à défausser' };
@@ -441,6 +446,7 @@
     }
     if (/^if .+\. otherwise, /i.test(body.trim())) { const one = parseAction(body); if (one) return [one]; }
     const lb = body.replace(/\u00a0/g, ' ').replace(/\s*\([^)]*\)/g, '').trim();
+    let lbn = lb.toLowerCase().replace(/^you may discard one card/, 'you may discard a card').replace(/^you may give me (\d+) boosts?/, 'you may have me gain $1 boost'); if (lbn !== lb.toLowerCase()) return parseBody(lbn);
     let my = lb.match(/^you may (.+?)(?:\.\s+if you do,\s+| to )(.+)$/i);
     if (my && !/^(target|choose|send|discard target|return target|have)/i.test(my[1]) || (my && /^have me /i.test(my[1]))) {
       const x = parseBody(my[1].replace(/^have me (gain|lose)/i, 'i $1')), y = parseBody(my[2]);
@@ -490,6 +496,8 @@
       case 'itBoost': { const t = ctx.target && s.cards[ctx.target]; if (t) { t.boost = Math.max(0, t.boost + a.n); log(s, '→ ' + cname(s, ctx.target, db) + ' gagne ' + a.n + ' boost(s).'); } break; }
       case 'selfBoostN': if (c && where(s, self)) { c.boost = Math.max(0, c.boost + a.n); log(s, '→ ' + nm() + (a.n >= 0 ? ' gagne ' : ' perd ') + Math.abs(a.n) + ' boost(s).'); } break;
       case 'noop': break;
+      case 'readyOrbs': { let r = 0; for (const mo of P.mana) { if (r >= a.n) break; if (mo.ex) { mo.ex = false; r++; } } log(s, '→ ' + r + ' mana redressé(s).'); break; }
+      case 'tokFacing': { const e = expOf(s, self) || ctx.e; if (e) { const q = 1 - p, X = s.players[q]; const id = 't' + (s.nid++); s.cards[id] = { id, ref: '__token', owner: q, boost: 0, ex: false, fleeting: false, anchored: false, asleep: a.f === 'asleep', tok: { n: a.tok.n, p: a.tok.p.slice(), type: a.tok.type } }; X.exp[e].push(id); log(s, '→ jeton ' + a.tok.n + ' créé dans l’expédition en face (endormi).'); } break; }
       case 'complete': if (c && !c.completed) { c.completed = true; log(s, '🏅 ' + nm() + ' est accomplie.'); } break;
       case 'win': s.winner = p; s.phase = 'END'; s.step = 'END'; log(s, '🏆 ' + P.name + ' remporte la partie (effet de ' + nm() + ') !'); break;
       case 'resBoost': P.reserve.forEach(id => { if (subtypesOf(s, id, db).some(x => a.subs.includes(x))) s.cards[id].boost += a.n; }); log(s, '→ des cartes de la réserve de ' + P.name + ' gagnent ' + a.n + ' boost(s).'); break;
