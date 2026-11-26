@@ -196,7 +196,7 @@
   function cardEl(id) {
     const c = card(id); if (!c) return '<div class="c"><div class="tok">?</div></div>';
     const b = []; if (c.boost) b.push('+' + c.boost); if (c.ctr) for (const [k, v] of Object.entries(c.ctr)) if (v) b.push(v + ' ' + k);
-    const st = []; if (c.fleeting) st.push(['💨', 'Fugace']); if (c.anchored) st.push(['⚓', 'Ancré']); if (c.asleep) st.push(['💤', 'Endormi']); if (c.completed) st.push(['🏅', 'Accomplie']);
+    const st = []; if (c.fleeting) st.push(['<img src="img/ui/scan/s_fleeting.webp" alt="">', 'Fugace']); if (c.anchored) st.push(['<img src="img/ui/scan/s_anchored.webp" alt="">', 'Ancré']); if (c.asleep) st.push(['<img src="img/ui/scan/s_asleep.webp" alt="">', 'Endormi']); if (c.completed) st.push(['🏅', 'Accomplie']);
     const k = keep.R.has(id) || keep.L.has(id) || pick.has(id);
     const P = V.players[me]; const drag = P && c.owner === me && (P.hand.includes(id) || P.reserve.includes(id));
     return '<div class="c' + (c.ex ? ' ex' : '') + (sel === id || k ? ' sel' : '') + (isTarget(id) ? ' tgt' : '') + (GLOW.has(id) ? ' trig' : '') + '" data-id="' + esc(id) + '"' + (drag ? ' draggable="true"' : '') + '>' + img(c) + (st.length ? '<div class="st">' + st.map(x => '<i title="' + x[1] + '">' + x[0] + '</i>').join('') + '</div>' : '') + (b.length ? '<div class="bd">' + b.map(x => '<b' + (/^\+/.test(x) ? ' class="bst"' : '') + '>' + esc(x) + '</b>').join('') + '</div>' : '') + '</div>';
@@ -247,18 +247,25 @@
   }
   const SH = '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2 20 5v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z" fill="currentColor"/><path d="M12 6l1.6 3.3 3.6.5-2.6 2.5.6 3.6L12 14.2 8.8 15.9l.6-3.6-2.6-2.5 3.6-.5z" fill="#fff"/></svg>';
   const PAW = '<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="11" fill="currentColor"/><g fill="#fff"><ellipse cx="12" cy="15.5" rx="4" ry="3.2"/><circle cx="7" cy="10.5" r="1.8"/><circle cx="10.2" cy="7.5" r="1.8"/><circle cx="13.8" cy="7.5" r="1.8"/><circle cx="17" cy="10.5" r="1.8"/></g></svg>';
-  function marker(p, e) { const X = V.players[p]; return '<span class="mk2 ' + (p === me ? 'me' : 'opp') + '" style="color:' + (p === me ? '#f5c518' : '#e0413a') + '" title="' + esc(X.name) + ' — expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + '">' + (e === 'H' ? SH : PAW) + '<i>' + (p === me ? 'moi' : 'adv') + '</i></span>'; }
+  const MK_SCAN = { YZ: 1, MU: 1, OR: 1 };
+  function marker(p, e) { const X = V.players[p]; const f = (DB[(card(X.hero) || {}).ref] || {}).f;
+    if (MK_SCAN[f]) return '<span class="mk3 ' + (p === me ? 'me' : 'opp') + '" title="' + esc(X.name) + ' — expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + '"><img src="img/ui/scan/m_' + e + '_' + f + '.webp" alt=""><i>' + (p === me ? 'moi' : 'adv') + '</i></span>';
+    return '<span class="mk2 ' + (p === me ? 'me' : 'opp') + '" style="color:' + (p === me ? '#f5c518' : '#e0413a') + '" title="' + esc(X.name) + ' — expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + '">' + (e === 'H' ? SH : PAW) + '<i>' + (p === me ? 'moi' : 'adv') + '</i></span>'; }
   function arena() {
     const sum = p => { const a = E.totals(V, p, 'H', DB), b = E.totals(V, p, 'C', DB); return { F: a.F + b.F, M: a.M + b.M, W: a.W + b.W }; };
     const A = sum(me), B = sum(1 - me); let a = 0, b = 0; ['F', 'M', 'W'].forEach(t => { if (A[t] > B[t]) a++; else if (B[t] > A[t]) b++; });
     const col = (t) => '<div class="half"><div class="bgs"><span style="background-image:url(img/ui/' + ({ F: 'forest', M: 'mountain', W: 'water' })[t] + '.svg)"></span></div><b class="arn">' + TL[t] + '</b><span class="arv ' + (A[t] > B[t] ? 'me' : B[t] > A[t] ? 'opp' : '') + '">Toi ' + A[t] + ' — ' + B[t] + ' Adv</span></div>';
     return '<div class="advcard" style="grid-column:1/-1"><span class="lab">Arène — départage : la somme de tes deux expéditions par terrain. Tu gagnes ' + a + ' terrain(s), l’adversaire ' + b + '.</span><div class="halves" style="grid-template-columns:1fr 1fr 1fr">' + col('F') + col('M') + col('W') + '</div></div>';
   }
+  const TUM = { F: 1, M: 1, W: 1, FM: 1, FW: 1, MW: 1 };
   function track() {
     if (V.tie) return arena();
     const cell = (i) => {
       const r = V.adv[i]; const mk = [];
       V.players.forEach((X, p) => { if (!X) return; ['H', 'C'].forEach(e => { if (X.pos[e] === i) mk.push(marker(p, e)); }); });
+      const key = r.terr.slice().sort().join('');
+      if (r.up && r.kind === 'T' && TUM[key]) return '<div class="half scan" style="background-image:url(img/ui/scan/t_' + key + '.webp)" title="' + r.terr.map(t => TL[t]).join(' + ') + '">' + mk.join('') + '</div>';
+      if (r.kind !== 'T') return '<div class="half start scan">' + mk.join('') + '</div>';
       const bg = r.up ? '<div class="bgs">' + r.terr.map(t => '<span style="background-image:url(img/ui/' + ({ F: 'forest', M: 'mountain', W: 'water' })[t] + '.svg)"></span>').join('') + '</div>' : '';
       return '<div class="half' + (r.up ? '' : ' down') + (r.kind !== 'T' ? ' start' : '') + '">' + bg + '<div class="t">' + (r.up ? r.terr.map(t => '<span class="ter ' + t + '" title="' + TL[t] + '">' + TL[t][0] + '</span>').join('') : '<span class="note">?</span>') + '</div>' + mk.join('') + '</div>';
     };
