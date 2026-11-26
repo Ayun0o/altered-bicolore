@@ -313,7 +313,7 @@
   const PAW = '<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="11" fill="currentColor"/><g fill="#fff"><ellipse cx="12" cy="15.5" rx="4" ry="3.2"/><circle cx="7" cy="10.5" r="1.8"/><circle cx="10.2" cy="7.5" r="1.8"/><circle cx="13.8" cy="7.5" r="1.8"/><circle cx="17" cy="10.5" r="1.8"/></g></svg>';
   const MK_SCAN = { YZ: 1, MU: 1, OR: 1, AX: 1, BR: 1, LY: 1 };
   function marker(p, e) { const X = V.players[p]; const f = (DB[(card(X.hero) || {}).ref] || {}).f;
-    if (MK_SCAN[f]) return '<span class="mk3 ' + (p === me ? 'me' : 'opp') + '" title="' + esc(X.name) + ' — expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + '"><img src="img/ui/scan/m_' + e + '_' + f + '.webp" alt=""><i>' + (p === me ? 'moi' : 'adv') + '</i></span>';
+    if (MK_SCAN[f]) return '<span class="mk3 ' + (p === me ? 'me' : 'opp') + '" title="' + esc(X.name) + ' — expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + '"><img src="img/ui/scan/m_' + e + '_' + f + '.webp" alt=""' + (e === 'H' ? ' class="mir"' : '') + '><i>' + (p === me ? 'moi' : 'adv') + '</i></span>';
     return '<span class="mk2 ' + (p === me ? 'me' : 'opp') + '" style="color:' + (p === me ? '#22c3d6' : '#e0413a') + '" title="' + esc(X.name) + ' — expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + '">' + (e === 'H' ? SH : PAW) + '<i>' + (p === me ? 'moi' : 'adv') + '</i></span>'; }
   function arena() {
     const sum = p => { const a = E.totals(V, p, 'H', DB), b = E.totals(V, p, 'C', DB); return { F: a.F + b.F, M: a.M + b.M, W: a.W + b.W }; };
