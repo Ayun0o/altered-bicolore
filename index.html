@@ -410,7 +410,7 @@ function cleanDeck(o){if(!o||typeof o!=='object')return null;const c={};if(o.car
  return{name:String(o.name||'Sans nom').slice(0,80),hero:BY[o.hero]?o.hero:'',sec:FAC.includes(o.sec)?o.sec:'',cards:c,uniques:Array.isArray(o.uniques)?o.uniques.filter(u=>u&&FAC.includes(u.f)).map(u=>{const card=u.card&&window.AltUniques?AltUniques.sanitize(u.card):null;if(card)BY[card.r]=card;return card?{n:card.n,f:card.f,r:card.r,card}:{n:String(u.n).slice(0,80),f:u.f}}):[],updated:+o.updated||0}}
 
 async function start(){
- try{const r=await fetch('cards.json');CARDS=await r.json()}catch(e){$('sync').textContent='Impossible de charger les cartes.';return}
+ try{const r=await fetch('cards.json?v=1795723022');CARDS=await r.json()}catch(e){$('sync').textContent='Impossible de charger les cartes.';return}
  for(const c of CARDS){BY[c.r]=c;c._s=norm(c.n+' '+c.en+' '+c.x+' '+c.e+' '+c.xe+' '+c.ee+' '+c.st.join(' ')+' '+c.ste.join(' '))}
  $('fSet').innerHTML+=Object.entries(SETN).map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('');
  $('fCost').innerHTML+=[0,1,2,3,4,5,6].map(v=>'<option value="'+v+'">Coût '+v+'</option>').join('')+'<option value="7">Coût 7+</option>';

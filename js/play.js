@@ -49,7 +49,7 @@
   }
 
   async function init() {
-    try { const r = await fetch('cards.json'); for (const c of await r.json()) DB[c.r] = c; const rs = await fetch('starters.json'); STARTERS = (await rs.json()).filter(s => DB[s.hero]); } catch (e) { $('lobbyMsg').textContent = 'Impossible de charger les cartes.'; return; }
+    try { const r = await fetch('cards.json?v=1795723022'); for (const c of await r.json()) DB[c.r] = c; const rs = await fetch('starters.json'); STARTERS = (await rs.json()).filter(s => DB[s.hero]); } catch (e) { $('lobbyMsg').textContent = 'Impossible de charger les cartes.'; return; }
     const qd = new URLSearchParams(location.search).get('deck');
     if (qd) { try { let s = qd.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; const o = JSON.parse(decodeURIComponent(escape(atob(s))));
       if (o && DB[o.h]) { const all = store.get('alt-bi-decks', {}); const cards = {}; for (const [r, n] of Object.entries(o.c || {})) if (DB[r]) cards[r] = Math.max(0, Math.min(9, n | 0));
