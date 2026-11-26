@@ -68,9 +68,17 @@
   }
   let CLOUDGAMES = null;
   async function cloudInit() {
-    const C = window.AltCloud; if (!C || !C.ready()) return;
+    const C = window.AltCloud; if (!C || !C.ready()) { const ab = $('acctInfo'); if (ab) ab.textContent = 'Connexion au compte indisponible pour l’instant.'; return; }
     const u = await C.init(); const ab = $('acctInfo');
-    if (ab) ab.innerHTML = u ? 'Connecté : <b>' + esc(u.email || '') + '</b> — decks et stats synchronisés.' : 'Pas connecté : decks et stats restent sur cet appareil. <a href="index.html">Se connecter depuis le deckbuilder</a>.';
+    if (ab) ab.innerHTML = u ? 'Connecté : <b>' + esc(u.email || '') + '</b><br>Tes decks et tes stats sont synchronisés sur tous tes appareils.' : 'Pas connecté : decks et stats restent sur cet appareil. Connecte-toi pour les retrouver partout.';
+    const af = $('acctForm');
+    if (af) {
+      if (u) { af.innerHTML = '<button id="acOut">Se déconnecter</button>'; $('acOut').onclick = async () => { await C.signOut(); location.reload(); }; }
+      else {
+        af.innerHTML = '<div class="row"><input id="acMail" type="email" placeholder="ton@email.fr" style="flex:1;min-width:0"><button class="pri" id="acGo">Recevoir le lien</button></div><p class="note" id="acMsg">Pas de mot de passe : tu reçois un lien de connexion par e-mail.</p>';
+        $('acGo').onclick = async () => { const m = $('acMail').value.trim(); if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(m)) { $('acMsg').textContent = 'Adresse e-mail invalide.'; return; } $('acMsg').textContent = 'Envoi…'; try { await C.signIn(m); $('acMsg').innerHTML = '<b>Lien envoyé !</b> Ouvre l’e-mail et clique dessus (regarde aussi les spams).'; } catch (e) { $('acMsg').textContent = 'Échec : ' + ((e && e.message) || e); } };
+      }
+    }
     if (!u) return;
     if (!$('pname').value) { $('pname').value = (u.email || '').split('@')[0].slice(0, 24); }
     try {

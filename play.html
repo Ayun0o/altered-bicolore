@@ -328,29 +328,56 @@ button.mini{min-height:24px;padding:0 7px;font-size:11px}
 .stt{width:100%;border-collapse:collapse;font-size:13px}.stt th{font-weight:600;text-align:left;opacity:.7;padding:2px 6px}.stt td{padding:3px 6px;border-top:1px solid var(--line)}
 .sdot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:6px}
 .stlast{font-size:12.5px;padding:3px 8px;border-left:3px solid;margin:3px 0}.stlast.w{border-color:#3fbf6a}.stlast.l{border-color:#e0413a}
+
+#lobby{max-width:1400px;margin:24px auto;display:block}
+.lcols{display:grid;grid-template-columns:minmax(260px,1fr) minmax(320px,1.4fr) minmax(280px,1.1fr);gap:16px;align-items:start;margin-top:12px}
+.lcol{display:grid;gap:14px}
+.lh2{font-size:20px;margin-bottom:10px}
+.lbl{display:block}
+.scrollpick{max-height:340px;overflow:auto;padding-right:4px}
+@media(max-width:1000px){.lcols{grid-template-columns:1fr}}
 </style>
 </head>
 <body>
 <section id="lobby">
-<div class="row"><h1 style="font-size:30px;margin-right:auto">Table de jeu</h1><a href="index.html">← Deckbuilder</a></div>
+<div class="row lhead"><h1 style="font-size:30px;margin-right:auto">Table de jeu</h1><a href="index.html">← Deckbuilder</a></div>
+<div class="lcols">
+<div class="lcol">
 <div class="box">
-<label><span class="lbl">Ton pseudo</span><input id="pname" maxlength="24" style="width:100%" placeholder="Facultatif — sinon « Joueur 1 » (qui crée) ou « Joueur 2 » (qui rejoint)"></label>
-<div style="margin-top:10px"><span class="lbl">Ton deck (les tiens ou un deck de départ officiel)</span><select id="pdeck" class="hidden"></select><div id="pdeckPick"></div></div>
-<p class="note" id="deckNote"></p>
+<label><span class="lbl">Ton pseudo</span><input id="pname" maxlength="24" style="width:100%" placeholder="Facultatif (sinon Joueur 1 / Joueur 2)"></label>
 </div>
-<div class="box"><h2 style="font-size:20px;margin-bottom:8px">Mes statistiques</h2><p class="note" id="acctInfo"></p><div id="statsBox"></div></div>
 <div class="box">
-<h2 style="font-size:20px;margin-bottom:8px">Jouer contre un ami</h2>
-<div class="row"><button class="pri" id="bHost">Créer une partie</button><span class="note">Tu obtiens un code à envoyer à ton adversaire.</span></div>
-<div class="row" style="margin-top:10px"><input id="jcode" placeholder="Code reçu (ex. K7P2QX)" maxlength="6" style="text-transform:uppercase;width:180px"><button id="bJoin">Rejoindre</button></div>
+<h2 class="lh2">Jouer contre un ami</h2>
+<span class="lbl">Rejoindre avec le code reçu</span>
+<div class="row"><input id="jcode" placeholder="Ex. K7P2QX" maxlength="6" style="text-transform:uppercase;flex:1;min-width:0"><button class="pri" id="bJoin">Rejoindre</button></div>
+<span class="lbl" style="margin-top:14px">Ou créer une partie</span>
+<button class="pri" id="bHost" style="width:100%">Créer une partie</button>
+<p class="note">Tu obtiens un code à envoyer à ton adversaire. La partie utilise le deck choisi au centre.</p>
 <p id="lobbyMsg" class="note"></p>
 </div>
-<div class="box">
-<h2 style="font-size:20px;margin-bottom:8px">S'entraîner seul</h2>
-<span class="lbl">Deck adverse</span><select id="sdeck" class="hidden"></select><div id="sdeckPick"></div><div class="row" style="margin-top:8px"><button id="bSolo" class="pri">Lancer la partie d'essai</button></div>
-<p class="note">Tu contrôles les deux joueurs (bouton « Changer de côté »). Pratique pour tester un deck ou apprendre les règles.</p>
+<p class="note">La plupart des effets des cartes s'appliquent tout seuls ; les rares effets situationnels se règlent avec les boutons de chaque carte.</p>
 </div>
-<p class="note">La plupart des effets des cartes s'appliquent tout seuls ; les rares effets situationnels se règlent avec les boutons de chaque carte. Le tour de jeu, le mana, la pioche, le Crépuscule, la Nuit et la victoire sont automatiques.</p>
+<div class="lcol">
+<div class="box">
+<h2 class="lh2">Ton deck</h2>
+<select id="pdeck" class="hidden"></select><div id="pdeckPick"></div>
+<p class="note" id="deckNote"></p>
+</div>
+<div class="box">
+<h2 class="lh2">S'entraîner seul</h2>
+<span class="lbl">Deck adverse</span><select id="sdeck" class="hidden"></select><div id="sdeckPick" class="scrollpick"></div><div class="row" style="margin-top:8px"><button id="bSolo" class="pri">Lancer la partie d'essai</button></div>
+<p class="note">Tu contrôles les deux joueurs (bouton « Changer de côté »).</p>
+</div>
+</div>
+<div class="lcol">
+<div class="box">
+<h2 class="lh2">Mon compte</h2>
+<p class="note" id="acctInfo">Chargement…</p>
+<div id="acctForm"></div>
+</div>
+<div class="box"><h2 class="lh2">Mes statistiques</h2><div id="statsBox"></div></div>
+</div>
+</div>
 </section>
 
 <section id="game" class="hidden">
@@ -377,8 +404,8 @@ button.mini{min-height:24px;padding:0 7px;font-size:11px}
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script src="js/cloud.js"></script>
-<script src="js/engine.js?v=1795703763"></script>
-<script src="js/net.js?v=1795703763"></script>
-<script src="js/play.js?v=1795703763"></script>
+<script src="js/engine.js?v=1795704288"></script>
+<script src="js/net.js?v=1795704288"></script>
+<script src="js/play.js?v=1795704288"></script>
 </body>
 </html>
