@@ -438,8 +438,13 @@ body[data-mood=night] .actionbox,body[data-mood=dusk] .actionbox{box-shadow:none
  #myMana{left:16px!important;bottom:14px!important}
  .exprow{align-items:stretch!important}
  .hand{grid-template-columns:minmax(0,1fr)!important}
- .hand .handleft{position:absolute;left:8px;top:-30px;margin:0!important;padding:0!important;z-index:5}
- .hand .cards#hand{grid-column:1}
+ .hand:has(#rsvTog){grid-template-columns:auto minmax(0,1fr)!important}
+ .hand .handleft{margin:0!important;padding:0 0 4px!important;gap:0!important;align-self:end}
+ .hand:not(:has(#rsvTog)) .handleft{position:absolute;width:0;overflow:visible}
+ .tot{gap:3px!important}
+ .tot .pill{min-width:0!important;width:21px;height:21px;padding:0!important;font-size:11px!important;line-height:21px!important;display:inline-flex;align-items:center;justify-content:center}
+ .tot .pill s{display:none}
+ .zone.exp.eH .xstats{margin-left:-2px!important}.zone.exp.eC .xstats{margin-right:-2px!important}
  .hand .cards#hand{width:fit-content;max-width:100%;justify-self:center;justify-content:flex-start!important;overflow-x:auto}
  #rsvTog{min-height:0;padding:4px 7px;font-size:11px;font-weight:600;border-radius:9px;display:flex;flex-direction:column;align-items:center;gap:3px;background:#000a;color:#fff;border-color:#fff3;line-height:1.1}
  #rsvTog.on{background:var(--acc,#3b82f6);border-color:transparent}
