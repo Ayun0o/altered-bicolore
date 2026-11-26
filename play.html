@@ -510,6 +510,10 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 .hname{color:#fff!important;font-weight:800!important;text-shadow:0 1px 3px #000,0 0 8px #000c;border-bottom:2px solid var(--fc,#fff);padding:0 3px 1px;line-height:1.2}
 
 .c.can{box-shadow:0 0 0 2px #ffffffd0,0 0 12px 3px #ffffff88!important;border-radius:6px}
+
+.lx{display:flex;flex-direction:column;gap:1px;padding:5px 0;border-bottom:1px solid var(--line);font-size:12.5px;line-height:1.35}
+.lx b{font-size:13px}.lx span{color:#c9ccd2}
+.lxs{display:inline-block;min-width:22px;color:#fff!important;font-size:15px}
 </style>
 </head>
 <body>
@@ -569,7 +573,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 <aside class="side" id="side">
 <div id="detail" class="det"></div>
 <details class="zone toolsz" id="toolsBox" open><summary><h3>Outils</h3></summary>
-<div class="acts"><button data-do="undo" title="Annuler ta dernière action">↶ Annuler</button><button data-tool="draw">Piocher 1</button><button data-tool="manaAdd">Mana +1</button><button data-tool="manaDel">Mana −1</button></div>
+<div class="acts"><button data-do="undo" title="Annuler ta dernière action">↶ Annuler</button><button data-tool="draw">Piocher 1</button><button data-tool="manaAdd">Mana +1</button><button data-tool="manaDel">Mana −1</button><button data-tool="lex" title="Symboles et mots-clés">📖 Lexique</button></div>
 <div id="cardActs" class="acts"></div>
 <details class="adv"><summary>Options avancées</summary><div id="costSlot"></div><div class="acts">
 <button data-tool="resupply">Ravitailler</button><button data-tool="shuffle">Mélanger le deck</button><button data-tool="token">Créer un jeton</button><button data-tool="discard">Voir défausses</button><button data-tool="lang">FR / EN</button><button data-tool="sfx" title="Activer / couper les sons">🔊 Sons</button>
@@ -586,7 +590,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 <script src="js/engine.js?v=1795728589"></script>
 <script src="js/ai.js?v=1795716790"></script>
 <script src="js/net.js?v=1795716790"></script>
-<script src="js/play.js?v=1795728589"></script>
+<script src="js/play.js?v=1795728748"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
  t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');
