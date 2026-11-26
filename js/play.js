@@ -22,6 +22,7 @@
   }
   const FC = { AX: '#a0661c', BR: '#c83a35', LY: '#c5487a', MU: '#4f8a1f', OR: '#2f74c0', YZ: '#6c5fcf' };
   const FN = { AX: 'Axiom', BR: 'Bravos', LY: 'Lyra', MU: 'Muna', OR: 'Ordis', YZ: 'Yzmir' };
+  const DELETED = new Set();
   function deckList() {
     const all = store.get('alt-bi-decks', {});
     const mine = decks().map(([k, v]) => ({ id: k, name: v.name || 'Sans nom', hero: v.hero, sec: v.sec || '', n: Object.values(v.cards || {}).reduce((a, b) => a + b, 0), g: 'Mes decks' }));
@@ -36,7 +37,7 @@
       const on = d.id === cur;
       return head + '<button type="button" data-pick="' + esc(selId) + '" data-val="' + esc(d.id) + '" style="display:flex;gap:8px;align-items:center;text-align:left;justify-content:flex-start;' + (on ? 'outline:2px solid ' + (FC[f] || 'var(--acc)') + ';background:var(--soft)' : '') + '">' +
         (f ? dot(f) : '') + (d.sec && FC[d.sec] ? dot(d.sec) : '') +
-        '<span style="flex:1"><b>' + esc(d.name) + '</b><br><span class="small"><span style="color:' + (FC[f] || 'inherit') + ';font-weight:600">' + esc(FN[f] || '') + '</span>' + (d.sec && FN[d.sec] ? ' + <span style="color:' + FC[d.sec] + ';font-weight:600">' + FN[d.sec] + '</span>' : '') + ' · ' + esc(NM(DB[d.hero])) + ' · ' + d.n + ' cartes</span></span></button>';
+        '<span style="flex:1"><b>' + esc(d.name) + '</b><br><span class="small"><span style="color:' + (FC[f] || 'inherit') + ';font-weight:600">' + esc(FN[f] || '') + '</span>' + (d.sec && FN[d.sec] ? ' + <span style="color:' + FC[d.sec] + ';font-weight:600">' + FN[d.sec] + '</span>' : '') + ' · ' + esc(NM(DB[d.hero])) + ' · ' + d.n + ' cartes</span></span>' + (d.g === 'Mes decks' ? '<span class="pdel" data-del="' + esc(d.id) + '" title="Supprimer ce deck" role="button">🗑</span>' : '') + '</button>';
     }).join('') + '</div>';
   }
   function renderPickers() { for (const id of ['pdeck', 'sdeck']) { const box = $(id + 'Pick'); if (box) box.innerHTML = picker(id, $(id).value); } }
@@ -58,7 +59,17 @@
         store.set('alt-bi-decks', all); store.set('alt-bi-lastdeck', id); } } catch (e) { } history.replaceState(null, '', location.pathname + (new URLSearchParams(location.search).get('join') ? '?join=' + new URLSearchParams(location.search).get('join') : '')); }
     $('pname').value = store.get('alt-bi-name', '');
     $('pdeck').innerHTML = deckOpts(store.get('alt-bi-lastdeck', '')); $('sdeck').innerHTML = deckOpts(''); renderPickers();
-    document.addEventListener('click', e => { const b = e.target.closest('[data-pick]'); if (!b) return; $(b.dataset.pick).value = b.dataset.val; if (b.dataset.pick === 'pdeck') store.set('alt-bi-lastdeck', b.dataset.val); renderPickers(); });
+    document.addEventListener('click', async e => {
+      const del = e.target.closest('[data-del]');
+      if (del) { e.stopPropagation(); const id = del.dataset.del, all = store.get('alt-bi-decks', {}), d = all[id]; if (!d) return;
+        if (!confirm('Supprimer le deck « ' + (d.name || 'Sans nom') + ' » ? C’est définitif.')) return;
+        delete all[id]; store.set('alt-bi-decks', all); DELETED.add(id);
+        try { const C = window.AltCloud; if (C && C.user && C.user()) await C.db().collection('decks').doc(id).delete(); } catch (x) { }
+        for (const k of ['pdeck', 'sdeck']) if ($(k) && $(k).value === id) $(k).value = '';
+        if (store.get('alt-bi-lastdeck', '') === id) store.set('alt-bi-lastdeck', '');
+        const L = deckList(); for (const k of ['pdeck', 'sdeck']) if ($(k) && !$(k).value && L[0]) $(k).value = L[0].id;
+        renderPickers(); return; }
+      const b = e.target.closest('[data-pick]'); if (!b) return; $(b.dataset.pick).value = b.dataset.val; if (b.dataset.pick === 'pdeck') store.set('alt-bi-lastdeck', b.dataset.val); renderPickers(); });
     $('deckNote').textContent = decks().length ? '' : 'Pas encore de deck perso sur ce navigateur : joue avec un deck de départ officiel, ou crée le tien dans le deckbuilder.';
     $('pname').oninput = () => store.set('alt-bi-name', $('pname').value);
     $('pdeck').onchange = () => store.set('alt-bi-lastdeck', $('pdeck').value);
@@ -85,7 +96,7 @@
     if (!u) return;
     if (!$('pname').value) { $('pname').value = (u.email || '').split('@')[0].slice(0, 24); }
     try {
-      const db = C.db(); db.collection('decks').onSnapshot(s => { const all = store.get('alt-bi-decks', {}); for (const x of s.docs) { const v = x.data(); if (v && v.hero && (!all[x.id] || (v.updated || 0) >= (all[x.id].updated || 0))) all[x.id] = v; } store.set('alt-bi-decks', all); $('pdeck').innerHTML = deckOpts($('pdeck').value || store.get('alt-bi-lastdeck', '')); $('sdeck').innerHTML = deckOpts($('sdeck').value); renderPickers(); });
+      const db = C.db(); db.collection('decks').onSnapshot(s => { const all = store.get('alt-bi-decks', {}); for (const x of s.docs) { const v = x.data(); if (DELETED.has(x.id)) continue; if (v && v.hero && (!all[x.id] || (v.updated || 0) >= (all[x.id].updated || 0))) all[x.id] = v; } store.set('alt-bi-decks', all); $('pdeck').innerHTML = deckOpts($('pdeck').value || store.get('alt-bi-lastdeck', '')); $('sdeck').innerHTML = deckOpts($('sdeck').value); renderPickers(); });
       // statistiques locales déjà jouées : envoyées une fois sur le compte
       const loc = store.get('alt-bi-stats', { games: [] }); const sent = store.get('alt-bi-stats-sent', 0);
       for (const g of (loc.games || []).slice(sent)) await C.addGame(g); store.set('alt-bi-stats-sent', (loc.games || []).length);
