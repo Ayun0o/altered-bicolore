@@ -136,6 +136,7 @@ textarea{width:100%;min-height:140px;font-size:13px}
 <div class="row" style="margin-top:14px">
 <button id="addU">Ajouter un unique</button>
 <button id="exp">Copier la liste</button>
+<button id="shareLink">Copier le lien du deck</button>
 <button id="imp">Importer</button>
 <button id="del" style="margin-left:auto;color:var(--bad)">Supprimer</button>
 </div>
@@ -183,6 +184,8 @@ let LANG='fr';try{LANG=localStorage.getItem('alt-bi-lang')==='en'?'en':'fr'}catc
 const TYE={HERO:'Hero',CHARACTER:'Character',SPELL:'Spell',LANDMARK_PERMANENT:'Landmark',EXPEDITION_PERMANENT:'Expedition permanent',PERMANENT:'Permanent'};
 const SETE={CORE:'Beyond the Gates',ALIZE:'Trial by Frost',BISE:'Whispers from the Maze',CYCLONE:'Skybound Odyssey',DUSTER:'Seeds of Unity',EOLE:'Roots of Corruption'};
 const EN=()=>LANG==='en';const NM=c=>EN()?c.en:c.n;const TX=c=>EN()?c.xe:c.x;const EC=c=>EN()?c.ee:c.e;const ST=c=>EN()?c.ste:c.st;const TYL=t=>(EN()?TYE:TYN)[t];const SETL=s=>(EN()?SETE:SETN)[s];
+const deckCode=d=>{const o={n:d.name,h:d.hero,s:d.sec,c:d.cards,u:d.uniques};return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
+const deckFromCode=s=>{try{s=String(s).replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const o=JSON.parse(decodeURIComponent(escape(atob(s))));return{name:String(o.n||'Deck importé').slice(0,80),hero:o.h,sec:o.s||'',cards:o.c||{},uniques:Array.isArray(o.u)?o.u:[],updated:Date.now()}}catch(e){return null}};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 const $=id=>document.getElementById(id);
@@ -314,6 +317,7 @@ $('imp').onclick=()=>{$('ioT').textContent='Importer une liste';$('ioTx').value=
    if(BY[m[3]])d.cards[m[3]]=(d.cards[m[3]]||0)+(+m[1]);else miss++}
   touch();renderAll();$('ioNote').textContent=miss?miss+' ligne(s) non reconnue(s).':'Importé.'};$('ioDlg').showModal()};
 $('ioClose').onclick=()=>$('ioDlg').close();
+$('shareLink').onclick=async()=>{const u=location.origin+location.pathname.replace(/[^/]*$/,'')+'index.html?deck='+deckCode(D());try{await navigator.clipboard.writeText(u);$('saveNote').textContent='Lien du deck copié : envoie-le, il s\u2019importera chez la personne qui l\u2019ouvre.'}catch(e){$('ioT').textContent='Lien du deck';$('ioTx').value=u;$('ioOk').textContent='OK';$('ioOk').onclick=()=>$('ioDlg').close();$('ioNote').textContent='Copie ce lien.';$('ioDlg').showModal()}};
 
 let uList=[];function uRender(){const q=norm($('uQ').value);const seen=new Set();uList=CARDS.filter(c=>c.t==='CHARACTER'&&(!q||norm(c.n+' '+c.en).includes(q))).filter(c=>{const k=norm(c.n);if(seen.has(k))return false;seen.add(k);return true}).slice(0,80);$('uPick').innerHTML=uList.map((c,i)=>'<option value="'+i+'">'+esc(NM(c))+' ('+esc(FN[c.h])+')</option>').join('')}
 $('addU').onclick=()=>{const d=D(),P=BY[d.hero]?.f;$('uFac').innerHTML=[P,d.sec].filter(Boolean).map(f=>'<option value="'+f+'">'+FN[f]+'</option>').join('')||FAC.map(f=>'<option value="'+f+'">'+FN[f]+'</option>').join('');$('uQ').value='';uRender();$('uDlg').showModal()};
@@ -341,8 +345,10 @@ async function start(){
  
  $('facF').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;e.stopPropagation();const f=b.dataset.fac;fac.has(f)?fac.delete(f):fac.add(f);shown=60;renderGrid()});
  try{const f=validFmt(JSON.parse(localStorage.getItem('alt-bi-fmt')||'null'));if(f)fmt=f;const ds=JSON.parse(localStorage.getItem('alt-bi-decks')||'null');if(ds)for(const [k,v] of Object.entries(ds)){const c=cleanDeck(v);if(c)decks[k]=c}cur=localStorage.getItem('alt-bi-cur')}catch(e){}
+ const qd=new URLSearchParams(location.search).get('deck');if(qd){const nd=deckFromCode(qd);if(nd&&BY[nd.hero]){const id='d'+Date.now().toString(36);decks[id]=cleanDeck(nd);cur=id;try{localStorage.setItem('alt-bi-decks',JSON.stringify(decks));localStorage.setItem('alt-bi-cur',id)}catch(e){}history.replaceState(null,'',location.pathname);setTimeout(()=>{$('saveNote').textContent='Deck importé depuis le lien.'},50)}}
  if(!Object.keys(decks).length){decks.d0=newDeckObj('Mon premier deck')}
  if(!decks[cur])cur=Object.keys(decks)[0];
+ if(qd)try{localStorage.setItem('alt-bi-cur',cur)}catch(e){}
  renderAll();$('sync').textContent='Decks gardés dans ce navigateur (copie la liste pour les partager)';
  const cl=window.claude;if(!cl||!cl.use)return;
  db=await cl.use('db').catch(()=>null);if(!db){$('sync').textContent='Decks gardés dans ce navigateur';return}

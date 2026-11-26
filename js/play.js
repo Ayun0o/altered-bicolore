@@ -19,6 +19,12 @@
 
   async function init() {
     try { const r = await fetch('cards.json'); for (const c of await r.json()) DB[c.r] = c; } catch (e) { $('lobbyMsg').textContent = 'Impossible de charger les cartes.'; return; }
+    const qd = new URLSearchParams(location.search).get('deck');
+    if (qd) { try { let s = qd.replace(/-/g, '+').replace(/_/g, '/'); while (s.length % 4) s += '='; const o = JSON.parse(decodeURIComponent(escape(atob(s))));
+      if (o && DB[o.h]) { const all = store.get('alt-bi-decks', {}); const cards = {}; for (const [r, n] of Object.entries(o.c || {})) if (DB[r]) cards[r] = Math.max(0, Math.min(9, n | 0));
+        const name = String(o.n || 'Deck importé').slice(0, 80); let id = Object.keys(all).find(k => all[k] && all[k].name === name && all[k].hero === o.h);
+        id = id || ('d' + Date.now().toString(36)); all[id] = { name, hero: o.h, sec: o.s || '', cards, uniques: Array.isArray(o.u) ? o.u : [], updated: Date.now() };
+        store.set('alt-bi-decks', all); store.set('alt-bi-lastdeck', id); } } catch (e) { } history.replaceState(null, '', location.pathname + (new URLSearchParams(location.search).get('join') ? '?join=' + new URLSearchParams(location.search).get('join') : '')); }
     $('pname').value = store.get('alt-bi-name', '');
     $('pdeck').innerHTML = deckOpts(store.get('alt-bi-lastdeck', '')); $('sdeck').innerHTML = deckOpts('');
     $('deckNote').textContent = decks().length ? '' : 'Tu n’as pas encore de deck sur ce navigateur : ouvre le deckbuilder, crée un deck avec un héros, puis reviens ici.';
