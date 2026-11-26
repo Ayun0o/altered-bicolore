@@ -167,12 +167,19 @@
     if (ch.kind === 'char') return L.z === 'exp' && (c.tok || (DB[c.ref] || {}).t === 'CHARACTER') && (ch.max == null || c.tok || E.num(DB[c.ref].c) <= ch.max);
     return false;
   }
+  let GLOW = new Set();
+  function computeGlow() {
+    GLOW = new Set(); if (!V) return;
+    const key = V.pending === 'dusk' || V.step === 'DUSK' ? 'at dusk' : (V.pending === 'night' || V.step === 'NIGHT') ? 'at night' : (V.step === 'NOON' || V.pending === 'noon' || (V.step === 'AFTERNOON' && !V.played)) ? 'at noon' : null;
+    if (!key) return;
+    for (const X of V.players) { if (!X) continue; for (const id of [X.hero, ...X.lm, ...X.exp.H, ...X.exp.C, ...X.reserve]) { const c = id && V.cards[id]; const d = c && !c.tok && DB[c.ref]; if (d && ((d.xe || '') + ' ' + (d.ee || '')).toLowerCase().includes(key)) GLOW.add(id); } }
+  }
   function cardEl(id) {
     const c = card(id); if (!c) return '<div class="c"><div class="tok">?</div></div>';
     const b = []; if (c.boost) b.push('+' + c.boost); if (c.fleeting) b.push('fugace'); if (c.anchored) b.push('ancré'); if (c.asleep) b.push('endormi');
     const k = keep.R.has(id) || keep.L.has(id) || pick.has(id);
     const P = V.players[me]; const drag = P && c.owner === me && (P.hand.includes(id) || P.reserve.includes(id));
-    return '<div class="c' + (c.ex ? ' ex' : '') + (sel === id || k ? ' sel' : '') + (isTarget(id) ? ' tgt' : '') + '" data-id="' + esc(id) + '"' + (drag ? ' draggable="true"' : '') + '>' + img(c) + (b.length ? '<div class="bd">' + b.map(x => '<b>' + esc(x) + '</b>').join('') + '</div>' : '') + '</div>';
+    return '<div class="c' + (c.ex ? ' ex' : '') + (sel === id || k ? ' sel' : '') + (isTarget(id) ? ' tgt' : '') + (GLOW.has(id) ? ' trig' : '') + '" data-id="' + esc(id) + '"' + (drag ? ' draggable="true"' : '') + '>' + img(c) + (b.length ? '<div class="bd">' + b.map(x => '<b>' + esc(x) + '</b>').join('') + '</div>' : '') + '</div>';
   }
   const cardsEl = ids => ids.map(cardEl).join('') || '<span class="note empty">—</span>';
   const PH = { SETUP_MANA: 'Mise en place', MORNING: 'Matin', EXPAND: 'Matin', NOON: 'Midi', AFTERNOON: 'Après-midi', DUSK: 'Crépuscule', NIGHT: 'Nuit', CLEANUP: 'Nuit', END: 'Fin de partie' };
@@ -186,8 +193,13 @@
     const zone = e => {
       const t = E.totals(V, p, e, DB), ot = V.players[o] ? E.totals(V, o, e, DB) : { F: 0, M: 0, W: 0 };
       const reg = V.adv[X.pos[e]]; const terr = reg ? reg.terr : [];
-      const tot = ['F', 'M', 'W'].map(k => '<span class="' + (terr.includes(k) ? 'act ' : 'off ') + (terr.includes(k) && t[k] > ot[k] && t[k] > 0 ? 'win' : '') + '" title="' + TL[k] + (terr.includes(k) ? ' (terrain de la région actuelle)' : '') + '"><span class="ter ' + k + '">' + TL[k][0] + '</span>' + t[k] + '</span>').join('');
-      return '<div class="zone exp' + (mine ? ' mine' : '') + '"' + (mine ? ' data-drop="' + e + '"' : '') + '><h3>' + (e === 'H' ? 'Héros' : 'Compagnon') + ' <span class="tot">' + tot + '</span><span class="sp"></span><button class="mini" data-pos="' + p + ',' + e + ',-1" title="Reculer l’expédition">◀</button><button class="mini" data-pos="' + p + ',' + e + ',1" title="Avancer l’expédition">▶</button></h3><div class="cards">' + cardsEl(X.exp[e]) + '</div></div>';
+      const asc = X.asc && X.asc[e];
+      const winT = V.tie ? [] : terr.filter(k => (t[k] > ot[k] || (asc && t[k] === ot[k])) && t[k] > 0);
+      const blocked = X.exp[e].some(id => { const c = card(id); return c && !c.tok && !c.asleep && E.kw(DB[c.ref]).defender; });
+      const will = winT.length && !blocked;
+      const tot = ['F', 'M', 'W'].map(k => '<span class="' + (terr.includes(k) ? 'act ' : 'off ') + (winT.includes(k) ? 'win w' + k : '') + '" title="' + TL[k] + (terr.includes(k) ? ' (terrain de la région actuelle)' : '') + '"><span class="ter ' + k + '">' + TL[k][0] + '</span>' + t[k] + '</span>').join('');
+      const badge = V.tie ? '' : will ? '<span class="will">▲ avance ce soir</span>' : (winT.length && blocked ? '<span class="nowill">bloquée (Défenseur)</span>' : '');
+      return '<div class="zone exp' + (mine ? ' mine' : '') + (will ? ' willz' : '') + '"' + (mine ? ' data-drop="' + e + '"' : '') + '><h3>' + (e === 'H' ? 'Héros' : 'Compagnon') + ' <span class="tot">' + tot + '</span>' + badge + (asc ? '<span class="will" style="background:#7b5cd6">élevée</span>' : '') + '<span class="sp"></span><button class="mini" data-pos="' + p + ',' + e + ',-1" title="Reculer l’expédition">◀</button><button class="mini" data-pos="' + p + ',' + e + ',1" title="Avancer l’expédition">▶</button></h3><div class="cards">' + cardsEl(X.exp[e]) + '</div></div>';
     };
     return zone('H') + '<div class="herocol">' + (X.hero ? cardEl(X.hero) : '') + '<span class="hname" style="color:' + (FC[(DB[(card(X.hero) || {}).ref] || {}).f] || 'inherit') + '">' + esc(X.name) + '</span></div>' + zone('C');
   }
@@ -198,7 +210,14 @@
   const SH = '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2 20 5v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z" fill="currentColor"/><path d="M12 6l1.6 3.3 3.6.5-2.6 2.5.6 3.6L12 14.2 8.8 15.9l.6-3.6-2.6-2.5 3.6-.5z" fill="#fff"/></svg>';
   const PAW = '<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="11" fill="currentColor"/><g fill="#fff"><ellipse cx="12" cy="15.5" rx="4" ry="3.2"/><circle cx="7" cy="10.5" r="1.8"/><circle cx="10.2" cy="7.5" r="1.8"/><circle cx="13.8" cy="7.5" r="1.8"/><circle cx="17" cy="10.5" r="1.8"/></g></svg>';
   function marker(p, e) { const X = V.players[p]; return '<span class="mk2 ' + (p === me ? 'me' : 'opp') + '" style="color:' + (p === me ? '#f5c518' : '#e0413a') + '" title="' + esc(X.name) + ' — expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + '">' + (e === 'H' ? SH : PAW) + '<i>' + (p === me ? 'moi' : 'adv') + '</i></span>'; }
+  function arena() {
+    const sum = p => { const a = E.totals(V, p, 'H', DB), b = E.totals(V, p, 'C', DB); return { F: a.F + b.F, M: a.M + b.M, W: a.W + b.W }; };
+    const A = sum(me), B = sum(1 - me); let a = 0, b = 0; ['F', 'M', 'W'].forEach(t => { if (A[t] > B[t]) a++; else if (B[t] > A[t]) b++; });
+    const col = (t) => '<div class="half"><div class="bgs"><span style="background-image:url(img/ui/' + ({ F: 'forest', M: 'mountain', W: 'water' })[t] + '.svg)"></span></div><b class="arn">' + TL[t] + '</b><span class="arv ' + (A[t] > B[t] ? 'me' : B[t] > A[t] ? 'opp' : '') + '">Toi ' + A[t] + ' — ' + B[t] + ' Adv</span></div>';
+    return '<div class="advcard" style="grid-column:1/-1"><span class="lab">Arène — départage : la somme de tes deux expéditions par terrain. Tu gagnes ' + a + ' terrain(s), l’adversaire ' + b + '.</span><div class="halves" style="grid-template-columns:1fr 1fr 1fr">' + col('F') + col('M') + col('W') + '</div></div>';
+  }
   function track() {
+    if (V.tie) return arena();
     const cell = (i) => {
       const r = V.adv[i]; const mk = [];
       V.players.forEach((X, p) => { if (!X) return; ['H', 'C'].forEach(e => { if (X.pos[e] === i) mk.push(marker(p, e)); }); });
@@ -212,6 +231,7 @@
   function render() {
     if (!V) return;
     if (V.step !== lastStep) { pick = new Set(); lastStep = V.step; }
+    computeGlow();
     const P = V.players[me], O = V.players[1 - me];
     $('phase').textContent = 'Jour ' + V.day + ' · ' + (PH[V.step] || V.step) + (V.tie ? ' · Arène' : '');
     $('turnInfo').textContent = !O ? 'En attente du deuxième joueur…' : 'Premier joueur : ' + V.players[V.first].name + (V.step === 'AFTERNOON' ? ' · au tour de ' + V.players[V.turn].name : '');

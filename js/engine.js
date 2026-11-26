@@ -74,6 +74,7 @@
   function moveTo(s, id, z, e, top) {
     const c = s.cards[id]; const from = detach(s, id); if (!c || !from || from.z === 'hero') return;
     const P = s.players[c.owner];
+    if (from.z === 'exp' && z !== 'exp' && !c.tok) ev(s, { k: 'leave', p: c.owner, id, e: from.e });
     if (c.tok && z !== 'exp') { delete s.cards[id]; return; }
     if (from.z === 'exp' && z !== 'exp') { c.boost = 0; c.anchored = false; c.asleep = false; }
     if (z === 'discard' || z === 'hand' || z === 'deck') { c.boost = 0; c.fleeting = false; c.ex = false; c.anchored = false; c.asleep = false; }
@@ -124,7 +125,9 @@
     if (/^\[exhausted resupply\]$/.test(b)) return { k: 'resupply', ex: true };
     if ((m = b.match(/^i gain \[\[?(anchored|asleep|fleeting)\]?\]$/))) return { k: 'selfFlag', f: m[1], v: true };
     if ((m = b.match(/^i lose \[\[?(anchored|asleep|fleeting)\]?\]$/))) return { k: 'selfFlag', f: m[1], v: false };
-    if ((m = b.match(/^i gain (\d+) boosts?$/))) return { k: 'selfBoost', n: +m[1] };
+    if ((m = b.match(/^i gain (\d+) boosts?(?:, up to a max of (\d+))?$/))) return { k: 'selfBoost', n: +m[1], max: m[2] ? +m[2] : null };
+    if ((m = b.match(/^it gains (\d+) boosts?$/))) return { k: 'itBoost', n: +m[1] };
+    if (/^my expedition moves forward one region$/.test(b)) return { k: 'myExpFwd' };
     if ((m = b.match(/^draw (a|an|one|two|three|four|\d+) cards?$/))) return { k: 'draw', n: NUMW[m[1]] || +m[1] };
     if (/^\[sabotage\]$/.test(b)) return { k: 'choose', kind: 'reserve', opt: true, act: { k: 'discard' }, label: 'Sabotage : choisis une carte dans une réserve à défausser' };
     if ((m = b.match(/^target character (?:with hand cost \{(\d+)\} or less )?gains (\d+) boosts?$/))) return { k: 'choose', kind: 'char', max: m[1] ? +m[1] : null, act: { k: 'boost', n: +m[2] }, label: 'Choisis un personnage qui gagne ' + m[2] + ' boost(s)' + (m[1] ? ' (coût de main ' + m[1] + ' ou moins)' : '') };
@@ -168,17 +171,20 @@
     return acts.every(Boolean) ? acts : null;
   }
   function expOf(s, id) { const w = where(s, id); return w && w.z === 'exp' ? w.e : null; }
-  function doAction(s, p, self, a, db) {
+  function doAction(s, p, self, a, db, ctx) {
+    ctx = ctx || {};
     const P = s.players[p], c = s.cards[self];
     const nm = () => c ? cname(s, self, db) : '';
     switch (a.k) {
       case 'resupply': { if (!P.deck.length && P.discard.length) { P.deck = P.discard.splice(0); shuffle(P.deck, Math.random); } const id = P.deck.shift(); if (id) { P.reserve.push(id); if (a.ex) s.cards[id].ex = true; log(s, '→ ' + P.name + ' se ravitaille' + (a.ex ? ' (carte épuisée)' : '') + ' : ' + cname(s, id, db) + '.'); } break; }
       case 'selfFlag': if (c && expOf(s, self)) { c[a.f] = a.v; log(s, '→ ' + nm() + (a.v ? ' devient ' : ' perd ') + ({ anchored: 'ancré', asleep: 'endormi', fleeting: 'fugace' })[a.f] + '.'); } break;
-      case 'selfBoost': if (c && expOf(s, self)) { c.boost += a.n; log(s, '→ ' + nm() + ' gagne ' + a.n + ' boost(s).'); } break;
+      case 'selfBoost': { const w = c && where(s, self); if (c && w && (w.z === 'exp' || w.z === 'reserve')) { const before = c.boost; c.boost = a.max != null ? Math.min(a.max, c.boost + a.n) : c.boost + a.n; if (c.boost !== before) log(s, '→ ' + nm() + ' gagne ' + (c.boost - before) + ' boost(s).'); } break; }
+      case 'itBoost': { const t = ctx.target && s.cards[ctx.target]; if (t && expOf(s, ctx.target)) { t.boost += a.n; log(s, '→ ' + cname(s, ctx.target, db) + ' gagne ' + a.n + ' boost(s).'); } break; }
+      case 'myExpFwd': { const e = ctx.e || expOf(s, self); if (e) { const np = P.pos[e] + (e === 'H' ? 1 : -1); if (np >= 0 && np <= LAST) { const r = s.adv[np]; if (!r.up) s.adv.forEach(x => { if (x.card === r.card) x.up = true; }); P.pos[e] = np; log(s, '→ l’expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + ' de ' + P.name + ' avance.'); } } break; }
       case 'draw': for (let i = 0; i < a.n; i++) draw(s, p); log(s, '→ ' + P.name + ' pioche ' + a.n + ' carte(s).'); break;
       case 'token': {
-        const es = a.where === 'both' ? ['H', 'C'] : [a.e || expOf(s, self) || 'H'];
-        for (const e of es) { const id = 't' + (s.nid++); s.cards[id] = { id, ref: '__token', owner: p, boost: 0, ex: false, fleeting: false, anchored: false, asleep: false, tok: { n: a.tok.n, p: a.tok.p.slice() } }; P.exp[e].push(id); }
+        const es = a.where === 'both' ? ['H', 'C'] : [a.e || ctx.e || expOf(s, self) || 'H'];
+        for (const e of es) { const id = 't' + (s.nid++); s.cards[id] = { id, ref: '__token', owner: p, boost: 0, ex: false, fleeting: false, anchored: false, asleep: false, tok: { n: a.tok.n, p: a.tok.p.slice() } }; P.exp[e].push(id); ev(s, { k: 'join', p, id, e }); }
         log(s, '→ ' + P.name + ' crée ' + (es.length > 1 ? 'des jetons ' : 'un jeton ') + a.tok.n + ' ' + a.tok.p.join('/') + '.'); break;
       }
       case 'choose': { const ch = { p, kind: a.kind, opt: !!a.opt || a.kind === 'yesno', max: a.max ?? null, act: a.act, label: a.label, src: self }; if (hasTargets(s, ch, db)) s.choices.push(ch); else log(s, '→ aucune cible possible, effet ignoré.'); break; }
@@ -241,6 +247,43 @@
     return null;
   }
   function cname(s, id, db) { const c = s.cards[id]; return c ? (c.tok ? c.tok.n : ((db[c.ref] || {}).n || '?')) : '?'; }
+  // ---------- Capacités déclenchées (« Quand… ») ----------
+  function ev(s, e) { (s.ev = s.ev || []).push(e); }
+  const TRIG = [
+    { k: 'join', re: /^when another character joins your expeditions$/, who: (s, e, P, id, w) => w.p === e.p && id !== e.id },
+    { k: 'join', re: /^when another character joins my expedition$/, who: (s, e, P, id, w) => w.p === e.p && w.z === 'exp' && w.e === e.e && id !== e.id },
+    { k: 'join', re: /^when a character joins the expedition facing me$/, who: (s, e, P, id, w) => w.p !== e.p && w.z === 'exp' && w.e === e.e },
+    { k: 'spell', re: /^when you play a spell$/, who: (s, e, P, id, w) => w.p === e.p },
+    { k: 'spell', re: /^when you play another spell$/, who: (s, e, P, id, w) => w.p === e.p && id !== e.id },
+    { k: 'char', re: /^when you play another character$/, who: (s, e, P, id, w) => w.p === e.p && id !== e.id },
+    { k: 'leave', re: /^when i leave the expedition zone$/, who: (s, e, P, id) => id === e.id },
+    { k: 'fwd', re: /^when my expedition moves forward$/, who: (s, e, P, id, w) => w.p === e.p && w.z === 'exp' && w.e === e.e },
+    { k: 'fail', re: /^when my expedition fails to move forward during dusk$/, who: (s, e, P, id, w) => w.p === e.p && w.z === 'exp' && w.e === e.e }
+  ];
+  function processEvents(s, db) {
+    let guard = 0;
+    while (s.ev && s.ev.length && guard++ < 60) {
+      const e = s.ev.shift();
+      const ids = [];
+      for (const X of s.players) ids.push(...X.exp.H, ...X.exp.C, ...X.lm, ...X.reserve);
+      if (e.k === 'leave' && !ids.includes(e.id)) ids.push(e.id);
+      for (const id of ids) {
+        const c = s.cards[id]; if (!c || c.tok) continue;
+        const d = db[c.ref]; if (!d) continue;
+        const w = where(s, id) || { p: c.owner, z: 'gone' };
+        const src = e.k === 'leave' ? (d.xe || '') : (w.z === 'reserve' ? (c.ex ? '' : (d.ee || '')) : (d.xe || ''));
+        for (const cl of clauses({ xe: src })) {
+          const m = cl.replace(/^\{i\}\s*/i, '').match(/^(when[^—-]+?)\s*[—-]\s*(.*)$/i); if (!m) continue;
+          const head = m[1].toLowerCase().trim();
+          const t = TRIG.find(x => x.k === e.k && x.re.test(head)); if (!t || !t.who(s, e, s.players[w.p], id, w)) continue;
+          const acts = parseBody(m[2]);
+          if (!acts) { log(s, '⚠ ' + cname(s, id, db) + ' : capacité déclenchée à appliquer à la main.'); continue; }
+          acts.forEach(a => doAction(s, c.owner, id, a, db, { target: e.id, e: e.e }));
+        }
+      }
+    }
+  }
+
   // Effets à l'arrivée en jeu. Renvoie le nombre de clauses non automatisées.
   const KWONLY = /^\[+[a-z][a-z ]*(?: \d+)?\]+(?:,\s*\[+[a-z][a-z ]*(?: \d+)?\]+)*\.?$/i;
   function optionsFrom(list, frList) {
@@ -319,7 +362,7 @@
           s.phase = 'NOON';
           if (s.noonDay !== s.day) { s.noonDay = s.day; s.noonManual = noonAuto(s, db); if (s.choices.length) return; }
           if (s.noonManual && !(s.ready[0] && s.ready[1])) { if (!s.pending) { s.pending = 'noon'; log(s, 'Midi : appliquez les effets « À Midi », puis validez.'); } return; }
-          s.pending = null; s.ready = [false, false]; s.phase = 'AFTERNOON'; s.step = 'AFTERNOON'; s.turn = s.first; s.passed = [false, false];
+          s.pending = null; s.ready = [false, false]; s.phase = 'AFTERNOON'; s.step = 'AFTERNOON'; s.turn = s.first; s.passed = [false, false]; s.played = 0;
           log(s, 'Après-midi : ' + s.players[s.first].name + ' commence.'); continue;
         case 'AFTERNOON':
           if (s.passed[0] && s.passed[1]) { s.phase = 'DUSK'; s.step = 'DUSK'; continue; }
@@ -365,9 +408,11 @@
       if (np < 0 || np > LAST) continue;
       const reg = s.adv[np];
       if (!reg.up) { s.adv.forEach(r => { if (r.card === reg.card) r.up = true; }); log(s, 'Une carte Tumulte est révélée.'); }
-      P.pos[e] = np;
+      P.pos[e] = np; ev(s, { k: 'fwd', p, e });
       log(s, 'Crépuscule : l’expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + ' de ' + P.name + ' avance (' + win.map(tl).join(', ') + ').');
     }
+    for (let p = 0; p < 2; p++) for (const e of ['H', 'C']) if (!moves.some(m => m[0] === p && m[1] === e)) ev(s, { k: 'fail', p, e });
+    processEvents(s, db);
     if (!moves.length) log(s, 'Crépuscule : aucune expédition n’avance.');
   }
   const tl = t => ({ F: 'forêt', M: 'montagne', W: 'eau' })[t];
@@ -384,6 +429,7 @@
         const b = k.seasoned ? c.boost : 0; moveTo(s, id, 'reserve'); c.boost = b;
       }
     }
+    processEvents(s, db);
     log(s, 'Nuit : les personnages retournent en Réserve (sauf ancrés, endormis ou éternels ; les fugaces sont défaussés).');
   }
 
@@ -470,6 +516,9 @@
         else if (d.t === 'SPELL') { if (fromRes || k.fleeting) moveTo(s, a.id, 'discard'); else { moveTo(s, a.id, 'reserve'); if (k.cooldown) c.ex = true; } }
         log(s, P.name + ' joue ' + name(a.id) + (fromRes ? ' depuis la réserve' : '') + ' (' + cost + ' mana)' + (d.t === 'CHARACTER' || d.t === 'EXPEDITION_PERMANENT' ? ' dans l’expédition ' + (a.e === 'C' ? 'Compagnon' : 'Héros') : '') + '.');
         if (d.t === 'CHARACTER') { const bi = (P.nb || []).findIndex(x => x.t === 'character' || x.t === 'card'); if (bi >= 0) { c.boost += P.nb[bi].n; log(s, '→ ' + name(a.id) + ' gagne ' + P.nb[bi].n + ' boost(s).'); P.nb.splice(bi, 1); } }
+        if (d.t === 'CHARACTER') { ev(s, { k: 'join', p, id: a.id, e: a.e === 'C' ? 'C' : 'H' }); ev(s, { k: 'char', p, id: a.id }); }
+        if (d.t === 'SPELL') ev(s, { k: 'spell', p, id: a.id });
+        s.played = (s.played || 0) + 1;
         const fx = onPlay(s, p, a.id, fromRes, db);
         if (fx.manual) log(s, '⚠ ' + name(a.id) + ' : une partie de l’effet est à appliquer à la main.');
         s.lastPlayed = { id: a.id, by: p };
@@ -514,7 +563,9 @@
       case 'note': log(s, P.name + ' : ' + String(a.m || '').slice(0, 200)); break;
       default: return 'Action inconnue';
     }
+    processEvents(s, db);
     advance(s, db);
+    processEvents(s, db);
     return null;
   }
   const zl = (z, e) => ({ hand: 'la main', reserve: 'la réserve', discard: 'la défausse', lm: 'les repères', mana: 'le mana', deck: 'le deck', exp: 'l’expédition ' + (e === 'C' ? 'Compagnon' : 'Héros') })[z] || z;
