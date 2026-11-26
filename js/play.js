@@ -147,9 +147,10 @@
   const tokName = n => { const t = TOKENS.find(x => x.en.toLowerCase() === String(n).toLowerCase()); return t ? (LANG === 'en' ? t.en : t.fr) : n; };
   const card = id => V.cards[id];
   const data = c => c && (c.tok ? null : DB[c.ref]);
-  const tokRef = n => { const t = TOKENS.find(x => x.en.toLowerCase() === String(n).toLowerCase()); return t && t.r; };
+  const LMREF = { aerolith: 'ALT_CYCLONE_B_NE_03_C', manaseed: 'ALT_DUSTER_B_NE_04_C' };
+  const tokRef = n => { const k = String(n).toLowerCase(); if (LMREF[k]) return LMREF[k]; const t = TOKENS.find(x => x.en.toLowerCase() === k); return t && t.r; };
   function img(c) {
-    if (c.tok) { const r = tokRef(c.tok.n); if (r) return '<img loading="lazy" draggable="false" alt="' + esc(tokName(c.tok.n)) + '" src="img/tok/' + r + '_' + LANG + '.webp"><span class="tokst">' + c.tok.p.join('/') + '</span>'; }
+    if (c.tok) { const r = tokRef(c.tok.n); if (r) return '<img loading="lazy" draggable="false" alt="' + esc(tokName(c.tok.n)) + '" src="img/tok/' + r + '_' + LANG + '.webp">' + (c.tok.p ? '<span class="tokst">' + c.tok.p.join('/') + '</span>' : ''); }
     return imgOld(c);
   }
   function imgOld(c) { return c.tok ? '<div class="tok"><b>' + esc(tokName(c.tok.n)) + '</b><span>' + c.tok.p.join(' / ') + '</span><span class="note">jeton</span></div>' : '<img loading="lazy" draggable="false" alt="' + esc(NM(DB[c.ref])) + '" src="img/' + LANG + '/' + encodeURIComponent(c.ref) + '.webp">'; }
@@ -159,6 +160,10 @@
     const L = locate(id); if (!L) return false; const c = card(id);
     if (ch.kind === 'reserve') return L.z === 'reserve';
     if (ch.kind === 'hand') return L.z === 'hand' && L.p === me;
+    const perm = !c.tok && /PERMANENT/.test((DB[c.ref] || {}).t || '');
+    if (ch.kind === 'perm') return perm && (L.z === 'exp' || L.z === 'lm') && (ch.max == null || E.num(DB[c.ref].c) <= ch.max);
+    if (ch.kind === 'any') return L.z === 'exp' || L.z === 'lm';
+    if (ch.kind === 'ownchar') { const src = locate(ch.src); return L.z === 'exp' && L.p === me && (!src || src.z !== 'exp' || src.e === L.e); }
     if (ch.kind === 'char') return L.z === 'exp' && (c.tok || (DB[c.ref] || {}).t === 'CHARACTER') && (ch.max == null || c.tok || E.num(DB[c.ref].c) <= ch.max);
     return false;
   }
@@ -192,16 +197,17 @@
   }
   const SH = '<svg viewBox="0 0 24 24" width="20" height="20"><path d="M12 2 20 5v6c0 5-3.5 9-8 11-4.5-2-8-6-8-11V5z" fill="currentColor"/><path d="M12 6l1.6 3.3 3.6.5-2.6 2.5.6 3.6L12 14.2 8.8 15.9l.6-3.6-2.6-2.5 3.6-.5z" fill="#fff"/></svg>';
   const PAW = '<svg viewBox="0 0 24 24" width="20" height="20"><circle cx="12" cy="12" r="11" fill="currentColor"/><g fill="#fff"><ellipse cx="12" cy="15.5" rx="4" ry="3.2"/><circle cx="7" cy="10.5" r="1.8"/><circle cx="10.2" cy="7.5" r="1.8"/><circle cx="13.8" cy="7.5" r="1.8"/><circle cx="17" cy="10.5" r="1.8"/></g></svg>';
-  function marker(p, e) { const X = V.players[p]; const f = (DB[(card(X.hero) || {}).ref] || {}).f; return '<span class="mk2" style="color:' + (FC[f] || '#888') + '" title="' + esc(X.name) + ' — expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + '">' + (e === 'H' ? SH : PAW) + '<i>' + (p === me ? 'moi' : 'adv') + '</i></span>'; }
+  function marker(p, e) { const X = V.players[p]; return '<span class="mk2 ' + (p === me ? 'me' : 'opp') + '" style="color:' + (p === me ? '#f5c518' : '#e0413a') + '" title="' + esc(X.name) + ' — expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + '">' + (e === 'H' ? SH : PAW) + '<i>' + (p === me ? 'moi' : 'adv') + '</i></span>'; }
   function track() {
     const cell = (i) => {
       const r = V.adv[i]; const mk = [];
       V.players.forEach((X, p) => { if (!X) return; ['H', 'C'].forEach(e => { if (X.pos[e] === i) mk.push(marker(p, e)); }); });
-      return '<div class="half' + (r.up ? '' : ' down') + '"><div class="t">' + (r.up ? r.terr.map(t => '<span class="ter ' + t + '" title="' + TL[t] + '">' + TL[t][0] + '</span>').join('') : '<span class="note">?</span>') + '</div>' + mk.join('') + '</div>';
+      const bg = r.up ? '<div class="bgs">' + r.terr.map(t => '<span style="background-image:url(img/ui/' + ({ F: 'forest', M: 'mountain', W: 'water' })[t] + '.svg)"></span>').join('') + '</div>' : '';
+      return '<div class="half' + (r.up ? '' : ' down') + (r.kind !== 'T' ? ' start' : '') + '">' + bg + '<div class="t">' + (r.up ? r.terr.map(t => '<span class="ter ' + t + '" title="' + TL[t] + '">' + TL[t][0] + '</span>').join('') : '<span class="note">?</span>') + '</div>' + mk.join('') + '</div>';
     };
-    return '<div class="advcard end"><span class="note">Départ Héros</span>' + cell(0) + '</div>' +
-      [1, 3, 5].map((i, k) => '<div class="advcard"><span class="note">Tumulte ' + (k + 1) + (V.adv[i].up ? '' : ' (face cachée)') + '</span><div class="halves">' + cell(i) + cell(i + 1) + '</div></div>').join('') +
-      '<div class="advcard end"><span class="note">Départ Compagnon</span>' + cell(7) + '</div>';
+    return '<div class="advcard end hero"><span class="lab">Départ Héros</span>' + cell(0) + '</div>' +
+      [1, 3, 5].map((i, k) => '<div class="advcard"><span class="lab">Tumulte ' + (k + 1) + (V.adv[i].up ? '' : ' · face cachée') + '</span><div class="halves">' + cell(i) + cell(i + 1) + '</div></div>').join('') +
+      '<div class="advcard end comp"><span class="lab">Départ Compagnon</span>' + cell(7) + '</div>';
   }
   function render() {
     if (!V) return;
@@ -221,7 +227,7 @@
     $('hand').innerHTML = P ? cardsEl(P.hand) : '';
     $('log').innerHTML = V.log.slice().reverse().slice(0, 80).map(l => '<div>' + esc(l.m) + '</div>').join('');
     const fm = P && (DB[(card(P.hero) || {}).ref] || {}).f, fo = O && (DB[(card(O.hero) || {}).ref] || {}).f;
-    document.body.style.background = 'linear-gradient(to bottom,' + (fo ? FC[fo] + '38' : 'transparent') + ',transparent 38%,transparent 62%,' + (fm ? FC[fm] + '38' : 'transparent') + '),var(--bg)';
+    document.body.style.background = 'linear-gradient(to bottom,#1d1f23 0%,' + (fo ? FC[fo] + '88' : 'transparent') + ' 24%,transparent 44%,transparent 54%,' + (fm ? FC[fm] + '88' : 'transparent') + ' 72%,#16181b 100%),var(--bg)';
     renderPrompt(P, O); renderSide();
   }
   function renderPrompt(P, O) {
@@ -233,6 +239,7 @@
       else {
         h = '<b>' + esc(ch.label) + '</b>';
         if (ch.kind === 'exp') h += '<div class="row"><button class="pri" data-choose="H">Expédition Héros</button><button class="pri" data-choose="C">Expédition Compagnon</button></div>';
+        else if (ch.kind === 'option') h += '<div style="display:grid;gap:5px">' + ch.opts.map((o, i) => '<button class="pri" style="text-align:left" data-choose="' + i + '">' + esc(o.label) + '</button>').join('') + '</div>';
         else if (ch.kind === 'yesno') h += '<div class="row"><button class="pri" data-choose="yes">Oui</button><button data-choose="no">Non</button></div>';
         else h += '<div class="note">Clique une carte en surbrillance.</div>' + (ch.opt ? '<div class="row"><button data-choose="none">Ne rien choisir</button></div>' : '');
       }
