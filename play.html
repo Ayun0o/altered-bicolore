@@ -789,9 +789,9 @@ body.noanim .c.landed,body.noanim .c .drop,body.noanim .hand .c.drawn,body.noani
 #rogue .rgact p{margin:0 0 4px}#rogue .rgactr{display:flex;gap:8px;flex-wrap:wrap}#rogue .rgactr button{flex:1}
 #rogue .rgmodal{position:fixed;inset:0;z-index:200;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;padding:16px;background:#05081acc;backdrop-filter:blur(4px)}
 #rogue .rgmbox{width:min(1000px,100%);max-height:88vh;overflow:auto;background:#141a3a;border:1px solid #ffffff2a;border-radius:16px;padding:14px;box-shadow:0 20px 60px #000c}
-#rogue .rgmres{display:flex;flex-direction:column;align-items:center;gap:10px;background:none;border:0;padding:0;color:#fff;cursor:pointer;animation:rgpop .45s cubic-bezier(.2,.9,.3,1.2)}
+#rogue .rgmres{display:flex;flex-direction:column;align-items:center;gap:12px;color:#fff;animation:rgpop .45s cubic-bezier(.2,.9,.3,1.2)}
 #rogue .rgmres .rgmt{font-size:20px;font-weight:800;color:#e8c46a;text-shadow:0 2px 8px #000}
-#rogue .rgmres .rgpair{display:flex;align-items:center;gap:14px}#rogue .rgmres .rgc.sm{width:min(120px,24vw)}#rogue .rgmres .rgc.big{width:min(300px,58vw);filter:drop-shadow(0 0 22px #e8c46a99)}
+#rogue .rgmres .rgpair{display:flex;align-items:center;gap:14px}#rogue .rgmres .rgc{width:min(260px,40vw)}#rogue .rgmres .rgc:last-child{filter:drop-shadow(0 0 22px #e8c46a99)}#rogue .rgmres .rgarr{font-size:30px;color:#e8c46a}
 #rogue .rgmbar{display:block;width:180px;height:3px;border-radius:2px;background:#e8c46a;transform-origin:left;animation:rgmbar 2.6s linear forwards}
 @keyframes rgmbar{from{transform:scaleX(1)}to{transform:scaleX(0)}}@keyframes rgpop{from{transform:scale(.6);opacity:0}}
 @media(max-width:600px){#rogue .rgups{grid-template-columns:1fr}}
@@ -905,7 +905,7 @@ body[data-foe=mini1] #game .zone.exp:not(.mine),body[data-foe=mini2] #game .zone
 <script src="js/engine.js?v=1795806219"></script>
 <script src="js/ai.js?v=1795806638"></script>
 <script src="js/net.js?v=1795785407"></script>
-<script src="js/rogue.js?v=1795806961"></script>
+<script src="js/rogue.js?v=1795807019"></script>
 <script src="js/play.js?v=1795806768"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');

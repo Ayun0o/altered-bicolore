@@ -175,6 +175,7 @@
   const facLine = run => '<span style="color:' + FC[run.f] + ';font-weight:700">' + FN[run.f] + '</span>' + (run.sec ? ' + <span style="color:' + FC[run.sec] + ';font-weight:700">' + FN[run.sec] + '</span>' : '');
 
   let MUTT = null;
+  document.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) { const b = document.querySelector('#rogue .rgmres [data-rg=mutkeep]'); if (b && !$('rogue').classList.contains('hidden')) { e.preventDefault(); b.click(); } } });
   const deckBar = (run, right) => '<div class="rgbar"><button data-rg="org">🃏 <span class=\"rgvm\">' + L('Voir mon deck', 'View my deck') + '</span><span class=\"rgvs\">Deck</span> (' + deckCount(run.deck) + ')</button><span class="rgbarr">' + right + '</span></div>';
   function screen() {
     const run = load(); if (!run) return choose();
@@ -260,14 +261,13 @@
           : (ups.length ? '' : '<p class="note">' + L('Aucune commune améliorable dans ton deck.', 'No upgradable common in your deck.') + '</p>') + '<div class="rgups">' + ups.map((o, k) => '<button class="rgoffer rgup" data-rg="up" data-k="' + k + '"><div class="rgpair">' + img(o.ref) + '<span class="rgarr">→</span>' + img(o.to) + '</div><span class="rgupl">' + esc(NM(P().DB[o.ref])) + ' → ' + L('rare', 'rare') + '</span></button>').join('') + tile + '</div>');
       // Fenêtres par-dessus : choix de la carte à faire muter, attente, résultat
       let ov = '';
-      if (res.length === 1) ov = '<div class="rgmodal"><button class="rgmres" data-rg="mutkeep" data-k="0"><span class="rgmt">✨ ' + L('Ta nouvelle unique', 'Your new unique') + '</span><div class="rgpair">' + img(rw.from, 'sm') + '<span class="rgarr">→</span>' + img(res[0], 'big') + '</div>' +
-          ((run.rr | 0) ? '<span class="small">' + L('Clique pour la garder', 'Click to keep it') + '</span>' : '<span class="small">' + L('Clique pour continuer', 'Click to continue') + '</span><i class="rgmbar"></i>') + '</button>' +
-          ((run.rr | 0) ? '<button data-rg="mutrr">🎲 ' + L('Relancer l’unique', 'Reroll the unique') + ' (' + run.rr + ')</button>' : '') + '</div>';
+      if (res.length === 1) ov = '<div class="rgmodal"><div class="rgmres"><span class="rgmt">✨ ' + L('Ta nouvelle unique', 'Your new unique') + '</span><div class="rgpair">' + img(rw.from) + '<span class="rgarr">→</span>' + img(res[0]) + '</div>' +
+          '<div class="row" style="justify-content:center;gap:8px">' + ((run.rr | 0) ? '<button data-rg="mutrr">🎲 ' + L('Relancer l’unique', 'Reroll the unique') + ' (' + run.rr + ')</button>' : '') + '<button class="pri" data-rg="mutkeep" data-k="0">' + L('Continuer', 'Continue') + ' ➜</button></div><span class="small">' + L('Survole ou appuie longuement sur une carte pour la lire · Espace pour continuer', 'Hover or long-press a card to read it · Space to continue') + '</span></div></div>';
       else if (res.length) ov = '<div class="rgmodal"><div class="rgmbox"><h3>' + L('Choisis ton unique', 'Pick your unique') + '</h3><div class="rgoffers" style="justify-content:center">' + res.map((r, k) => '<button class="rgoffer" data-rg="mutkeep" data-k="' + k + '">' + img(r) + '</button>').join('') + '</div>' + ((run.rr | 0) ? '<div class="row" style="justify-content:center"><button data-rg="mutrr">🎲 ' + L('Relancer l’unique', 'Reroll the unique') + ' (' + run.rr + ')</button></div>' : '') + '</div></div>';
       else if (rw.busy) ov = '<div class="rgmodal"><div class="rgmbox" style="text-align:center"><h3>⏳ ' + L('Mutation en cours…', 'Mutating…') + '</h3></div></div>';
       else if (rw.picking) ov = '<div class="rgmodal"><div class="rgmbox"><div class="row"><h3 style="margin:0 auto 0 0">🎲 ' + L('Quelle carte faire muter ?', 'Which card to mutate?') + '</h3><button data-rg="mutpick">✕ ' + L('Annuler', 'Cancel') + '</button></div>' + deckView(run, 'mut', canMut) + '</div></div>';
       show('<div class="rgbox">' + top + upPart + (rw.fail ? '<p class="note">' + L('La mutation n’a pas pu se faire (connexion ?) : ta carte n’a pas changé, réessaie.', 'The mutation failed (connection?): your card is unchanged, try again.') + '</p>' : '') + '</div>' + ov);
-      clearTimeout(MUTT); if (res.length === 1 && !(run.rr | 0)) MUTT = setTimeout(() => { const b = document.querySelector('#rogue .rgmres'); if (b) b.click(); }, 2600);
+
     }
   }
   // Arbre de talents
