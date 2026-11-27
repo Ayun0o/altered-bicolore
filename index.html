@@ -257,6 +257,17 @@ img[hidden],.heroimg[hidden]{display:none!important}
 .artopt img{width:100%;aspect-ratio:5/7;object-fit:cover;border-radius:8px;background:#0002}
 .artopt.on{border-color:var(--ok)}
 #artDlg{max-width:760px}
+
+/* Téléphone : 3 cartes par ligne (2 avec le texte des cartes) */
+@media(max-width:600px){
+ .grid.lite{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
+ .grid:not(.lite):not(.dv):not(.hp){grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:8px!important}
+ .card.lite .act{bottom:4px;padding:2px;gap:2px}
+ .card.lite .act button{min-width:24px!important;min-height:24px!important;padding:0 5px!important;font-size:14px}
+ .card.lite .act .n{font-size:13px}
+ .artb{font-size:11px!important}
+ .hpgrid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
+}
 </style>
 </head>
 <body>
