@@ -224,6 +224,9 @@ html.themed body{background:linear-gradient(90deg,color-mix(in srgb,var(--pc) 13
 html.themed .deck{background:linear-gradient(180deg,color-mix(in srgb,var(--sc) 14%,var(--panel)),color-mix(in srgb,var(--sc) 6%,var(--panel)))}
 html.themed .top{background:linear-gradient(90deg,color-mix(in srgb,var(--pc) 10%,var(--panel)),var(--panel) 50%,color-mix(in srgb,var(--sc) 10%,var(--panel)))}
 @media(max-width:600px){.setup>.setbg{background-size:160% auto;background-position:center 45%}}
+img[hidden],.heroimg[hidden]{display:none!important}
+.herow.empty{width:84px;aspect-ratio:5/7;border:2px dashed var(--line);border-radius:6px;background:color-mix(in srgb,var(--panel) 85%,transparent)}
+@media(max-width:600px){.herow.empty{width:70px}}
 .adduq{min-height:0;padding:4px 12px;background:none;border:1px dashed var(--line);border-radius:16px;color:inherit;font-size:14px}
 </style>
 </head>
@@ -493,7 +496,7 @@ function renderDeck(){
  $('asideTitle').textContent=d.name||'Mon deck';
  {const P0=BY[d.hero]?.f,S0=d.sec||P0,R=document.documentElement;if(P0){R.style.setProperty('--pc','var(--'+P0+')');R.style.setProperty('--sc','var(--'+S0+')');R.classList.add('themed')}else R.classList.remove('themed');
   const sb=$('setBg');if(sb.dataset.r!==(d.hero||'')){sb.dataset.r=d.hero||'';sb.style.backgroundImage='';if(d.hero)imgFor(d.hero).then(u=>{if(u&&sb.dataset.r===d.hero)sb.style.backgroundImage='url("'+u+'")'})}}
- const hi=$('heroImg');$('heroX').hidden=!d.hero;if(d.hero){hi.hidden=false;hi.dataset.r=d.hero;hi.classList.add('art');hi.removeAttribute('src');imgFor(d.hero).then(u=>{if(u&&hi.dataset.r===d.hero)hi.src=u})}else{hi.hidden=true;hi.removeAttribute('src')}
+ const hi=$('heroImg');$('heroX').hidden=!d.hero;hi.parentNode.classList.toggle('empty',!d.hero);if(d.hero){hi.hidden=false;hi.dataset.r=d.hero;hi.classList.add('art');hi.removeAttribute('src');imgFor(d.hero).then(u=>{if(u&&hi.dataset.r===d.hero)hi.src=u})}else{hi.hidden=true;hi.removeAttribute('src')}
  {const li=x=>'<li class="'+(x.ok?'ok':'bad')+'"><span>'+esc(x.label)+'</span><b>'+esc(x.val)+(x.max!==undefined?' / '+x.max:'')+'</b></li>',bad=A.R.filter(x=>!x.ok),good=A.R.filter(x=>x.ok);$('rules').innerHTML=bad.map(li).join('')+(good.length?'<li class="rok"><details'+(RULESOPEN?' open':'')+' id="rulesOk"><summary>✓ '+good.length+' règle'+(good.length>1?'s':'')+' respectée'+(good.length>1?'s':'')+'</summary><ul class="rules">'+good.map(li).join('')+'</ul></details></li>':'');const ro=$('rulesOk');if(ro)ro.ontoggle=()=>{RULESOPEN=ro.open}}
  $('pstats').innerHTML=deckStats();
  const groups={};for(const [r,n] of Object.entries(d.cards)){const c=BY[r];if(!c||!n)continue;(groups[c.t]=groups[c.t]||[]).push([c,n])}
