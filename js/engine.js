@@ -796,6 +796,8 @@
     { k: 'char', re: /^when you play an? ([a-z]+)$/, who: (s, e, P, id, w, db, head) => { const st = SING(head.match(/play an? ([a-z]+)$/)[1]); return w.p === e.p && id !== e.id && st !== 'character' && subtypesOf(s, e.id, db).includes(st); } },
     { k: 'perm', re: /^when you play a permanent with hand cost \{(\d+)\} or more$/, who: (s, e, P, id, w, db, head) => w.p === e.p && num((db[s.cards[e.id].ref] || {}).c) >= +head.match(/\{(\d+)\}/)[1] },
     { k: 'tokc', re: /^when you create a token character$/, who: (s, e, P, id, w) => w.p === e.p },
+    // « Quand un Robot / un Animal… rejoint vos expéditions » (ex. Ruche des Scarabots rare) : le sous-type est celui de la carte qui arrive (jetons compris)
+    { k: 'join', re: /^when an? (?!character\b|companion\b)([a-z]+) joins your expeditions$/, who: (s, e, P, id, w, db, head) => w.p === e.p && subtypesOf(s, e.id, db).includes(SING(head.match(/^when an? ([a-z]+)/)[1])) },
     { k: 'join', re: /^when an? companion joins your expeditions$/, who: (s, e, P, id, w, db) => w.p === e.p && subtypesOf(s, e.id, db).includes('companion') },
     { k: 'pass', re: /^when you pass after your opponents?$/, who: (s, e, P, id, w) => w.p === e.p && !e.first },
     { k: 'dice', re: /^when you roll one or more dice$/, who: (s, e, P, id, w) => w.p === e.p },
