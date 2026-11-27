@@ -213,6 +213,18 @@ textarea{width:100%;min-height:140px;font-size:13px}
 .hpg{margin-bottom:14px}.hpg h3{display:flex;align-items:center;gap:8px;font-size:16px;margin:0 0 8px}.hpg h3 .fd{width:14px;height:14px}
 .hpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
 @media(max-width:600px){.hpgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.heroimg{width:70px}}
+
+/* Ambiance : illustration du héros en fondu derrière le bloc du deck, couleurs des factions en fond */
+.setup{position:relative;overflow:hidden;isolation:isolate}
+.setup>*{position:relative;z-index:1}
+.setup>.setbg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center 38%;opacity:.3;
+ -webkit-mask-image:linear-gradient(90deg,transparent 0%,transparent 28%,#000 75%);mask-image:linear-gradient(90deg,transparent 0%,transparent 28%,#000 75%);pointer-events:none;filter:saturate(.9)}
+html.themed .setup{background:linear-gradient(90deg,color-mix(in srgb,var(--pc) 16%,var(--panel)),var(--panel) 55%)}
+html.themed body{background:linear-gradient(90deg,color-mix(in srgb,var(--pc) 13%,var(--bg)) 0%,var(--bg) 45%,var(--bg) 60%,color-mix(in srgb,var(--sc) 15%,var(--bg)) 100%) fixed}
+html.themed .deck{background:linear-gradient(180deg,color-mix(in srgb,var(--sc) 14%,var(--panel)),color-mix(in srgb,var(--sc) 6%,var(--panel)))}
+html.themed .top{background:linear-gradient(90deg,color-mix(in srgb,var(--pc) 10%,var(--panel)),var(--panel) 50%,color-mix(in srgb,var(--sc) 10%,var(--panel)))}
+@media(max-width:600px){.setup>.setbg{background-size:160% auto;background-position:center 45%}}
+.adduq{min-height:0;padding:4px 12px;background:none;border:1px dashed var(--line);border-radius:16px;color:inherit;font-size:14px}
 </style>
 </head>
 <body>
@@ -228,14 +240,14 @@ textarea{width:100%;min-height:140px;font-size:13px}
 </header>
 <div class="wrap">
 <main class="lib">
-<section class="setup">
+<section class="setup"><span class="setbg" id="setBg" aria-hidden="true"></span>
 <span class="herow"><img id="heroImg" class="heroimg" alt="" hidden><button id="heroX" type="button" title="Retirer le héros" aria-label="Retirer le héros" hidden>✕</button></span>
 <div class="sgrid">
 <label><span class="lbl">Nom du deck</span><input id="dName" style="width:100%;font-family:Spectral,serif;font-weight:600"></label>
 <label><span class="lbl">Héros (faction principale)</span><select id="dHero" style="width:100%"></select></label>
 <label><span class="lbl">Faction secondaire</span><select id="dSec" style="width:100%"></select></label>
 <div><span class="lbl">État du deck</span><a href="#deckpanel" id="miniStat" class="ministat"></a></div>
-<div style="grid-column:1/-1"><button id="addU" class="on" style="background:none;border:1px dashed var(--line);color:inherit">＋ Ajouter un unique</button></div>
+
 </div>
 </section>
 <div class="fbar" id="fbar">
@@ -249,7 +261,7 @@ textarea{width:100%;min-height:140px;font-size:13px}
 </div>
 <div class="filters" id="facF"></div>
 
-<div class="filters"><label class="chip"><input type="checkbox" id="onlyLegal" checked> Pool du deck seulement</label><label class="chip"><input type="checkbox" id="showTxt"> Texte des cartes</label></div>
+<div class="filters"><label class="chip"><input type="checkbox" id="onlyLegal" checked> Pool du deck seulement</label><label class="chip"><input type="checkbox" id="showTxt"> Texte des cartes</label><button id="addU" type="button" class="adduq">＋ Ajouter un unique</button></div>
 </div>
 <div class="count" id="count"></div>
 <div class="grid" id="grid"></div>
@@ -479,6 +491,8 @@ function renderDeck(){
  $('status').innerHTML='<div class="status '+(A.ok?'ok':'bad')+'">'+(A.ok?'Deck valide':'Deck pas encore valide')+'</div>';
  const nbad=A.R.filter(x=>!x.ok).length;const ms=$('miniStat');ms.className='ministat '+(A.ok?'ok':'bad');ms.textContent=(A.ok?'Valide':nbad+' règle'+(nbad>1?'s':'')+' à revoir')+' · '+A.total+'/'+fmt.deck+' cartes';
  $('asideTitle').textContent=d.name||'Mon deck';
+ {const P0=BY[d.hero]?.f,S0=d.sec||P0,R=document.documentElement;if(P0){R.style.setProperty('--pc','var(--'+P0+')');R.style.setProperty('--sc','var(--'+S0+')');R.classList.add('themed')}else R.classList.remove('themed');
+  const sb=$('setBg');if(sb.dataset.r!==(d.hero||'')){sb.dataset.r=d.hero||'';sb.style.backgroundImage='';if(d.hero)imgFor(d.hero).then(u=>{if(u&&sb.dataset.r===d.hero)sb.style.backgroundImage='url("'+u+'")'})}}
  const hi=$('heroImg');$('heroX').hidden=!d.hero;if(d.hero){hi.hidden=false;hi.dataset.r=d.hero;hi.classList.add('art');hi.removeAttribute('src');imgFor(d.hero).then(u=>{if(u&&hi.dataset.r===d.hero)hi.src=u})}else{hi.hidden=true;hi.removeAttribute('src')}
  {const li=x=>'<li class="'+(x.ok?'ok':'bad')+'"><span>'+esc(x.label)+'</span><b>'+esc(x.val)+(x.max!==undefined?' / '+x.max:'')+'</b></li>',bad=A.R.filter(x=>!x.ok),good=A.R.filter(x=>x.ok);$('rules').innerHTML=bad.map(li).join('')+(good.length?'<li class="rok"><details'+(RULESOPEN?' open':'')+' id="rulesOk"><summary>✓ '+good.length+' règle'+(good.length>1?'s':'')+' respectée'+(good.length>1?'s':'')+'</summary><ul class="rules">'+good.map(li).join('')+'</ul></details></li>':'');const ro=$('rulesOk');if(ro)ro.ontoggle=()=>{RULESOPEN=ro.open}}
  $('pstats').innerHTML=deckStats();
