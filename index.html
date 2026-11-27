@@ -307,6 +307,10 @@ img[hidden],.heroimg[hidden]{display:none!important}
 .donDlg h3{margin:0 0 10px;font-size:20px}.donDlg p{margin:0 0 10px;font-size:15px}
 .donDlg .donb{display:flex;justify-content:flex-end;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}.donDlg .donb .donate{margin:0;padding:8px 16px}
 .donDlg::backdrop{background:#0008}
+
+.dcbtn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:16px;background:#5865f2;color:#fff!important;font-weight:700;text-decoration:none!important;font-size:14px;margin-right:8px}
+.dcbtn:hover{filter:brightness(1.08)}
+.donDlg a:not(.donate){color:#5865f2;font-weight:600}
 </style>
 </head>
 <body>
@@ -318,7 +322,7 @@ img[hidden],.heroimg[hidden]{display:none!important}
 <button id="fmtBtn" hidden>Format</button>
 <button id="langBtn" aria-label="Langue des cartes"></button>
 <button id="viewDeck" title="Voir les cartes de ton deck en grand, avec les statistiques">🃏 Voir mon deck</button>
-<a class="donate" id="donateLink" href="https://www.paypal.com/qrcodes/p2pqrc/6TLGEJPFGP2KY" target="_blank" rel="noopener" title="Soutenir le projet (facultatif)" hidden>☕ Soutenir</a><span class="sync" id="sync">Chargement…</span>
+<a class="dcbtn" href="https://discord.gg/bcCPUVX22s" target="_blank" rel="noopener" title="Rejoindre le Discord">💬 Discord</a><a class="donate" id="donateLink" href="https://www.paypal.com/qrcodes/p2pqrc/6TLGEJPFGP2KY" target="_blank" rel="noopener" title="Soutenir le projet (facultatif)" hidden>☕ Soutenir</a><span class="sync" id="sync">Chargement…</span>
 </header>
 <div class="wrap">
 <dialog id="artDlg"><h3 style="margin:0 0 4px">🎨 <span id="artT"></span></h3><p class="note" style="margin:0 0 10px">Choisis l'illustration utilisée pour cette carte dans ce deck (et sur la table de jeu).</p><div id="artG" class="artg"></div><div class="row" style="margin-top:10px;justify-content:flex-end"><button id="artClose" type="button">Fermer</button></div></dialog>
@@ -820,7 +824,7 @@ $('showTxt').addEventListener('change',()=>{try{localStorage.setItem('alt-bi-txt
 start();
 }
 </script>
-<footer class="fanc">Altered Fan Content · projet de fan, gratuit et non officiel, non approuvé par Equinox. Altered et ses illustrations appartiennent à Equinox.</footer>
-<dialog id="donDlg" class="donDlg"><h3>☕ Soutenir Altered bicolore</h3><p>Altered bicolore est un projet bénévole, que je développe sur mon temps libre pour que les joueurs d’Altered puissent continuer à se retrouver et à jouer en ligne.</p><p>Si le site vous plaît, je reste à l’écoute : j’essaie de le mettre à jour selon vos retours. N’hésitez pas à me dire ce qui marche, ce qui coince ou ce qui manque (un Discord arrive bientôt).</p><p>Et si vous voulez soutenir le projet, tous les dons sont les bienvenus. Merci ! 💛</p><div class="donb"><button type="button" data-donclose>Fermer</button><a class="donate" href="https://www.paypal.com/qrcodes/p2pqrc/6TLGEJPFGP2KY" target="_blank" rel="noopener">Faire un don via PayPal</a></div></dialog><script>(()=>{const d=document.getElementById('donDlg');document.addEventListener('click',e=>{const a=e.target.closest('a.donate');if(a&&!a.closest('#donDlg')){e.preventDefault();d.showModal();return}if(e.target.closest('[data-donclose]')||e.target===d)d.close()})})()</script>
+<footer class="fanc">Altered Fan Content · projet de fan, gratuit et non officiel, non approuvé par Equinox. Altered et ses illustrations appartiennent à Equinox. · <a href="https://discord.gg/bcCPUVX22s" target="_blank" rel="noopener">Discord</a></footer>
+<dialog id="donDlg" class="donDlg"><h3>☕ Soutenir Altered bicolore</h3><p>Altered bicolore est un projet bénévole, que je développe sur mon temps libre pour que les joueurs d’Altered puissent continuer à se retrouver et à jouer en ligne.</p><p>Si le site vous plaît, je reste à l’écoute : j’essaie de le mettre à jour selon vos retours. N’hésitez pas à me dire ce qui marche, ce qui coince ou ce qui manque sur le <a href="https://discord.gg/bcCPUVX22s" target="_blank" rel="noopener">Discord Altered bicolore</a>.</p><p>Et si vous voulez soutenir le projet, tous les dons sont les bienvenus. Merci ! 💛</p><div class="donb"><button type="button" data-donclose>Fermer</button><a class="donate" href="https://www.paypal.com/qrcodes/p2pqrc/6TLGEJPFGP2KY" target="_blank" rel="noopener">Faire un don via PayPal</a></div></dialog><script>(()=>{const d=document.getElementById('donDlg');document.addEventListener('click',e=>{const a=e.target.closest('a.donate');if(a&&!a.closest('#donDlg')){e.preventDefault();d.showModal();return}if(e.target.closest('[data-donclose]')||e.target===d)d.close()})})()</script>
 </body>
 </html>
