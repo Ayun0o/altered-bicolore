@@ -202,6 +202,17 @@ textarea{width:100%;min-height:140px;font-size:13px}
 .dvb{position:absolute;left:50%;bottom:5px;transform:translateX(-50%);display:flex;align-items:center;gap:3px;background:#000c;color:#fff;border-radius:16px;padding:2px 3px;z-index:3;font-size:13px;white-space:nowrap}
 .dvb b{padding:0 4px}.dvb button{min-height:24px;min-width:26px;padding:0 6px;border-radius:12px;background:#ffffff22;color:#fff;border:0;font-size:15px;line-height:1}
 .dvb button:disabled{opacity:.35}
+
+/* Choix du héros : groupé par faction ; héros choisi plus grand, avec ✕ */
+.herow{position:relative;flex:none;display:inline-block;line-height:0}
+.heroimg{width:84px}
+#heroX{position:absolute;top:-7px;right:-7px;min-height:0;width:24px;height:24px;padding:0;border-radius:50%;background:#000c;color:#fff;border:2px solid var(--panel);font-size:12px;line-height:1;cursor:pointer}
+#heroX:hover{background:var(--bad)}
+.grid.hp{display:block}
+.hpt{margin:2px 0 10px;color:var(--mute)}
+.hpg{margin-bottom:14px}.hpg h3{display:flex;align-items:center;gap:8px;font-size:16px;margin:0 0 8px}.hpg h3 .fd{width:14px;height:14px}
+.hpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+@media(max-width:600px){.hpgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.heroimg{width:70px}}
 </style>
 </head>
 <body>
@@ -218,7 +229,7 @@ textarea{width:100%;min-height:140px;font-size:13px}
 <div class="wrap">
 <main class="lib">
 <section class="setup">
-<img id="heroImg" class="heroimg" alt="" hidden>
+<span class="herow"><img id="heroImg" class="heroimg" alt="" hidden><button id="heroX" type="button" title="Retirer le héros" aria-label="Retirer le héros" hidden>✕</button></span>
 <div class="sgrid">
 <label><span class="lbl">Nom du deck</span><input id="dName" style="width:100%;font-family:Spectral,serif;font-weight:600"></label>
 <label><span class="lbl">Héros (faction principale)</span><select id="dHero" style="width:100%"></select></label>
@@ -444,6 +455,9 @@ function deckStats(){const d=D();if(!d)return'';const L=deckCards().filter(c=>c.
  return '<div class="dstats"><div><b>'+tot+'</b> cartes + héros'+extra+(d.sec?' · '+src.P+' '+FN[hf]+' / '+src.S+' '+FN[d.sec]:'')+'</div><div class="dsrow"><div><span class="lbl">Courbe de mana · '+(CURVE==='rc'?'coût depuis la réserve':'coût de main')+'<button class="curvetog" data-curve="1">'+(CURVE==='rc'?'Voir coût de main':'Voir coût de réserve')+'</button></span><div class="dscurve">'+bars+'</div></div><div class="dstypes"><div><b>'+ty.CHARACTER+'</b> personnages</div><div><b>'+ty.SPELL+'</b> sorts</div><div><b>'+ty.PERM+'</b> permanents / repères</div><div><b>'+d.uniques.length+'</b> unique'+(d.uniques.length>1?'s':'')+'</div></div></div></div>'}
 function dvCard(c){const d=D(),n=c.t==='HERO'?1:c.u?1:(d.cards[c.r]||0);
  return '<article class="dvc" style="--fc:var(--'+c.f+')"><span class="cw">'+(c.u?'<span class="uqw">':'')+'<img class="art" decoding="async" data-r="'+esc(c.r)+'" alt="'+esc(NM(c))+'" width="360" height="502">'+(c.u?uqOverlay(c)+'</span>':'')+'<span class="hz" data-hz="'+esc(c.r)+'"></span></span>'+(c.t==='HERO'?'':'<span class="dvb">'+(c.u?'<button data-urmr="'+esc(c.r)+'" aria-label="Retirer">−</button><b>×1</b>':'<button data-rm="'+esc(c.r)+'" aria-label="Retirer">−</button><b>×'+n+'</b><button data-add="'+esc(c.r)+'" aria-label="Ajouter"'+(canAdd(c)?'':' disabled')+'>+</button>')+'</span>')+'</article>'}
+function heroGroups(L){const col=new Intl.Collator(EN()?'en':'fr');
+ return FAC.map(f=>{const X=L.filter(c=>c.t==='HERO'&&c.f===f).sort((a,b)=>col.compare(NM(a),NM(b)));if(!X.length)return'';
+  return '<section class="hpg"><h3><span class="fd" style="background:var(--'+f+')"></span>'+esc(FN[f])+'<span class="dvn">'+X.length+'</span></h3><div class="hpgrid">'+X.map(cardHtml).join('')+'</div></section>'}).join('')}
 function deckGroups(L){const d=D(),cnt=c=>c.t==='HERO'?1:c.u?1:(d.cards[c.r]||0);
  const G=[['HERO',EN()?'Hero':'Héros',c=>c.t==='HERO'],['CHAR',EN()?'Characters':'Personnages',c=>c.t==='CHARACTER'],['SPELL',EN()?'Spells':'Sorts',c=>c.t==='SPELL'],['PERM',EN()?'Permanents':'Permanents',c=>c.t!=='HERO'&&c.t!=='CHARACTER'&&c.t!=='SPELL']];
  return G.map(([k,t,f])=>{const X=L.filter(f);if(!X.length)return'';const tot=X.reduce((a,c)=>a+cnt(c),0);
@@ -451,7 +465,7 @@ function deckGroups(L){const d=D(),cnt=c=>c.t==='HERO'?1:c.u?1:(d.cards[c.r]||0)
 function renderGrid(){renderFacChips();const L0=filtered(),L=DECKVIEW?L0.filter(c=>c.t==='HERO').concat(sorted(L0.filter(c=>c.t!=='HERO'))):sorted(L0),d=D(),hh=d&&BY[d.hero],only=$('onlyLegal').checked;
  const n=L.length+' carte'+(L.length>1?'s':'');
  $('count').textContent=!only?n+' (toutes factions)':!hh?'Commence par choisir ton héros : '+n:'Pool du deck : '+FN[hh.f]+' (principale)'+(d.sec?' + '+FN[d.sec]+' (secondaire)':'')+' · '+n;if(DECKVIEW){$('count').textContent='';shown=999}else if(onlyU()){$('count').innerHTML=L.length+' unique'+(L.length>1?'s':'')+' dans ta collection · <button id="uNewBtn" class="on" style="min-height:0;padding:3px 10px">＋ Ajouter / scanner un unique</button>';setTimeout(()=>{const x=$('uNewBtn');if(x)x.onclick=()=>$('addU').click()},0)}
- LIM=lims();$('grid').classList.toggle('lite',!$('showTxt').checked);$('grid').classList.toggle('dv',DECKVIEW);$('dlist').classList.toggle('dvhide',DECKVIEW);$('grid').innerHTML=DECKVIEW?deckGroups(L):L.slice(0,shown).map(cardHtml).join('');LIM=null;$('viewDeck').classList.toggle('on',DECKVIEW);$('viewDeck').textContent=DECKVIEW?'← Retour aux cartes':'🃏 Voir mon deck';$('more').style.display=L.length>shown?'block':'none';fillImgs()}
+ LIM=lims();$('grid').classList.toggle('lite',!$('showTxt').checked);$('grid').classList.toggle('dv',DECKVIEW);$('dlist').classList.toggle('dvhide',DECKVIEW);const HP=!DECKVIEW&&!onlyU()&&only&&!hh;$('grid').classList.toggle('hp',HP);$('grid').innerHTML=DECKVIEW?deckGroups(L):HP?heroGroups(L):L.slice(0,shown).map(cardHtml).join('');LIM=null;$('viewDeck').classList.toggle('on',DECKVIEW);$('viewDeck').textContent=DECKVIEW?'← Retour aux cartes':'🃏 Voir mon deck';$('more').style.display=!HP&&L.length>shown?'block':'none';fillImgs()}
 
 let RULESOPEN=false;
 function renderDeck(){
@@ -465,7 +479,7 @@ function renderDeck(){
  $('status').innerHTML='<div class="status '+(A.ok?'ok':'bad')+'">'+(A.ok?'Deck valide':'Deck pas encore valide')+'</div>';
  const nbad=A.R.filter(x=>!x.ok).length;const ms=$('miniStat');ms.className='ministat '+(A.ok?'ok':'bad');ms.textContent=(A.ok?'Valide':nbad+' règle'+(nbad>1?'s':'')+' à revoir')+' · '+A.total+'/'+fmt.deck+' cartes';
  $('asideTitle').textContent=d.name||'Mon deck';
- const hi=$('heroImg');if(d.hero){hi.hidden=false;hi.dataset.r=d.hero;hi.classList.add('art');hi.removeAttribute('src');imgFor(d.hero).then(u=>{if(u&&hi.dataset.r===d.hero)hi.src=u})}else{hi.hidden=true;hi.removeAttribute('src')}
+ const hi=$('heroImg');$('heroX').hidden=!d.hero;if(d.hero){hi.hidden=false;hi.dataset.r=d.hero;hi.classList.add('art');hi.removeAttribute('src');imgFor(d.hero).then(u=>{if(u&&hi.dataset.r===d.hero)hi.src=u})}else{hi.hidden=true;hi.removeAttribute('src')}
  {const li=x=>'<li class="'+(x.ok?'ok':'bad')+'"><span>'+esc(x.label)+'</span><b>'+esc(x.val)+(x.max!==undefined?' / '+x.max:'')+'</b></li>',bad=A.R.filter(x=>!x.ok),good=A.R.filter(x=>x.ok);$('rules').innerHTML=bad.map(li).join('')+(good.length?'<li class="rok"><details'+(RULESOPEN?' open':'')+' id="rulesOk"><summary>✓ '+good.length+' règle'+(good.length>1?'s':'')+' respectée'+(good.length>1?'s':'')+'</summary><ul class="rules">'+good.map(li).join('')+'</ul></details></li>':'');const ro=$('rulesOk');if(ro)ro.ontoggle=()=>{RULESOPEN=ro.open}}
  $('pstats').innerHTML=deckStats();
  const groups={};for(const [r,n] of Object.entries(d.cards)){const c=BY[r];if(!c||!n)continue;(groups[c.t]=groups[c.t]||[]).push([c,n])}
@@ -491,9 +505,10 @@ document.addEventListener('click',e=>{const hz=e.target.closest('.hz');const im=
  if(b.dataset.urmr){const i=d.uniques.findIndex(u=>u.r===b.dataset.urmr);if(i>=0){d.uniques.splice(i,1);touch();renderDeck();renderGrid()}return}
  if(b.dataset.add){const c=BY[b.dataset.add];if(!canAdd(c))return;d.cards[c.r]=(d.cards[c.r]||0)+1;touch();renderDeck();renderGrid()}
  else if(b.dataset.rm){const r=b.dataset.rm;if(d.cards[r]){d.cards[r]--;if(!d.cards[r])delete d.cards[r]}touch();renderDeck();renderGrid()}
- else if(b.dataset.hero){d.hero=b.dataset.hero;const P=BY[d.hero].f;if(d.sec&&(d.sec===P||!neighbours(P).includes(d.sec)))d.sec='';touch();renderDeck();renderGrid()}
+ else if(b.dataset.hero){d.hero=b.dataset.hero;const P=BY[d.hero].f;if(d.sec&&(d.sec===P||!neighbours(P).includes(d.sec)))d.sec='';shown=60;touch();renderAll();window.scrollTo({top:0})}
  else if(b.dataset.urm!==undefined){d.uniques.splice(+b.dataset.urm,1);touch();renderDeck()}});
 $('dHero').addEventListener('change',()=>setTimeout(renderDots,0));
+$('heroX').onclick=e=>{e.stopPropagation();const d=D();if(!d)return;d.hero='';d.sec='';shown=60;touch();renderAll();window.scrollTo({top:0})};
 $('dHero').onchange=e=>{const d=D();d.hero=e.target.value;const P=BY[d.hero]?.f;if(d.sec&&(d.sec===P||(P&&!neighbours(P).includes(d.sec))))d.sec='';touch();renderDeck();renderGrid()};
 $('dSec').onchange=e=>{D().sec=e.target.value;touch();renderDeck();renderGrid();renderDots()};
 $('dName').oninput=e=>{D().name=e.target.value;$('asideTitle').textContent=e.target.value||'Mon deck';touch();renderSel()};
