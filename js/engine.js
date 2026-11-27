@@ -925,7 +925,7 @@
         case 'SETUP_MANA': if (s.ready[0] && s.ready[1]) { s.ready = [false, false]; s.phase = 'NOON'; s.step = 'NOON'; log(s, 'Jour 1 — la première matinée est sautée.'); continue; } return;
         case 'MORNING': {
           s.first = 1 - s.first;
-          for (const P of s.players) { P.mana.forEach(m => m.ex = false); [P.hero, ...P.lm, ...P.exp.H, ...P.exp.C, ...P.reserve].forEach(id => { if (id && s.cards[id]) s.cards[id].ex = false; }); }
+          for (const P of s.players) { P.mana = P.mana.filter(m => { if (m.tmp) { delete s.cards[m.id]; return false; } return true; }); P.mana.forEach(m => m.ex = false); [P.hero, ...P.lm, ...P.exp.H, ...P.exp.C, ...P.reserve].forEach(id => { if (id && s.cards[id]) s.cards[id].ex = false; }); }
           for (let p = 0; p < 2; p++) { draw(s, p); draw(s, p); }
           log(s, 'Jour ' + s.day + ' — Matin : ' + s.players[s.first].name + ' devient premier joueur, tout se redresse, chacun pioche 2 cartes.');
           s.step = 'EXPAND'; s.ready = [false, false]; continue;
@@ -1151,8 +1151,9 @@
         if (!acts || cost === null) { log(s, '⚠ effet du héros à appliquer à la main.'); break; }
         cost.concat(acts).forEach(x => doAction(s, p, hid, x, db, {})); break;
       }
-      case 'manaAdd': { const id = 'mana' + (s.nid++); s.cards[id] = { id, ref: '__mana', owner: p, boost: 0, ex: false }; P.mana.push({ id, ex: false }); log(s, P.name + ' gagne un mana (outil).'); break; }
-      case 'manaDel': { const m = P.mana.pop(); if (!m) return 'Plus de mana.'; if (s.cards[m.id] && s.cards[m.id].ref !== '__mana') P.discard.push(m.id); else delete s.cards[m.id]; log(s, P.name + ' perd un mana (outil).'); break; }
+      // Outils mana : +1 redresse un mana épuisé (sinon mana en plus jusqu'au prochain Matin) ; −1 épuise un mana disponible. Le nombre d'orbes ne change pas.
+      case 'manaAdd': { const m = P.mana.find(x => x.ex); if (m) { m.ex = false; log(s, P.name + ' redresse un mana (outil).'); break; } const id = 'mana' + (s.nid++); s.cards[id] = { id, ref: '__mana', owner: p, boost: 0, ex: false }; P.mana.push({ id, ex: false, tmp: true }); log(s, P.name + ' gagne un mana jusqu’à la fin du jour (outil).'); break; }
+      case 'manaDel': { const L = P.mana.filter(x => !x.ex), m = L.find(x => x.tmp) || L[L.length - 1]; if (!m) return 'Aucun mana disponible à épuiser.'; if (m.tmp) { P.mana.splice(P.mana.indexOf(m), 1); delete s.cards[m.id]; } else m.ex = true; log(s, P.name + ' épuise un mana (outil).'); break; }
       case 'draw': { const n = Math.max(1, Math.min(10, a.n || 1)); for (let i = 0; i < n; i++) draw(s, p); log(s, P.name + ' pioche ' + n + ' carte(s).'); break; }
       case 'resupply': { if (!P.deck.length && P.discard.length) { P.deck = P.discard.splice(0); shuffle(P.deck, Math.random); } const id = P.deck.shift(); if (id) { P.reserve.push(id); log(s, P.name + ' se ravitaille : ' + name(id) + ' va en réserve.'); } break; }
       case 'shuffle': shuffle(P.deck, Math.random); log(s, P.name + ' mélange son deck.'); break;
