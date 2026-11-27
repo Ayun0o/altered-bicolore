@@ -105,7 +105,7 @@
   async function cloudInit() {
     const C = window.AltCloud; if (!C || !C.ready()) { const ab = $('acctInfo'); if (ab) ab.textContent = 'Connexion au compte indisponible pour l’instant.'; return; }
     const u = await C.init(); const ab = $('acctInfo');
-    if (ab) ab.innerHTML = u ? 'Connecté : <b>' + esc(u.email || '') + '</b><br>Tes decks et tes stats sont synchronisés sur tous tes appareils.' : 'Pas connecté : decks et stats restent sur cet appareil. Connecte-toi pour les retrouver partout.';
+    if (ab) ab.innerHTML = u ? 'Connecté : <b>' + esc(u.email || '') + '</b><br>Tes decks et tes stats sont synchronisés sur tous tes appareils.' : '<b>Crée ton compte, c’est gratuit</b> : tes decks et tes stats (Aventure comprise) sont sauvegardés et synchronisés entre ton PC et ton téléphone. Sans compte, tout reste sur cet appareil et peut se perdre.';
     const af = $('acctForm');
     if (af) {
       if (u) { af.innerHTML = '<button id="acOut">Se déconnecter</button>'; $('acOut').onclick = async () => { await C.signOut(); location.reload(); }; }
