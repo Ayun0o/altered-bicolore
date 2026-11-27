@@ -596,7 +596,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 .rgtop{display:flex;align-items:center;gap:8px;font-size:15px}
 .rgtrack{display:flex;gap:6px;margin:12px 0;flex-wrap:wrap}
 .rgn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--line);font-weight:700;font-size:14px;opacity:.6}
-.rgn.done{background:#3c8a4a;border-color:#3c8a4a;color:#fff;opacity:1}.rgn.cur{border-color:#f5c518;color:#f5c518;opacity:1;box-shadow:0 0 10px #f5c51866}.rgn.boss{width:40px;height:40px}
+.rgn.done{background:#3c8a4a;border-color:#3c8a4a;color:#fff;opacity:1}.rgn.cur{border-color:#f5c518;color:#f5c518;opacity:1;box-shadow:0 0 10px #f5c51866}.rgn.boss{width:40px;height:40px}.rgn.mini{border-color:#c9a227}
 .rgstats{width:100%;border-collapse:collapse;font-size:13px}.rgstats th,.rgstats td{padding:4px 6px;text-align:center;border-bottom:1px solid var(--line)}.rgstats td:first-child,.rgstats th:first-child{text-align:left}
 .rgfac{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
 .rgfac button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border-width:2px}
@@ -620,7 +620,6 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
  body.rsvview #myStrip .sres .cards{visibility:hidden}
  #handMini{position:absolute;right:6px;top:22px;z-index:5;min-height:0;padding:4px 6px;border-radius:9px;background:#000a;border:1px solid #fff3;color:#fff;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px}
  #handMini .hm{display:flex}#handMini .hm i{display:block;width:16px;aspect-ratio:360/502;border-radius:2px;background:center/cover #445;margin-left:-8px;box-shadow:0 0 0 1px #0009}#handMini .hm i:first-child{margin-left:0}
- .hand{position:relative}
  @keyframes swapin{from{transform:translateY(-70px) scale(.45);opacity:0}to{transform:none;opacity:1}}
  #hand .c.swapin{animation:swapin .32s cubic-bezier(.2,.8,.3,1) both}
 }
@@ -742,8 +741,8 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 <script src="js/engine.js?v=1795785407"></script>
 <script src="js/ai.js?v=1795785407"></script>
 <script src="js/net.js?v=1795785407"></script>
-<script src="js/rogue.js?v=1795794418"></script>
-<script src="js/play.js?v=1795785407"></script>
+<script src="js/rogue.js?v=1795795086"></script>
+<script src="js/play.js?v=1795795086"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
  t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');
@@ -812,7 +811,7 @@ const EN=()=>{try{return localStorage.getItem('alt-bi-lang')==='en'}catch(e){ret
 function html(){return '<h2 style="margin:0 0 8px">🗡️ '+L('Aventure : les règles','Adventure: the rules')+'</h2>'+
  '<p>'+L('Une course en solo contre l’ordinateur, avec un deck qui grandit au fil des combats.','A solo run against the computer, with a deck that grows from fight to fight.')+'</p><ol>'+
  '<li>'+L('<b>Choisis ta faction</b> : tu pars avec son deck de départ officiel.','<b>Choose your faction</b>: you start with its official starter deck.')+'</li>'+
- '<li>'+L('<b>8 combats</b> d’affilée, contre des decks de départ d’autres factions, de plus en plus améliorés (rares, altérations). Le 8e est le <b>boss</b> 👑.','<b>8 fights</b> in a row, against other factions’ starter decks, upgraded more and more (rares, alterations). The 8th is the <b>boss</b> 👑.')+'</li>'+
+ '<li>'+L('<b>10 combats</b> d’affilée, contre des decks de départ d’autres factions, de plus en plus améliorés (rares, altérations). Mini-boss ★ aux combats 4 et 7, <b>boss</b> 👑 au 10e.','<b>10 fights</b> in a row, against other factions’ starter decks, upgraded more and more (rares, alterations). Mini-bosses ★ at fights 4 and 7, <b>boss</b> 👑 at the 10th.')+'</li>'+
  '<li>'+L('Après chaque victoire :','After each win:')+'<ul>'+
  '<li>'+L('<b>Draft</b> : choisis 1 carte parmi 3 de ta faction (de plus en plus de rares au fil des combats) et ajoute-la au deck, sans limite d’exemplaires. Tu peux aussi passer.','<b>Draft</b>: pick 1 card out of 3 from your faction (more and more rares as you go) and add it to your deck, with no copy limit. You can also skip.')+'</li>'+
  '<li>'+L('<b>Amélioration</b> : passe une commune de ton deck en rare (1 choix parmi 3)…','<b>Upgrade</b>: turn one of your commons into its rare (1 choice out of 3)…')+'</li>'+

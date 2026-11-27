@@ -3,7 +3,9 @@
   'use strict';
   const $ = id => document.getElementById(id);
   const P = () => window.AltPlay;
-  const KEY = 'alt-bi-rogue', FIGHTS = 8, LIVES = 3;
+  const KEY = 'alt-bi-rogue', FIGHTS = 10, LIVES = 3, MINI = [3, 6]; // mini-boss aux combats 4 et 7, boss au 10e
+  const BONUS = [{}, {}, { cards: 1 }, { mana: 1, cards: 1 }, { mana: 1 }, { cards: 2 }, { mana: 2 }, { mana: 1, cards: 2 }, { mana: 2, cards: 1 }, { mana: 2, cards: 2 }];
+  const bonusTxt = b => [b.mana ? '+' + b.mana + ' ' + L(b.mana > 1 ? 'Orbes de mana' : 'Orbe de mana', b.mana > 1 ? 'Mana Orbs' : 'Mana Orb') : '', b.cards ? '+' + b.cards + ' ' + L(b.cards > 1 ? 'cartes en main' : 'carte en main', b.cards > 1 ? 'cards in hand' : 'card in hand') : ''].filter(Boolean).join(', ');
   const FAC = ['AX', 'BR', 'LY', 'MU', 'OR', 'YZ'];
   const FN = { AX: 'Axiom', BR: 'Bravos', LY: 'Lyra', MU: 'Muna', OR: 'Ordis', YZ: 'Yzmir' };
   const FC = { AX: '#a0622d', BR: '#c4302b', LY: '#c84f86', MU: '#4a8a3a', OR: '#2f6fb5', YZ: '#6b55c9' };
@@ -70,11 +72,14 @@
     const R = rng(run.seed * 31 + i * 977), DB = P().DB;
     const others = FAC.filter(f => f !== run.f), f = pick(R, others), st = starter(f);
     const d = { hero: st.hero, cards: Object.assign({}, st.cards) };
-    const boss = i === FIGHTS - 1;
-    const ups = [0, 2, 4, 6, 8, 10, 12, 16][i] || 0, alts = [0, 0, 0, 2, 3, 5, 7, 12][i] || 0;
+    const boss = i === FIGHTS - 1, mini = MINI.includes(i);
+    // Paliers : acte 1 (1-3) facile, mini-boss (4), acte 2 (5-6), mini-boss (7), acte 3 (8-9), boss (10)
+    const ups = [0, 2, 3, 7, 6, 8, 11, 10, 12, 16][i] || 0, alts = [0, 0, 1, 3, 2, 3, 6, 5, 7, 12][i] || 0;
     for (let k = 0; k < ups; k++) { const commons = Object.keys(d.cards).filter(r => /_C$/.test(r) && DB[r].t !== 'HERO'); if (!commons.length) break; const r = pick(R, commons), up = rareOf(R, r, f); if (!up) continue; delCard(d, r); addCard(d, up); }
-    for (let k = 0; k < alts; k++) { const pool = Object.keys(d.cards).filter(r => !DB[r].u && DB[r].t !== 'HERO'); if (!pool.length) break; const r = pick(R, pool), ok = ALT.filter(a => a.ok(DB[r]) && (!a.rare || boss || R() < .3)); if (!ok.length) continue; const nr = alterCard(run, r, wpick(R, ok)); if (nr) { delCard(d, r); addCard(d, nr); } }
-    return { d, f, boss };
+    for (let k = 0; k < alts; k++) { const pool = Object.keys(d.cards).filter(r => !DB[r].u && DB[r].t !== 'HERO'); if (!pool.length) break; const r = pick(R, pool), ok = ALT.filter(a => a.ok(DB[r]) && (!a.rare || boss || mini || R() < .3)); if (!ok.length) continue; const nr = alterCard(run, r, wpick(R, ok)); if (nr) { delCard(d, r); addCard(d, nr); } }
+    // Avantage de départ (mesuré par simulations IA contre IA : +2 mana ≈ −20 pts de victoire, +2 cartes ≈ −15 pts)
+    const bonus = BONUS[i] || {};
+    return { d, f, boss, mini, bonus };
   }
 
   // ---- Récompenses ----
@@ -109,7 +114,7 @@
   // ---- Écrans ----
   function img(ref, cls) { return '<span class="rgc' + (cls ? ' ' + cls : '') + '">' + P().cardImg(ref) + '</span>'; }
   function hearts(n) { return '♥'.repeat(n) + '<span style="opacity:.25">' + '♥'.repeat(LIVES - n) + '</span>'; }
-  function track(run) { let h = ''; for (let i = 0; i < FIGHTS; i++) h += '<span class="rgn' + (i < run.i ? ' done' : i === run.i ? ' cur' : '') + (i === FIGHTS - 1 ? ' boss' : '') + '">' + (i === FIGHTS - 1 ? '👑' : i + 1) + '</span>'; return '<div class="rgtrack">' + h + '</div>'; }
+  function track(run) { let h = ''; for (let i = 0; i < FIGHTS; i++) h += '<span class="rgn' + (i < run.i ? ' done' : i === run.i ? ' cur' : '') + (i === FIGHTS - 1 ? ' boss' : MINI.includes(i) ? ' mini' : '') + '">' + (i === FIGHTS - 1 ? '👑' : MINI.includes(i) ? '★' : i + 1) + '</span>'; return '<div class="rgtrack">' + h + '</div>'; }
   function deckCount(d) { return Object.values(d.cards).reduce((a, b) => a + b, 0); }
   function show(html) { $('lobby').classList.add('hidden'); $('game').classList.add('hidden'); const r = $('rogue'); r.classList.remove('hidden'); r.innerHTML = '<div class="rgwrap"><div class="row lhead"><h1 style="font-size:28px;margin-right:auto">🗡️ ' + L('Aventure', 'Adventure') + '</h1><button data-rg="home">' + L('← Table', '← Table') + '</button></div>' + html + '</div>'; window.scrollTo(0, 0); }
   function home() { $('rogue').classList.add('hidden'); $('lobby').classList.remove('hidden'); }
@@ -122,7 +127,7 @@
     if (run.reward) return reward(run);
     const st = starter(run.f), DB = P().DB;
     show('<div class="rgbox"><div class="rgtop"><span style="color:' + FC[run.f] + ';font-weight:700">' + FN[run.f] + '</span> · ' + esc(NM(DB[run.deck.hero])) + '<span style="margin-left:auto;font-size:20px;color:#e0546a">' + hearts(run.lives) + '</span></div>' + track(run) +
-      '<p class="note">' + (run.i === FIGHTS - 1 ? L('Dernier combat : le boss, avec un deck très amélioré.', 'Final fight: the boss, with a heavily upgraded deck.') : L('Combat ', 'Fight ') + (run.i + 1) + ' / ' + FIGHTS + ' · ' + L('Ton adversaire a un deck plus fort à chaque combat.', 'Your opponent’s deck gets stronger every fight.')) + '</p>' +
+      '<p class="note">' + (run.i === FIGHTS - 1 ? L('Dernier combat : le boss, avec un deck très amélioré.', 'Final fight: the boss, with a heavily upgraded deck.') : L('Combat ', 'Fight ') + (run.i + 1) + ' / ' + FIGHTS + ' · ' + (MINI.includes(run.i) ? L('★ Mini-boss : un adversaire nettement plus coriace.', '★ Mini-boss: a noticeably tougher opponent.') : L('Ton adversaire a un deck plus fort à chaque combat.', 'Your opponent’s deck gets stronger every fight.'))) + '' + (bonusTxt(BONUS[run.i] || {}) ? '<br>⚔️ ' + L('Avantage de l’adversaire : ', 'Opponent’s edge: ') + bonusTxt(BONUS[run.i]) : '') + '</p>' +
       '<div class="row" style="gap:8px;flex-wrap:wrap"><button class="pri" data-rg="fight"' + (deckCount(run.deck) < MINDECK ? ' disabled title="' + L('Il faut au moins 39 cartes', 'You need at least 39 cards') + '"' : '') + '>⚔️ ' + L('Combattre', 'Fight') + '</button><button data-rg="org">🃏 ' + L('Organiser mon deck', 'Organise my deck') + ' (' + deckCount(run.deck) + ')</button><button data-rg="quit" style="margin-left:auto">' + L('Abandonner la partie', 'Abandon the run') + '</button></div></div>' + (run.showDeck ? deckView(run) : ''));
   }
   const rareRefs = run => Object.keys(run.deck.cards).filter(r => P().DB[r] && P().DB[r].y === 'R');
@@ -131,7 +136,7 @@
     return '<div class="rggrid">' + refs.map(r => '<div class="rgitem"' + (act ? ' data-rg="' + act + '" data-r="' + r + '" style="cursor:pointer"' : '') + '>' + img(r) + '<span class="rgq">×' + run.deck.cards[r] + '</span>' + (DB[r].u ? '<span class="rgalt">✦ ' + esc(altLabel(DB[r])) + '</span>' : '') + '</div>').join('') + '</div>';
   }
   function choose() {
-    show('<div class="rgbox"><p>' + L('Choisis ta faction. Tu pars avec son deck de départ, tu affrontes 8 adversaires de plus en plus forts et tu améliores ton deck entre chaque combat. Trois défaites et c’est fini.', 'Choose your faction. You start with its starter deck, face 8 increasingly strong opponents and improve your deck between fights. Three losses and it is over.') + '</p><div class="rgfac">' +
+    show('<div class="rgbox"><p>' + L('Choisis ta faction. Tu pars avec son deck de départ, tu affrontes ' + FIGHTS + ' adversaires de plus en plus forts (dont 2 mini-boss et un boss) et tu améliores ton deck entre chaque combat. Trois défaites et c’est fini.', 'Choose your faction. You start with its starter deck, face ' + FIGHTS + ' increasingly strong opponents (including 2 mini-bosses and a boss) and improve your deck between fights. Three losses and it is over.') + '</p><div class="rgfac">' +
       FAC.map(f => '<button data-rg="start" data-f="' + f + '" style="border-color:' + FC[f] + '"><b style="color:' + FC[f] + '">' + FN[f] + '</b>' + (starter(f) ? '<span class="small">' + esc(NM(P().DB[starter(f).hero])) + '</span>' : '') + '</button>').join('') + '</div></div>' + statsView());
   }
   function start(f) {
@@ -143,11 +148,11 @@
     const run = load(); if (!run) return;
     for (const c of Object.values(run.uq)) P().DB[c.r] = c;
     const e = enemyDeck(run, run.i);
-    const me = deckObj(run, run.deck, L('Mon deck', 'My deck')), foe = deckObj(run, e.d, e.boss ? 'Boss' : FN[e.f]);
+    const me = deckObj(run, run.deck, L('Mon deck', 'My deck')), foe = deckObj(run, e.d, e.boss ? 'Boss' : e.mini ? L('Mini-boss', 'Mini-boss') : FN[e.f]);
     save(run);
-    const who = (e.boss ? '👑 ' + L('Boss', 'Boss') + ' ' : '') + FN[e.f];
+    const who = (e.boss ? '👑 ' + L('Boss', 'Boss') + ' ' : e.mini ? '★ ' + L('Mini-boss', 'Mini-boss') + ' ' : '') + FN[e.f];
     $('rogue').classList.add('hidden');
-    P().start(me, foe, L('Toi', 'You'), who, won => after(won));
+    P().start(me, foe, L('Toi', 'You'), who, won => after(won), e.bonus);
   }
   function after(won) {
     const run = load(); if (!run) return home();

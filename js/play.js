@@ -174,9 +174,15 @@
     showGame(); push();
   }
   // Accroche pour le mode Aventure (roguelike) : lance une partie contre l'IA avec deux decks donnés
-  let ROGUE = null;
+  let ROGUE = null, FOEB = null;
+  // Aventure : avantage de départ de l'adversaire (mini-boss, boss…), appliqué une fois la mise en place terminée
+  function foeBonus() { if (!FOEB || FOEB.done || !ROGUE || !S || S.phase === 'SETUP') return; FOEB.done = true; const F = S.players[1]; if (!F) return;
+    for (let k = 0; k < FOEB.mana && F.deck.length; k++) F.mana.push({ id: F.deck.shift(), ex: false });
+    for (let k = 0; k < FOEB.cards && F.deck.length; k++) F.hand.push(F.deck.shift());
+    const t = [FOEB.mana ? '+' + FOEB.mana + (LANG === 'en' ? ' Mana Orb' + (FOEB.mana > 1 ? 's' : '') : ' Orbe' + (FOEB.mana > 1 ? 's' : '') + ' de mana') : '', FOEB.cards ? '+' + FOEB.cards + (LANG === 'en' ? ' card' + (FOEB.cards > 1 ? 's' : '') + ' in hand' : ' carte' + (FOEB.cards > 1 ? 's' : '') + ' en main') : ''].filter(Boolean).join(', ');
+    S.log.push({ d: S.day, m: (LANG === 'en' ? '⚔️ Opponent’s edge: ' : '⚔️ Avantage de l’adversaire : ') + t + '.' }); }
   window.AltPlay = { get DB() { return DB; }, get STARTERS() { return STARTERS; }, E, get LANG() { return LANG; }, cardImg: ref => imgOld({ ref, id: 'rg' }),
-    start(a, b, na, nb, onEnd) { ROGUE = onEnd; mode = 'ai'; me = 0; decksUsed = [a, b]; addArt(a.art); addArt(b.art); names = [na, nb]; for (const d of [a, b]) for (const c of Object.values(d.uq || {})) DB[c.r] = c;
+    start(a, b, na, nb, onEnd, foeBonus) { ROGUE = onEnd; FOEB = foeBonus && (foeBonus.mana || foeBonus.cards) ? { mana: foeBonus.mana | 0, cards: foeBonus.cards | 0, done: false } : null; mode = 'ai'; me = 0; decksUsed = [a, b]; addArt(a.art); addArt(b.art); names = [na, nb]; for (const d of [a, b]) for (const c of Object.values(d.uq || {})) DB[c.r] = c;
       S = E.newGame({}); E.addPlayer(S, 0, na, a, DB); E.addPlayer(S, 1, nb, b, DB); E.advance(S, DB); sel = null; hist = []; $('bSwitch').classList.add('hidden'); setConn('Aventure'); showGame(); push(); } };
   function rematch() {
     if (mode === 'guest') { net.send({ type: 'rematch' }); return; }
@@ -197,6 +203,7 @@
     const err = applyAct(me, a); if (err) flash(err); push();
   }
   function push() {
+    foeBonus();
     if (mode === 'host' && net && S.players[1]) { const uq = {}; for (const k in DB) if (DB[k].u) uq[k] = DB[k]; net.send({ type: 'state', v: E.view(S, 1), uq, art: ART }); }
     V = E.view(S, me); render();
     if (mode === 'ai') aiTick();
