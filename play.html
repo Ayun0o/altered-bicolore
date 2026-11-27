@@ -678,7 +678,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 /* Aventure : ambiance, carte du parcours, zoom, organisateur façon deckbuilder */
 body.rgon{background:radial-gradient(ellipse at 18% 0%,color-mix(in srgb,var(--rf,#c9a24a) 30%,#0d1330) 0%,#0b1026 45%,#070a18 100%) fixed;color:#e9e6f2}
 #rogue{position:relative;max-width:1240px}
-#rogue .rgbg{position:fixed;inset:0;z-index:-1;background-size:cover;background-position:center 42%;opacity:.22;filter:saturate(1.1) blur(2px);-webkit-mask-image:linear-gradient(180deg,#000 0%,#0008 45%,transparent 85%);mask-image:linear-gradient(180deg,#000 0%,#0008 45%,transparent 85%)}
+#rogue .rgbg{position:fixed;inset:0;z-index:-1;background-size:max(100vw,150vh) auto;background-repeat:no-repeat;background-position:center 7%;opacity:.3;filter:saturate(1.1) blur(1px);-webkit-mask-image:linear-gradient(180deg,transparent 0%,#000 24%,#000 62%,transparent 96%);mask-image:linear-gradient(180deg,transparent 0%,#000 24%,#000 62%,transparent 96%)}
 #rogue .rgbg.none{background:radial-gradient(circle at 80% 10%,#5a4bb540,transparent 50%),radial-gradient(circle at 10% 80%,#c9a24a30,transparent 50%)}
 #rogue .rgwrap::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(90deg,color-mix(in srgb,var(--rf) 22%,transparent),transparent 30%,transparent 70%,color-mix(in srgb,var(--rs) 22%,transparent))}
 #rogue h1{color:#e8c46a;letter-spacing:.5px;text-shadow:0 2px 12px #0008}
@@ -720,6 +720,46 @@ body.rgon{background:radial-gradient(ellipse at 18% 0%,color-mix(in srgb,var(--r
 .rgup .rgpair{width:100%;gap:8px}.rgup .rgpair .rgc{flex:1;max-width:170px}.rgup .rgarr{font-size:26px}
 .rgupl{font-size:13px;color:#e8c46a;font-weight:700}
 @media(max-width:600px){.rgups{grid-template-columns:1fr;gap:8px}.rgup{padding:6px}.rgup .rgpair .rgc{max-width:none}}
+
+/* Parcours en chemin sinueux */
+#rogue .rgtrack{display:block;position:relative;height:92px;margin:10px 0 14px;padding:0}
+#rogue .rgtrack svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+#rogue .rgtrack polyline{fill:none;stroke-width:2.5;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round}
+#rogue .rgtrack polyline.all{stroke:#ffffff40;stroke-dasharray:5 6}
+#rogue .rgtrack polyline.dn{stroke:#e8c46a;filter:drop-shadow(0 0 4px #e8c46a88)}
+#rogue .rgtrack .rgn{position:absolute;transform:translate(-50%,-50%)!important;margin:0}
+#rogue .rgtrack .rgline{display:none}
+@media(max-width:600px){#rogue .rgtrack{height:78px}}
+/* Barre du haut de l'Aventure toujours visible (Retour / Terminé) */
+#rogue .lhead{position:sticky;top:0;z-index:20;gap:8px;padding:8px 0;margin:-8px 0 4px;background:linear-gradient(180deg,#0b1026f0 70%,#0b102600)}
+/* Arbre de talents : branches reliées, médaillons */
+#rogue .rgtal{grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+#rogue .rgbr{background:radial-gradient(ellipse at 50% 0%,#e8c46a14,transparent 60%),color-mix(in srgb,#10153a 80%,transparent);border:1px solid #e8c46a33;border-radius:16px;padding:12px 10px 14px;box-shadow:inset 0 0 30px #0006}
+#rogue .rgbr h3{display:flex;align-items:center;justify-content:center;gap:8px;margin:0 0 22px;font-size:17px;color:#e8c46a;letter-spacing:.5px;text-transform:uppercase}
+.rgbic{display:inline-grid;place-items:center;width:30px;height:30px;border-radius:50%;background:#e8c46a22;border:1px solid #e8c46a66;font-size:15px}
+.rgtree{position:relative;display:flex;flex-direction:column;gap:34px}
+.rglinks{position:absolute;left:0;top:0;pointer-events:none;overflow:visible}
+.rglinks path{fill:none;stroke:#ffffff30;stroke-width:2;stroke-dasharray:4 5}.rglinks path.open{stroke:#e8c46a88;stroke-dasharray:none}.rglinks path.on{stroke:#e8c46a;stroke-width:3;stroke-dasharray:none;filter:drop-shadow(0 0 4px #e8c46a)}
+.rglv{display:flex;gap:10px;justify-content:center;position:relative;z-index:1}
+#rogue .rgnode{flex:1;max-width:230px;position:relative;margin:0;padding:22px 10px 10px;text-align:center;border-radius:14px;background:linear-gradient(180deg,#1b2150,#11163a);border:1px solid #ffffff22}
+#rogue .rgnode .rgmed{position:absolute;top:-17px;left:50%;transform:translateX(-50%);width:32px;height:32px;border-radius:50%;display:grid;place-items:center;background:#11163a;border:2px solid #ffffff44;font-size:15px}
+#rogue .rgnode.on{border-color:#e8c46aaa;box-shadow:0 0 0 1px #e8c46a55,0 0 18px #e8c46a33}
+#rogue .rgnode.on .rgmed{border-color:#e8c46a;background:radial-gradient(circle,#5a4310,#2a1f08);box-shadow:0 0 12px #e8c46a88}
+#rogue .rgnode.max .rgmed{background:radial-gradient(circle,#e8c46a,#a77d24)}
+#rogue .rgnode.can{border-color:#7fd3a0aa}#rogue .rgnode.can .rgmed{border-color:#7fd3a0}
+#rogue .rgnode.lock{opacity:.5;filter:grayscale(.6)}
+#rogue .rgnode .rgnh{display:flex;flex-direction:column;align-items:center;gap:4px}#rogue .rgnode .rgpips{margin:0}
+#rogue .rgnode p{font-size:12.5px;margin:6px 0 8px}.rgnext{color:#e8c46a}
+.rgnb{display:flex;gap:6px;justify-content:center}.rgnb button{min-height:30px;padding:2px 12px}.rgmax{color:#e8c46a;font-weight:700;font-size:13px}
+@media(max-width:600px){.rglv{gap:6px}#rogue .rgnode{padding:20px 6px 8px}#rogue .rgnode p{font-size:11.5px}}
+/* Aventure : colonne resserrée sur PC (sauf organiseur / talents) */
+#rogue .rgwrap:not(.wide){max-width:780px;margin:0 auto}
+/* Choix de faction : art du héros, lisible */
+#rogue .rgfac .rgfb{position:relative;overflow:hidden;min-height:92px;justify-content:flex-end;background:linear-gradient(90deg,#0d1130f0 35%,#0d113080 70%,#0d113030),var(--art) right 30%/65% auto no-repeat,#1a2050;box-shadow:inset 0 0 0 1px #ffffff14,0 4px 14px #0005;transition:transform .15s,box-shadow .15s}
+#rogue .rgfac .rgfb b{font-size:19px;text-shadow:0 1px 3px #000}
+#rogue .rgfac .rgfb .small{color:#f1eefa;opacity:1;font-size:13.5px;text-shadow:0 1px 3px #000}
+#rogue .rgfac .rgfb:hover{transform:translateY(-2px);box-shadow:0 0 18px color-mix(in srgb,var(--fc) 55%,transparent)}
+#rogue .rgbox p,#rogue .rgbox .note{color:#e4e0f0}
 </style>
 </head>
 <body>
@@ -802,7 +842,7 @@ body.rgon{background:radial-gradient(ellipse at 18% 0%,color-mix(in srgb,var(--r
 <script src="js/engine.js?v=1795798404"></script>
 <script src="js/ai.js?v=1795785407"></script>
 <script src="js/net.js?v=1795785407"></script>
-<script src="js/rogue.js?v=1795803475"></script>
+<script src="js/rogue.js?v=1795803867"></script>
 <script src="js/play.js?v=1795803205"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
