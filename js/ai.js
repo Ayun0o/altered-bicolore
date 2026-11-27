@@ -38,14 +38,19 @@
   }
   const costOf = (s, id, db) => { const c = s.cards[id], d = db[c.ref] || {}; return E.num(d.c); };
 
-  // Mise en place (3 cartes en mana) : avec au moins une carte à 3 ou moins en main, il met ses cartes à 5+ ;
-  // s'il n'a rien de jouable au premier tour, il met aussi les cartes à 4+ ; sinon les plus chères.
+  // Mise en place (3 cartes en mana) : il choisit d'abord les 3 cartes à GARDER, le reste part en mana.
+  // Règle d'or : toujours garder un Personnage jouable au tour 1 (coût 3, sinon 2, sinon 1).
+  // Idéal : Personnage à 3, puis à 4, puis à 5 (un par tour). Les sorts partent en mana en priorité :
+  // en début de partie ils ne font presque rien. Ensuite, ce qui coûte 5 ou plus part en mana.
   function setupPick(s, p, db) {
-    const P = s.players[p], byCost = P.hand.slice().sort((a, b) => costOf(s, b, db) - costOf(s, a, db));
-    const hasEarly = P.hand.some(id => costOf(s, id, db) <= 3);
-    const big = byCost.filter(id => costOf(s, id, db) >= (hasEarly ? 5 : 4));
-    const pick = big.slice(0, 3); for (const id of byCost) { if (pick.length >= 3) break; if (!pick.includes(id)) pick.push(id); }
-    return pick;
+    const P = s.players[p], cost = id => costOf(s, id, db), isChar = id => (db[s.cards[id].ref] || {}).t === 'CHARACTER';
+    const keep = [], take = f => { const id = P.hand.find(x => !keep.includes(x) && f(x)); if (id) keep.push(id); return !!id; };
+    take(id => isChar(id) && cost(id) === 3) || take(id => isChar(id) && cost(id) === 2) || take(id => isChar(id) && cost(id) === 1) || take(id => isChar(id) && cost(id) === 0);
+    take(id => isChar(id) && cost(id) === 4); take(id => isChar(id) && cost(id) === 5);
+    // Places restantes : Personnages les moins chers d'abord, puis le reste (sorts et cartes chères en dernier)
+    const rank = id => (isChar(id) ? 0 : 20) + (cost(id) >= 5 ? 10 : 0) + cost(id);
+    for (const id of P.hand.slice().sort((a, b) => rank(a) - rank(b))) { if (keep.length >= Math.max(0, P.hand.length - 3)) break; if (!keep.includes(id)) keep.push(id); }
+    return P.hand.filter(id => !keep.includes(id)).slice(0, 3);
   }
   // Matin : à partir du jour 2 il met plutôt une petite carte (1-2), sauf si elle sert à dépenser tout son mana au prochain tour
   function morningPick(s, p, db) {
@@ -76,6 +81,8 @@
     return best;
   }
 
+  // Règles d'or de l'ordinateur :
+  //  0. Mise en place : garder un Personnage jouable au tour 1 (idéalement 3, puis 4, puis 5) ; les sorts vont en mana (voir setupPick).
   // Règle n°1 : dépenser tout son mana. Il cherche la combinaison de cartes qui utilise le plus de mana
   // (main + réserve), et ne joue que des cartes de cette combinaison, la plus chère d'abord, au meilleur endroit.
   function bestPlay(s, p, db) {
