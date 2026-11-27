@@ -769,6 +769,11 @@ body.rgon{background:radial-gradient(ellipse at 18% 0%,color-mix(in srgb,var(--r
 #rogue .rgorgh .rgstl{flex:1 1 300px}#rogue .rgorgh .rgstr{flex:1 1 260px;display:flex;flex-direction:column}#rogue .rgorgh .rgstr .rgcurve{flex:1;min-height:90px}
 #rogue .rgorgh .rgcvh{margin-top:0}
 @media(max-width:800px){#rogue .rgorgh{flex-wrap:wrap;gap:12px}#rogue .rgorgh .rghero{width:110px}#rogue .rgorgh .rgst{flex:1 1 100%;margin:0;flex-wrap:wrap;gap:12px}}
+/* Barre du bas pendant le draft / les récompenses */
+#rogue .rgbar{position:sticky;bottom:0;z-index:15;display:flex;align-items:center;gap:8px;margin:12px 0 0;padding:12px 0 calc(10px + env(safe-area-inset-bottom));background:linear-gradient(0deg,#0b1026f2 65%,#0b102600)}
+#rogue .rgbarr{margin-left:auto;display:flex;gap:8px}
+#rogue .rgbar button{white-space:nowrap}@media(max-width:600px){#rogue .rgbar{gap:6px}#rogue .rgbarr{gap:6px}#rogue .rgbar button{padding:8px 10px;font-size:14px}#rogue .rgvm{display:none}}
+#rogue .rgvs{display:none}@media(max-width:600px){#rogue .rgvs{display:inline}}
 </style>
 </head>
 <body>
@@ -851,7 +856,7 @@ body.rgon{background:radial-gradient(ellipse at 18% 0%,color-mix(in srgb,var(--r
 <script src="js/engine.js?v=1795798404"></script>
 <script src="js/ai.js?v=1795785407"></script>
 <script src="js/net.js?v=1795785407"></script>
-<script src="js/rogue.js?v=1795804138"></script>
+<script src="js/rogue.js?v=1795804335"></script>
 <script src="js/play.js?v=1795803205"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
