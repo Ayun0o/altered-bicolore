@@ -707,7 +707,7 @@ body.rgon{background:radial-gradient(ellipse at 18% 0%,color-mix(in srgb,var(--r
 .rgst{background:color-mix(in srgb,#141a3a 82%,transparent);border:1px solid #ffffff1f;border-radius:14px;padding:12px;display:grid;gap:10px}
 .rgsth{font-size:15px}.rgsth b{font-size:22px;color:#e8c46a}
 .rggem{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:12.5px}.rggem .g{display:inline-grid;place-items:center;min-width:24px;height:24px;border-radius:7px;font-weight:800;font-size:13px;margin-left:4px}
-.rggem .g.c{background:#9aa3b3;color:#111}.rggem .g.r{background:#4b86d6;color:#fff}.rggem .g.u{background:#e8c46a;color:#1b1405}
+.rggem .g.gc{background:#9aa3b3;color:#111}.rggem .g.gr{background:#4b86d6;color:#fff}.rggem .g.gu{background:#e8c46a;color:#1b1405}
 .rgcurve{display:flex;align-items:flex-end;gap:3px;height:80px}.rgcurve div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:2px}
 .rgcurve i{display:block;width:100%;max-width:22px;background:linear-gradient(180deg,#e8c46a,#a77d24);border-radius:4px 4px 0 0;min-height:2px}.rgcurve small,.rgcurve span{font-size:11px;color:#b9b5cf}
 .rgtyp{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:12.5px}
@@ -826,6 +826,15 @@ body.noanim .c.landed,body.noanim .c .drop,body.noanim .hand .c.drawn,body.noani
 #rogue .rgmbar{display:block;width:180px;height:3px;border-radius:2px;background:#e8c46a;transform-origin:left;animation:rgmbar 2.6s linear forwards}
 @keyframes rgmbar{from{transform:scaleX(1)}to{transform:scaleX(0)}}@keyframes rgpop{from{transform:scale(.6);opacity:0}}
 @media(max-width:600px){#rogue .rgups{grid-template-columns:1fr}}
+/* Organiseur : gros bouton Terminé près du héros, titres de catégories bien visibles */
+#rogue .rgorgh>div:nth-child(2){display:flex;flex-direction:column}
+#rogue .rgobig{margin-top:auto;align-self:flex-start;font-size:16px;padding:10px 18px;min-height:44px}
+#rogue .rgog{position:sticky;top:58px;z-index:5;font-size:18px;margin:16px 0 10px;padding:8px 14px;border-radius:10px;background:linear-gradient(90deg,#e8c46a2e,#e8c46a08 70%),#141a3af0;border:1px solid #e8c46a55;border-left:4px solid #e8c46a;color:#f3e3b5;backdrop-filter:blur(6px)}
+#rogue .rgog span{background:#e8c46a;color:#2a1a00;font-weight:800;font-size:14px;padding:1px 9px;border-radius:9px}
+@media(max-width:800px){#rogue .rgobig{margin-top:10px;font-size:15px}#rogue .rgog{position:static;font-size:16px}}
+/* Pastilles de puissance : compactes, avec l'icône du terrain */
+#rogue .rgpw{gap:6px;flex-wrap:wrap}#rogue .rgpw span{flex:0 0 auto;display:inline-flex;align-items:center;gap:5px;padding:3px 11px 3px 7px;border-radius:999px;font-size:14px}
+#rogue .rgpw svg{width:15px;height:15px;color:#fff}
 </style>
 </head>
 <body>
@@ -908,7 +917,7 @@ body.noanim .c.landed,body.noanim .c .drop,body.noanim .hand .c.drawn,body.noani
 <script src="js/engine.js?v=1795798404"></script>
 <script src="js/ai.js?v=1795785407"></script>
 <script src="js/net.js?v=1795785407"></script>
-<script src="js/rogue.js?v=1795805016"></script>
+<script src="js/rogue.js?v=1795805235"></script>
 <script src="js/play.js?v=1795804862"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
