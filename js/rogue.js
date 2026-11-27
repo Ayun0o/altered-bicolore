@@ -14,14 +14,47 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } };
   const save = r => { try { localStorage.setItem(KEY, JSON.stringify(r)); } catch (e) { } };
-  // Stats d'aventure par faction : courses, aventures réussies, meilleur résultat, combats gagnés
+  // ---- Pièces et arbre de talents (méta-progression, conservée entre les aventures) ----
+  // Les talents ne touchent jamais la partie elle-même : seulement la construction du deck entre les combats.
+  // Plus on dépense de pièces, plus la menace monte (adversaires plus forts). Sans talents : aventure « pure ».
+  const MKEY = 'alt-bi-rogue-meta';
+  const loadMeta = () => { let m = null; try { m = JSON.parse(localStorage.getItem(MKEY) || 'null'); } catch (e) { } m = m && typeof m === 'object' ? m : {}; m.earned = m.earned | 0; m.alloc = m.alloc && typeof m.alloc === 'object' ? m.alloc : {}; if (m.useTal === undefined) m.useTal = true; return m; };
+  const saveMeta = m => { try { localStorage.setItem(MKEY, JSON.stringify(m)); } catch (e) { } };
+  const BR = { rec: ['🎴', 'Recrutement', 'Recruitment'], for: ['🎲', 'Fortune', 'Fortune'], ate: ['🔨', 'Atelier', 'Workshop'], bic: ['🧭', 'Exploration', 'Exploration'] };
+  const TAL = [
+    { id: 'pre', b: 'rec', costs: [1, 3, 5], fr: 'Draft de départ', en: 'Opening draft', d: l => L(l + ' draft' + (l > 1 ? 's' : '') + ' avant le 1er combat', l + ' draft' + (l > 1 ? 's' : '') + ' before the first fight') },
+    { id: 'rare', b: 'rec', req: 'pre', costs: [3, 6, 10], fr: 'Flair', en: 'Keen eye', d: l => l < 3 ? L('+' + (10 * l) + ' % de chance de rare au draft', '+' + (10 * l) + '% rare chance in drafts') : L('+20 % de rares, et 5 % de chance d’une unique par carte', '+20% rares, and a 5% chance of a unique per card') },
+    { id: 'mini2', b: 'rec', req: 'rare', costs: [6], fr: 'Butin de mini-boss', en: 'Mini-boss loot', d: () => L('Après un mini-boss vaincu, garde 2 cartes du draft', 'After beating a mini-boss, keep 2 cards from the draft') },
+    { id: 'wide', b: 'rec', req: 'rare', costs: [10, 20], fr: 'Large choix', en: 'Wide choice', d: l => L((3 + l) + ' cartes proposées au draft', (3 + l) + ' cards offered in drafts') },
+    { id: 'rr', b: 'for', costs: [2, 4, 8], fr: 'Relances', en: 'Rerolls', d: l => L([0, 2, 5, 10][l] + ' jetons de relance par aventure (draft, amélioration, unique)', [0, 2, 5, 10][l] + ' reroll tokens per adventure (draft, upgrade, unique)') },
+    { id: 'ban', b: 'for', req: 'rr', costs: [2, 4, 6], fr: 'Bannissement', en: 'Ban', d: l => L(l + ' jeton' + (l > 1 ? 's' : '') + ' de bannissement : retire une carte proposée (et son nom du reste de l’aventure)', l + ' ban token' + (l > 1 ? 's' : '') + ': remove an offered card (and its name for the rest of the adventure)') },
+    { id: 'mtok', b: 'for', req: 'rr', costs: [4, 8], fr: 'Prime', en: 'Bounty', d: l => L('+' + l + ' jeton' + (l > 1 ? 's' : '') + ' de relance après chaque mini-boss vaincu', '+' + l + ' reroll token' + (l > 1 ? 's' : '') + ' after each mini-boss beaten') },
+    { id: 'srare', b: 'ate', costs: [2, 5], fr: 'Bonne base', en: 'Solid base', d: l => L('Commence avec ' + l + ' commune' + (l > 1 ? 's' : '') + ' passée' + (l > 1 ? 's' : '') + ' en rare', 'Start with ' + l + ' common' + (l > 1 ? 's' : '') + ' upgraded to rare') },
+    { id: 'pickup', b: 'ate', req: 'srare', costs: [6], fr: 'Libre choix', en: 'Free choice', d: () => L('Choisis toi-même la commune à améliorer (parmi tout ton deck)', 'Pick the common to upgrade yourself (from your whole deck)') },
+    { id: 'mini2up', b: 'ate', req: 'srare', costs: [6], fr: 'Forge', en: 'Forge', d: () => L('Après un mini-boss vaincu, améliore 2 cartes au lieu d’une', 'After beating a mini-boss, upgrade 2 cards instead of one') },
+    { id: 'smut', b: 'ate', req: 'pickup', costs: [8], fr: 'Mutation de départ', en: 'Opening mutation', d: () => L('Une mutation offerte avant le 1er combat', 'A free mutation before the first fight') },
+    { id: 'dmut', b: 'ate', req: 'pickup', costs: [8], fr: 'Double mutation', en: 'Double mutation', d: () => L('Chaque mutation révèle 2 uniques : tu gardes celle que tu veux', 'Each mutation reveals 2 uniques: keep the one you want') },
+    { id: 'bi', b: 'bic', costs: [20], fr: 'Aventure bicolore', en: 'Bicolore adventure', d: () => L('Option au départ : choisis une faction voisine sur la roue. Chaque carte draftée a 1 chance sur 2 d’en venir.', 'Start option: pick a neighbouring faction on the wheel. Each drafted card has a 50% chance to come from it.') }
+  ];
+  const TBY = Object.fromEntries(TAL.map(t => [t.id, t]));
+  const spentOf = alloc => TAL.reduce((s, t) => s + t.costs.slice(0, alloc[t.id] | 0).reduce((a, b) => a + b, 0), 0);
+  const heatOf = spent => Math.floor(spent / 10); // 1 niveau de menace tous les 10 pièces dépensées
+  const heatTxt = h => h ? L('+' + (25 * h) + ' % de rares et d’altérations adverses', '+' + (25 * h) + '% enemy rares and alterations') + (Math.floor(h / 2) ? L(', +' + Math.floor(h / 2) + ' carte' + (Math.floor(h / 2) > 1 ? 's' : '') + ' en main adverse dès le combat 2', ', +' + Math.floor(h / 2) + ' enemy card' + (Math.floor(h / 2) > 1 ? 's' : '') + ' in hand from fight 2') : '') : L('aucune', 'none');
+  const T = (run, id) => ((run && run.t) || {})[id] | 0;
+  const COIN = i => i === FIGHTS - 1 ? 3 : MINI.includes(i) ? 2 : 1;
+  // Roue des factions (celle réglée sur le deckbuilder si elle existe)
+  function wheel() { try { const f = JSON.parse(localStorage.getItem('alt-bi-fmt') || 'null'); if (f && Array.isArray(f.wheel) && f.wheel.length === 6 && FAC.every(x => f.wheel.includes(x))) return f.wheel; } catch (e) { } return ['AX', 'BR', 'MU', 'LY', 'YZ', 'OR']; }
+  const neighbours = f => { const w = wheel(), i = w.indexOf(f); return i < 0 ? [] : [w[(i + 5) % 6], w[(i + 1) % 6]]; };
+
+  // Stats d'aventure par faction : courses, aventures réussies, meilleur résultat, combats gagnés (sans talents / avec talents séparés)
   const SKEY = 'alt-bi-rogue-stats';
   const loadStats = () => { try { return JSON.parse(localStorage.getItem(SKEY) || '{}') || {}; } catch (e) { return {}; } };
-  function record(run) { if (!run || run.counted) return; const S = loadStats(), w = run.log.filter(x => x.won).length, o = S[run.f] || { runs: 0, wins: 0, best: 0, fights: 0 };
-    o.runs++; if (run.over === 'win') o.wins++; o.best = Math.max(o.best, w); o.fights += w; S[run.f] = o; try { localStorage.setItem(SKEY, JSON.stringify(S)); } catch (e) { } run.counted = true; }
-  function statsView() { const S = loadStats(), fs = FAC.filter(f => S[f] && S[f].runs); if (!fs.length) return '';
-    return '<div class="rgbox"><h3 style="margin:0 0 6px">📊 ' + L('Mes stats d’aventure', 'My adventure stats') + '</h3><table class="rgstats"><tr><th></th><th>' + L('Courses', 'Runs') + '</th><th>' + L('Réussies', 'Cleared') + '</th><th>' + L('Record', 'Best') + '</th><th>' + L('Combats gagnés', 'Fights won') + '</th></tr>' +
-      fs.map(f => { const o = S[f]; return '<tr><td style="color:' + FC[f] + ';font-weight:700">' + FN[f] + '</td><td>' + o.runs + '</td><td>' + o.wins + '</td><td>' + (o.best >= FIGHTS ? '👑' : o.best + ' / ' + FIGHTS) + '</td><td>' + o.fights + '</td></tr>'; }).join('') + '</table></div>'; }
+  function record(run) { if (!run || run.counted) return; const S = loadStats(), w = run.log.filter(x => x.won).length, key = (run.tal ? 't:' : '') + run.f, o = S[key] || { runs: 0, wins: 0, best: 0, fights: 0 };
+    o.runs++; if (run.over === 'win') o.wins++; o.best = Math.max(o.best, w); o.fights += w; S[key] = o; try { localStorage.setItem(SKEY, JSON.stringify(S)); } catch (e) { } run.counted = true; }
+  function statsView() { const S = loadStats(), rows = [];
+    for (const [pre, lab] of [['', L('sans talents', 'no talents')], ['t:', L('avec talents', 'with talents')]]) for (const f of FAC) { const o = S[pre + f]; if (o && o.runs) rows.push('<tr><td><b style="color:' + FC[f] + '">' + FN[f] + '</b> <span class="small">' + lab + '</span></td><td>' + o.runs + '</td><td>' + o.wins + '</td><td>' + (o.best >= FIGHTS ? '👑' : o.best + ' / ' + FIGHTS) + '</td><td>' + o.fights + '</td></tr>'); }
+    if (!rows.length) return '';
+    return '<div class="rgbox"><h3 style="margin:0 0 6px">📊 ' + L('Mes stats d’aventure', 'My adventure stats') + '</h3><table class="rgstats"><tr><th></th><th>' + L('Courses', 'Runs') + '</th><th>' + L('Réussies', 'Cleared') + '</th><th>' + L('Record', 'Best') + '</th><th>' + L('Combats gagnés', 'Fights won') + '</th></tr>' + rows.join('') + '</table></div>'; }
   // Hasard reproductible (graine de la partie)
   function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
   const pick = (R, a) => a[Math.floor(R() * a.length)];
@@ -67,31 +100,43 @@
   function rareOf(R, ref, f) { const DB = P().DB, b = fam(ref); const opts = ['_R1', '_R2'].map(x => b + x).filter(r => DB[r] && (!f || DB[r].f === f || DB[r].h === f)); return opts.length ? pick(R, opts) : null; }
   function addCard(d, r, n = 1) { d.cards[r] = (d.cards[r] || 0) + n; }
   function delCard(d, r, n = 1) { d.cards[r] = (d.cards[r] || 0) - n; if (d.cards[r] <= 0) delete d.cards[r]; }
-  // Deck de l'adversaire : un deck de départ de plus en plus amélioré selon le combat
+  // Deck de l'adversaire : un deck de départ de plus en plus amélioré selon le combat (et la menace des talents)
+  function edge(run, i) { const b = Object.assign({}, BONUS[i] || {}), h = run.heat | 0; if (i >= 1 && Math.floor(h / 2)) b.cards = (b.cards || 0) + Math.floor(h / 2); return b; }
   function enemyDeck(run, i) {
     const R = rng(run.seed * 31 + i * 977), DB = P().DB;
     const others = FAC.filter(f => f !== run.f), f = pick(R, others), st = starter(f);
     const d = { hero: st.hero, cards: Object.assign({}, st.cards) };
-    const boss = i === FIGHTS - 1, mini = MINI.includes(i);
-    // Paliers : acte 1 (1-3) facile, mini-boss (4), acte 2 (5-6), mini-boss (7), acte 3 (8-9), boss (10)
-    const ups = [0, 2, 3, 7, 6, 8, 11, 10, 12, 16][i] || 0, alts = [0, 0, 1, 3, 2, 3, 6, 5, 7, 12][i] || 0;
+    const boss = i === FIGHTS - 1, mini = MINI.includes(i), hm = 1 + .25 * (run.heat | 0);
+    // Paliers : combats 1-3 faciles, mini-boss (4), 5-6, mini-boss (7), 8-9, boss (10)
+    const ups = Math.round(([0, 2, 3, 7, 6, 8, 11, 10, 12, 16][i] || 0) * hm), alts = Math.round(([0, 0, 1, 3, 2, 3, 6, 5, 7, 12][i] || 0) * hm);
     for (let k = 0; k < ups; k++) { const commons = Object.keys(d.cards).filter(r => /_C$/.test(r) && DB[r].t !== 'HERO'); if (!commons.length) break; const r = pick(R, commons), up = rareOf(R, r, f); if (!up) continue; delCard(d, r); addCard(d, up); }
     for (let k = 0; k < alts; k++) { const pool = Object.keys(d.cards).filter(r => !DB[r].u && DB[r].t !== 'HERO'); if (!pool.length) break; const r = pick(R, pool), ok = ALT.filter(a => a.ok(DB[r]) && (!a.rare || boss || mini || R() < .3)); if (!ok.length) continue; const nr = alterCard(run, r, wpick(R, ok)); if (nr) { delCard(d, r); addCard(d, nr); } }
     // Avantage de départ (mesuré par simulations IA contre IA : +2 mana ≈ −20 pts de victoire, +2 cartes ≈ −15 pts)
-    const bonus = BONUS[i] || {};
-    return { d, f, boss, mini, bonus };
+    return { d, f, boss, mini, bonus: edge(run, i) };
   }
 
   // ---- Récompenses ----
   const MINDECK = 39;
   function cardPool(f) { const DB = P().DB; return Object.values(DB).filter(c => !c.u && c.t !== 'HERO' && !/TOKEN|FOILER/.test(c.t) && (c.f === f || c.h === f) && (c.y === 'C' || (c.y === 'R' && c.f === f))); }
   const sameRare = r => { const DB = P().DB, b = fam(r), f = DB[r] && DB[r].f; return ['_R1', '_R2'].map(x => b + x).find(x => DB[x] && DB[x].f === f) || null; };
-  // Étape 1 : drafter une carte parmi 3 ; étape 2 : améliorer une carte en rare (parmi 3) ou tenter une mutation
-  // Chaque carte proposée a une chance d'être une rare, de plus en plus forte au fil des combats (≈15 % au début, ≈75 % avant le boss)
+  // Chance de rare par carte proposée, de plus en plus forte au fil des combats (≈15 % au début, ≈75 % avant le boss)
   const rareChance = i => .15 + .6 * Math.min(1, Math.max(0, (i - 1) / (FIGHTS - 2)));
-  function draftOffer(run) { const R = rng(run.seed * 7 + run.i * 131), all = cardPool(run.f), C = shuffle(R, all.filter(c => c.y === 'C')), Rr = shuffle(R, all.filter(c => c.y === 'R')), out = [], p = rareChance(run.i);
-    for (let k = 0; k < 3; k++) { const src = (R() < p && Rr.length) ? Rr : C.length ? C : Rr; while (src.length && out.includes(src[0].r)) src.shift(); if (src.length) out.push(src.shift().r); } return out; }
-  function upOffer(run) { const R = rng(run.seed * 11 + run.i * 197), DB = P().DB; const cs = shuffle(R, Object.keys(run.deck.cards).filter(r => /_C$/.test(r) && DB[r] && sameRare(r))); return cs.slice(0, 3).map(r => ({ ref: r, to: sameRare(r) })); }
+  const isQ = r => /^\?U:/.test(r), qBase = r => r.slice(3); // « unique mystère » : révélée au moment où on la prend
+  // Draft : n cartes ; après un mini-boss, que des rares (5 % d'unique) ; aventure bicolore : 1 chance sur 2 par carte de venir de la faction voisine
+  function draftOffer(run, fi, mini) {
+    const R = rng(run.seed * 7 + (fi + 2) * 131 + (run.rrn | 0) * 7919 + run.log.length * 31), DB = P().DB, ban = new Set(run.banned || []);
+    const mk = f => { const all = cardPool(f).filter(c => !ban.has(c.n)); return { C: shuffle(R, all.filter(c => c.y === 'C')), R: shuffle(R, all.filter(c => c.y === 'R')) }; };
+    const own = mk(run.f), sec = run.sec ? mk(run.sec) : null, rl = T(run, 'rare');
+    const n = 3 + T(run, 'wide'), pr = mini ? 1 : Math.min(.95, rareChance(fi) + [0, .1, .2, .2][rl]), pu = mini || rl >= 3 ? .05 : 0, out = [];
+    for (let k = 0; k < n * 4 && out.length < n; k++) {
+      const src = sec && R() < .5 ? sec : own, u = R() < pu, rare = u || R() < pr, list = rare && src.R.length ? src.R : src.C.length ? src.C : src.R;
+      if (!list.length) continue; const c = list.shift(); if (out.some(x => x === c.r || (isQ(x) && qBase(x) === c.r))) continue;
+      out.push(u ? '?U:' + c.r : c.r);
+    }
+    return out;
+  }
+  function upOffer(run) { const R = rng(run.seed * 11 + run.i * 197 + (run.rrn | 0) * 7919 + run.log.length * 31), DB = P().DB; const cs = shuffle(R, Object.keys(run.deck.cards).filter(r => /_C$/.test(r) && DB[r] && sameRare(r))); return cs.slice(0, 3).map(r => ({ ref: r, to: sameRare(r) })); }
+  const upgradable = run => sorted(run.deck.cards).filter(r => /_C$/.test(r) && sameRare(r));
   // Mutation : la carte devient toujours une vraie unique tirée de la base communautaire (meilleure ou pire : c'est le pari)
   async function mutate(run, ref) {
     const DB = P().DB, b = DB[ref]; if (!b) return null;
@@ -113,11 +158,14 @@
   }
   // ---- Écrans ----
   function img(ref, cls) { return '<span class="rgc' + (cls ? ' ' + cls : '') + '">' + P().cardImg(ref) + '</span>'; }
-  function hearts(n) { return '♥'.repeat(n) + '<span style="opacity:.25">' + '♥'.repeat(LIVES - n) + '</span>'; }
+  function qImg(r, cls) { return isQ(r) ? '<span class="rgmyst">' + img(qBase(r), cls) + '<b>✦ ' + L('Unique mystère', 'Mystery unique') + '</b></span>' : img(r, cls); }
+  function hearts(n) { return '♥'.repeat(Math.max(0, n)) + '<span style="opacity:.25">' + '♥'.repeat(Math.max(0, LIVES - n)) + '</span>'; }
   function track(run) { let h = ''; for (let i = 0; i < FIGHTS; i++) h += '<span class="rgn' + (i < run.i ? ' done' : i === run.i ? ' cur' : '') + (i === FIGHTS - 1 ? ' boss' : MINI.includes(i) ? ' mini' : '') + '">' + (i === FIGHTS - 1 ? '👑' : MINI.includes(i) ? '★' : i + 1) + '</span>'; return '<div class="rgtrack">' + h + '</div>'; }
   function deckCount(d) { return Object.values(d.cards).reduce((a, b) => a + b, 0); }
   function show(html) { $('lobby').classList.add('hidden'); $('game').classList.add('hidden'); const r = $('rogue'); r.classList.remove('hidden'); r.innerHTML = '<div class="rgwrap"><div class="row lhead"><h1 style="font-size:28px;margin-right:auto">🗡️ ' + L('Aventure', 'Adventure') + '</h1><button data-rg="home">' + L('← Table', '← Table') + '</button></div>' + html + '</div>'; window.scrollTo(0, 0); }
   function home() { $('rogue').classList.add('hidden'); $('lobby').classList.remove('hidden'); }
+  const tokens = run => ((run.rr | 0) || (run.ban | 0)) ? '<span class="rgtok">' + (run.rr | 0 ? '🎲 ' + run.rr + ' ' : '') + (run.ban | 0 ? '⛔ ' + run.ban : '') + '</span>' : '';
+  const facLine = run => '<span style="color:' + FC[run.f] + ';font-weight:700">' + FN[run.f] + '</span>' + (run.sec ? ' + <span style="color:' + FC[run.sec] + ';font-weight:700">' + FN[run.sec] + '</span>' : '');
 
   function screen() {
     const run = load(); if (!run) return choose();
@@ -125,9 +173,10 @@
     if (run.over) return end(run);
     if (run.org) return organize(run);
     if (run.reward) return reward(run);
-    const st = starter(run.f), DB = P().DB;
-    show('<div class="rgbox"><div class="rgtop"><span style="color:' + FC[run.f] + ';font-weight:700">' + FN[run.f] + '</span> · ' + esc(NM(DB[run.deck.hero])) + '<span style="margin-left:auto;font-size:20px;color:#e0546a">' + hearts(run.lives) + '</span></div>' + track(run) +
-      '<p class="note">' + (run.i === FIGHTS - 1 ? L('Dernier combat : le boss, avec un deck très amélioré.', 'Final fight: the boss, with a heavily upgraded deck.') : L('Combat ', 'Fight ') + (run.i + 1) + ' / ' + FIGHTS + ' · ' + (MINI.includes(run.i) ? L('★ Mini-boss : un adversaire nettement plus coriace.', '★ Mini-boss: a noticeably tougher opponent.') : L('Ton adversaire a un deck plus fort à chaque combat.', 'Your opponent’s deck gets stronger every fight.'))) + '' + (bonusTxt(BONUS[run.i] || {}) ? '<br>⚔️ ' + L('Avantage de l’adversaire : ', 'Opponent’s edge: ') + bonusTxt(BONUS[run.i]) : '') + '</p>' +
+    const DB = P().DB, b = edge(run, run.i);
+    show('<div class="rgbox"><div class="rgtop">' + facLine(run) + ' · ' + esc(NM(DB[run.deck.hero])) + tokens(run) + '<span style="margin-left:auto;font-size:20px;color:#e0546a">' + hearts(run.lives) + '</span></div>' + track(run) +
+      '<p class="note">' + (run.i === FIGHTS - 1 ? L('Dernier combat : le boss, avec un deck très amélioré.', 'Final fight: the boss, with a heavily upgraded deck.') : L('Combat ', 'Fight ') + (run.i + 1) + ' / ' + FIGHTS + ' · ' + (MINI.includes(run.i) ? L('★ Mini-boss : un adversaire nettement plus coriace.', '★ Mini-boss: a noticeably tougher opponent.') : L('Ton adversaire a un deck plus fort à chaque combat.', 'Your opponent’s deck gets stronger every fight.'))) +
+      (bonusTxt(b) ? '<br>⚔️ ' + L('Avantage de l’adversaire : ', 'Opponent’s edge: ') + bonusTxt(b) : '') + (run.heat ? '<br>🔥 ' + L('Menace niveau ', 'Threat level ') + run.heat : '') + '</p>' +
       '<div class="row" style="gap:8px;flex-wrap:wrap"><button class="pri" data-rg="fight"' + (deckCount(run.deck) < MINDECK ? ' disabled title="' + L('Il faut au moins 39 cartes', 'You need at least 39 cards') + '"' : '') + '>⚔️ ' + L('Combattre', 'Fight') + '</button><button data-rg="org">🃏 ' + L('Organiser mon deck', 'Organise my deck') + ' (' + deckCount(run.deck) + ')</button><button data-rg="quit" style="margin-left:auto">' + L('Abandonner la partie', 'Abandon the run') + '</button></div></div>' + (run.showDeck ? deckView(run) : ''));
   }
   const rareRefs = run => Object.keys(run.deck.cards).filter(r => P().DB[r] && P().DB[r].y === 'R');
@@ -136,13 +185,25 @@
     return '<div class="rggrid">' + refs.map(r => '<div class="rgitem"' + (act ? ' data-rg="' + act + '" data-r="' + r + '" style="cursor:pointer"' : '') + '>' + img(r) + '<span class="rgq">×' + run.deck.cards[r] + '</span>' + (DB[r].u ? '<span class="rgalt">✦ ' + esc(altLabel(DB[r])) + '</span>' : '') + '</div>').join('') + '</div>';
   }
   function choose() {
-    show('<div class="rgbox"><p>' + L('Choisis ta faction. Tu pars avec son deck de départ, tu affrontes ' + FIGHTS + ' adversaires de plus en plus forts (dont 2 mini-boss et un boss) et tu améliores ton deck entre chaque combat. Trois défaites et c’est fini.', 'Choose your faction. You start with its starter deck, face ' + FIGHTS + ' increasingly strong opponents (including 2 mini-bosses and a boss) and improve your deck between fights. Three losses and it is over.') + '</p><div class="rgfac">' +
+    const m = loadMeta(), sp = spentOf(m.alloc), avail = m.earned - sp, h = heatOf(sp);
+    show('<div class="rgbox"><p>' + L('Choisis ta faction. Tu pars avec son deck de départ, tu affrontes ' + FIGHTS + ' adversaires de plus en plus forts (dont 2 mini-boss et un boss) et tu améliores ton deck après chaque combat. Trois défaites et c’est fini.', 'Choose your faction. You start with its starter deck, face ' + FIGHTS + ' increasingly strong opponents (including 2 mini-bosses and a boss) and improve your deck after every fight. Three losses and it is over.') + '</p>' +
+      '<div class="rgtalbar"><button data-rg="tal">🌳 ' + L('Talents', 'Talents') + ' · 🪙 ' + avail + '</button>' + (sp ? '<label><input type="checkbox" data-rg="usetal"' + (m.useTal ? ' checked' : '') + '> ' + L('Jouer avec mes talents', 'Play with my talents') + ' <span class="small">(🔥 ' + L('menace ', 'threat ') + h + ')</span></label>' : '<span class="small">' + L('Gagne des pièces en battant des adversaires pour débloquer des talents.', 'Earn coins by beating opponents to unlock talents.') + '</span>') + '</div><div class="rgfac">' +
       FAC.map(f => '<button data-rg="start" data-f="' + f + '" style="border-color:' + FC[f] + '"><b style="color:' + FC[f] + '">' + FN[f] + '</b>' + (starter(f) ? '<span class="small">' + esc(NM(P().DB[starter(f).hero])) + '</span>' : '') + '</button>').join('') + '</div></div>' + statsView());
   }
-  function start(f) {
+  function chooseSec(f) {
+    show('<div class="rgbox"><p><b>🧭 ' + L('Aventure bicolore ?', 'Bicolore adventure?') + '</b></p><p class="note">' + L('Avec une faction voisine, chaque carte proposée au draft a 1 chance sur 2 de venir d’elle.', 'With a neighbouring faction, each card offered in drafts has a 50% chance to come from it.') + '</p><div class="rgfac">' +
+      '<button data-rg="start2" data-f="' + f + '" data-s=""><b style="color:' + FC[f] + '">' + FN[f] + '</b><span class="small">' + L('seule', 'alone') + '</span></button>' +
+      neighbours(f).map(s => '<button data-rg="start2" data-f="' + f + '" data-s="' + s + '" style="border-color:' + FC[s] + '"><b><span style="color:' + FC[f] + '">' + FN[f] + '</span> + <span style="color:' + FC[s] + '">' + FN[s] + '</span></b></button>').join('') + '</div></div>');
+  }
+  function start(f, sec) {
     const st = starter(f); if (!st) return;
-    const run = { v: 1, f, seed: Math.floor(Math.random() * 1e9), i: 0, lives: LIVES, deck: { hero: st.hero, cards: Object.assign({}, st.cards) }, bench: {}, uq: {}, log: [] };
-    save(run); screen();
+    const m = loadMeta(), sp = spentOf(m.alloc), tal = !!(m.useTal && sp), t = tal ? Object.assign({}, m.alloc) : {};
+    const run = { v: 2, f, sec: tal && t.bi && neighbours(f).includes(sec) ? sec : '', tal, t, heat: tal ? heatOf(sp) : 0, seed: Math.floor(Math.random() * 1e9), i: 0, lives: LIVES, deck: { hero: st.hero, cards: Object.assign({}, st.cards) }, bench: {}, uq: {}, log: [], rr: [0, 2, 5, 10][t.rr | 0], ban: t.ban | 0, banned: [], rrn: 0, queue: [] };
+    const R = rng(run.seed * 3);
+    for (let k = 0; k < (t.srare | 0); k++) { const cs = upgradable(run); if (!cs.length) break; const r = pick(R, cs); delCard(run.deck, r); addCard(run.deck, sameRare(r)); }
+    for (let k = 0; k < (t.pre | 0); k++) run.queue.push('draft');
+    if (t.smut) run.queue.push('smut');
+    nextStep(run); save(run); screen();
   }
   function fight() {
     const run = load(); if (!run) return;
@@ -154,25 +215,54 @@
     $('rogue').classList.add('hidden');
     P().start(me, foe, L('Toi', 'You'), who, won => after(won), e.bonus);
   }
+  // Après chaque combat, gagné ou perdu : draft puis amélioration. Les pièces ne viennent qu'avec une victoire.
   function after(won) {
     const run = load(); if (!run) return home();
-    run.log.push({ i: run.i, won });
-    if (won) { if (run.i === FIGHTS - 1) { run.over = 'win'; } else { run.i++; run.reward = { step: 'draft', cards: draftOffer(run) }; } }
+    const fi = run.i, mini = MINI.includes(fi); let coins = 0;
+    run.log.push({ i: fi, won });
+    if (won) { coins = COIN(fi); const m = loadMeta(); m.earned += coins; saveMeta(m); if (mini) run.rr = (run.rr | 0) + T(run, 'mtok'); if (fi === FIGHTS - 1) run.over = 'win'; else run.i++; }
     else { run.lives--; if (run.lives <= 0) run.over = 'lose'; }
     if (run.over) record(run);
+    else run.reward = { step: 'draft', fi, mini, won, coins, picks: won && mini && T(run, 'mini2') ? 2 : 1, cards: draftOffer(run, fi, mini) };
     save(run); screen();
   }
+  function toBoon(run) { const rw = run.reward; if (rw.pre) return nextStep(run); run.reward = { step: 'boon', fi: rw.fi, mini: rw.mini, won: rw.won, coins: rw.coins, upsLeft: rw.won && rw.mini && T(run, 'mini2up') ? 2 : 1, ups: upOffer(run) }; }
+  function nextStep(run) { run.reward = null; const s = (run.queue || []).shift(); if (s === 'draft') run.reward = { step: 'draft', pre: true, fi: 0, picks: 1, cards: draftOffer(run, 0, false) }; else if (s === 'smut') run.reward = { step: 'boon', pre: true, free: true }; }
   function reward(run) {
-    const rw = run.reward, top = '<div class="rgtop"><b>' + L('Victoire !', 'Victory!') + '</b><span style="margin-left:auto;font-size:20px;color:#e0546a">' + hearts(run.lives) + '</span></div>' + track(run);
+    const rw = run.reward, top = '<div class="rgtop">' + (rw.pre ? '<b>🎒 ' + L('Préparation de l’aventure', 'Getting ready') + '</b>' : rw.won ? '<b>' + L('Victoire !', 'Victory!') + '</b>' + (rw.coins ? ' <span class="rgcoin">+' + rw.coins + ' 🪙</span>' : '') : '<b>' + L('Défaite…', 'Defeat…') + '</b> <span class="small">' + L('tu gardes ta récompense, sans pièce', 'you keep your reward, no coin') + '</span>') + tokens(run) + '<span style="margin-left:auto;font-size:20px;color:#e0546a">' + hearts(run.lives) + '</span></div>' + track(run);
     if (rw.step === 'draft') {
-      show('<div class="rgbox">' + top + '<p><b>1/2</b> · ' + L('Choisis une carte à ajouter à ton deck (pas de limite d’exemplaires) :', 'Choose a card to add to your deck (no copy limit):') + '</p><div class="rgoffers">' +
-        rw.cards.map((r, k) => '<button class="rgoffer" data-rg="draft" data-k="' + k + '">' + img(r) + '</button>').join('') + '</div><div class="row" style="margin-top:10px"><button data-rg="draftskip">' + L('Ne rien prendre', 'Take nothing') + '</button></div></div>');
+      const cnt = run.queue && rw.pre ? ' (' + L('draft de départ', 'opening draft') + ')' : '';
+      show('<div class="rgbox">' + top + '<p>' + (rw.pre ? '' : '<b>1/2</b> · ') + (rw.picks > 1 ? L('Choisis <b>' + rw.picks + ' cartes</b> à ajouter à ton deck', 'Choose <b>' + rw.picks + ' cards</b> to add to your deck') : L('Choisis une carte à ajouter à ton deck', 'Choose a card to add to your deck')) + cnt + (rw.mini ? ' · ★ ' + L('que des rares', 'rares only') : '') + ' :</p><div class="rgoffers">' +
+        rw.cards.map((r, k) => '<div class="rgoff"><button class="rgoffer" data-rg="draft" data-k="' + k + '"' + (rw.busy ? ' disabled' : '') + '>' + qImg(r) + '</button>' + ((run.ban | 0) && !rw.busy ? '<button class="rgban" data-rg="ban" data-k="' + k + '" title="' + L('Bannir cette carte', 'Ban this card') + '">⛔</button>' : '') + '</div>').join('') + '</div>' +
+        (rw.busy ? '<p class="note">⏳ ' + L('Révélation de l’unique…', 'Revealing the unique…') + '</p>' : '') +
+        '<div class="row" style="margin-top:10px;gap:8px">' + ((run.rr | 0) ? '<button data-rg="reroll"' + (rw.busy ? ' disabled' : '') + '>🎲 ' + L('Relancer', 'Reroll') + ' (' + run.rr + ')</button>' : '') + '<button data-rg="draftskip"' + (rw.busy ? ' disabled' : '') + '>' + L('Ne rien prendre', 'Take nothing') + '</button></div></div>');
     } else if (rw.step === 'boon') {
-      const ups = rw.ups || [];
-      show('<div class="rgbox">' + top + '<p><b>2/2</b> · ' + L('Améliore une carte en rare…', 'Upgrade a card to rare…') + '</p>' + (ups.length ? '<div class="rgoffers">' + ups.map((o, k) => '<button class="rgoffer" data-rg="up" data-k="' + k + '"><div class="rgpair">' + img(o.ref, 'sm') + '<span class="rgarr">→</span>' + img(o.to, 'sm') + '</div></button>').join('') + '</div>' : '<p class="note">' + L('Aucune commune améliorable dans ton deck.', 'No upgradable common in your deck.') + '</p>') +
-        '<p style="margin-top:14px">' + L('…ou tente une <b>mutation</b> 🎲 : choisis une <b>rare</b> de ton deck, elle devient une <b>vraie unique</b> tirée au hasard. Parfois bien meilleure, parfois pire : c’est le pari !', '…or try a <b>mutation</b> 🎲: pick a <b>rare</b> from your deck and it becomes a random <b>real unique</b>. Sometimes much better, sometimes worse: that’s the gamble!') + '</p><div class="row"><button data-rg="mutpick">🎲 ' + L('Mutation', 'Mutation') + '</button><button data-rg="boonskip">' + L('Passer', 'Skip') + '</button></div>' +
-        (rw.picking ? (rareRefs(run).length ? '<p class="note">' + L('Clique la rare à faire muter :', 'Click the rare to mutate:') + '</p>' + deckView(run, 'mut', r => P().DB[r].y === 'R') : '<p class="note">' + L('Il te faut d’abord une rare : améliore une commune, puis fais-la muter à un prochain combat.', 'You need a rare first: upgrade a common, then mutate it after a later fight.') + '</p>') : '') + (rw.fail ? '<p class="note">' + L('La mutation n’a pas pu se faire (connexion ?) : ta carte n’a pas changé, réessaie.', 'The mutation failed (connection?): your card is unchanged, try again.') + '</p>' : '') + (rw.busy ? '<p class="note">⏳ ' + L('Mutation en cours…', 'Mutating…') + '</p>' : '') + (rw.result ? '<div class="rgbox" style="text-align:center"><p><b>' + L('Résultat :', 'Result:') + '</b></p>' + (rw.from ? '<div class="rgpair">' + img(rw.from, 'sm') + '<span class="rgarr">→</span>' + img(rw.result) + '</div>' : img(rw.result)) + '<p class="rgalt" style="display:inline-block;margin-top:6px">✦ ' + esc(altLabel(P().DB[rw.result])) + '</p><div class="row" style="justify-content:center;margin-top:8px"><button class="pri" data-rg="boonok">' + L('Continuer', 'Continue') + '</button></div></div>' : '') + '</div>');
+      const ups = rw.ups || [], free = !!rw.free, res = rw.res || [];
+      const upPart = free ? '' : '<p><b>2/2</b> · ' + L('Améliore une carte en rare', 'Upgrade a card to rare') + (rw.upsLeft > 1 ? ' (' + L('encore ', '') + rw.upsLeft + L('', ' left') + ')' : '') + '…</p>' +
+        (T(run, 'pickup') ? (upgradable(run).length ? '<p class="note">' + L('Libre choix : clique la commune à améliorer.', 'Free choice: click the common to upgrade.') + '</p>' + deckView(run, 'upd', r => /_C$/.test(r) && !!sameRare(r)) : '<p class="note">' + L('Aucune commune améliorable dans ton deck.', 'No upgradable common in your deck.') + '</p>')
+          : (ups.length ? '<div class="rgoffers">' + ups.map((o, k) => '<button class="rgoffer" data-rg="up" data-k="' + k + '"><div class="rgpair">' + img(o.ref, 'sm') + '<span class="rgarr">→</span>' + img(o.to, 'sm') + '</div></button>').join('') + '</div>' + ((run.rr | 0) ? '<div class="row" style="margin-top:6px"><button data-rg="uprr">🎲 ' + L('Relancer', 'Reroll') + ' (' + run.rr + ')</button></div>' : '') : '<p class="note">' + L('Aucune commune améliorable dans ton deck.', 'No upgradable common in your deck.') + '</p>'));
+      const mutTxt = free ? '<p>🎁 ' + L('<b>Mutation offerte</b> : choisis une carte de ton deck, elle devient une <b>vraie unique</b> tirée au hasard.', '<b>Free mutation</b>: pick a card from your deck and it becomes a random <b>real unique</b>.') + '</p>'
+        : '<p style="margin-top:14px">' + L('…ou tente une <b>mutation</b> 🎲 : choisis une <b>rare</b> de ton deck, elle devient une <b>vraie unique</b> tirée au hasard. Parfois bien meilleure, parfois pire : c’est le pari !', '…or try a <b>mutation</b> 🎲: pick a <b>rare</b> from your deck and it becomes a random <b>real unique</b>. Sometimes much better, sometimes worse: that’s the gamble!') + '</p>';
+      const canMut = free ? (r => P().DB[r].t !== 'HERO' && !P().DB[r].u) : (r => P().DB[r].y === 'R');
+      const resPart = res.length ? '<div class="rgbox" style="text-align:center"><p><b>' + (res.length > 1 ? L('Choisis ton unique :', 'Pick your unique:') : L('Résultat :', 'Result:')) + '</b></p><div class="rgoffers" style="justify-content:center">' + res.map((r, k) => '<button class="rgoffer" data-rg="mutkeep" data-k="' + k + '"><div class="rgpair">' + (k === 0 ? img(rw.from, 'sm') + '<span class="rgarr">→</span>' : '') + img(r) + '</div></button>').join('') + '</div><p class="note">' + L('Clique l’unique pour la garder', 'Click the unique to keep it') + (res.length === 1 ? '' : '') + '.</p>' + ((run.rr | 0) ? '<div class="row" style="justify-content:center"><button data-rg="mutrr">🎲 ' + L('Relancer l’unique', 'Reroll the unique') + ' (' + run.rr + ')</button></div>' : '') + '</div>' : '';
+      show('<div class="rgbox">' + top + upPart + (res.length ? resPart : mutTxt + '<div class="row"><button data-rg="mutpick"' + (rw.busy ? ' disabled' : '') + '>🎲 ' + L('Mutation', 'Mutation') + '</button><button data-rg="boonskip"' + (rw.busy ? ' disabled' : '') + '>' + L('Passer', 'Skip') + '</button></div>' +
+        (rw.picking ? (Object.keys(run.deck.cards).some(canMut) ? '<p class="note">' + L('Clique la carte à faire muter :', 'Click the card to mutate:') + '</p>' + deckView(run, 'mut', canMut) : '<p class="note">' + L('Il te faut d’abord une rare : améliore une commune, puis fais-la muter à un prochain combat.', 'You need a rare first: upgrade a common, then mutate it after a later fight.') + '</p>') : '') +
+        (rw.fail ? '<p class="note">' + L('La mutation n’a pas pu se faire (connexion ?) : ta carte n’a pas changé, réessaie.', 'The mutation failed (connection?): your card is unchanged, try again.') + '</p>' : '') + (rw.busy ? '<p class="note">⏳ ' + L('Mutation en cours…', 'Mutating…') + '</p>' : '')) + '</div>');
     }
+  }
+  // Arbre de talents
+  function talents() {
+    const m = loadMeta(), sp = spentOf(m.alloc), avail = m.earned - sp, h = heatOf(sp), run = load();
+    const node = t => { const l = m.alloc[t.id] | 0, max = t.costs.length, cost = t.costs[l], lockd = t.req && !(m.alloc[t.req] | 0), kids = TAL.some(x => x.req === t.id && (m.alloc[x.id] | 0)), can = l < max && !lockd && avail >= cost;
+      return '<div class="rgnode' + (l ? ' on' : '') + (lockd ? ' lock' : '') + '"><div class="rgnh"><b>' + L(t.fr, t.en) + '</b><span class="rgpips">' + t.costs.map((c, i) => '<i class="' + (i < l ? 'f' : '') + '"></i>').join('') + '</span></div>' +
+        '<p class="small">' + (l ? t.d(l) : t.d(1)) + (l && l < max ? '<br>→ ' + t.d(l + 1) : '') + '</p>' + (lockd ? '<p class="small">🔒 ' + L('Demande : ', 'Requires: ') + L(TBY[t.req].fr, TBY[t.req].en) + '</p>' : '') +
+        '<div class="row" style="gap:6px">' + (l < max ? '<button class="pri" data-rg="tadd" data-id="' + t.id + '"' + (can ? '' : ' disabled') + '>+ ' + cost + ' 🪙</button>' : '<span class="small">' + L('Max', 'Max') + '</span>') + (l ? '<button data-rg="tsub" data-id="' + t.id + '"' + (l === 1 && kids ? ' disabled title="' + L('D’abord retirer les talents qui en dépendent', 'Remove the talents that depend on it first') + '"' : '') + '>−</button>' : '') + '</div></div>'; };
+    show('<div class="rgbox"><div class="rgtop"><b>🌳 ' + L('Talents', 'Talents') + '</b><span style="margin-left:auto">🪙 <b>' + avail + '</b> <span class="small">/ ' + m.earned + ' ' + L('gagnées', 'earned') + '</span></span></div>' +
+      '<p class="note">' + L('Pièces : +1 par combat gagné, +2 pour un mini-boss, +3 pour le boss. Les talents ne changent rien pendant la partie : ils aident à construire ton deck. Tu peux les retirer à tout moment pour récupérer tes pièces.', 'Coins: +1 per fight won, +2 for a mini-boss, +3 for the boss. Talents change nothing during the game: they help you build your deck. You can remove them any time to get your coins back.') + '</p>' +
+      '<div class="rgheat"><div class="rgheatbar"><i style="width:' + Math.min(100, sp) + '%"></i></div><span>🔥 ' + L('Menace ', 'Threat ') + '<b>' + h + '</b> : ' + heatTxt(h) + '</span></div><p class="small">' + L('Chaque tranche de 10 pièces dépensées rend les adversaires plus forts. Décoche « Jouer avec mes talents » pour une aventure sans talents ni menace.', 'Every 10 coins spent makes opponents stronger. Untick “Play with my talents” for an adventure with no talents and no threat.') + '</p>' +
+      (run && !run.over ? '<p class="note">⚠️ ' + L('Les changements s’appliqueront à ta prochaine aventure.', 'Changes apply to your next adventure.') + '</p>' : '') +
+      '<div class="rgtal">' + Object.keys(BR).map(b => '<div class="rgbr"><h3>' + BR[b][0] + ' ' + L(BR[b][1], BR[b][2]) + '</h3>' + TAL.filter(t => t.b === b).map(node).join('') + '</div>').join('') + '</div>' +
+      '<div class="row" style="margin-top:12px"><button class="pri" data-rg="open">' + L('Retour', 'Back') + '</button></div></div>');
   }
   // Organiser son deck : retirer des cartes vers la réserve d'aventure (banc) ou les remettre, minimum 39 cartes
   function organize(run) {
@@ -182,30 +272,56 @@
   function sorted(m) { const DB = P().DB; return Object.keys(m).filter(r => DB[r]).sort((a, b) => num(DB[a].c) - num(DB[b].c) || NM(DB[a]).localeCompare(NM(DB[b]))); }
   function benchView(run) { const b = run.bench || {}, DB = P().DB, refs = sorted(b); return refs.length ? '<div class="rggrid">' + refs.map(r => '<div class="rgitem" data-rg="in" data-r="' + r + '" style="cursor:pointer">' + img(r) + '<span class="rgq">×' + b[r] + '</span>' + (DB[r].u ? '<span class="rgalt">✦ ' + esc(altLabel(DB[r])) + '</span>' : '') + '</div>').join('') + '</div>' : '<p class="note">—</p>'; }
   function end(run) {
-    const won = run.over === 'win', wins = run.log.filter(x => x.won).length;
-    show('<div class="rgbox" style="text-align:center"><h2>' + (won ? '🏆 ' + L('Aventure réussie !', 'Adventure complete!') : '💀 ' + L('Aventure terminée', 'Adventure over')) + '</h2><p>' + L('Combats gagnés : ', 'Fights won: ') + wins + ' / ' + FIGHTS + '</p>' + track(run) + '<div class="row" style="justify-content:center;gap:8px"><button class="pri" data-rg="new">' + L('Nouvelle aventure', 'New adventure') + '</button><button data-rg="deck2">🃏 ' + L('Voir mon deck final', 'See my final deck') + '</button></div>' + (run.showDeck ? deckView(run) : '') + '</div>' + statsView());
+    const won = run.over === 'win', wins = run.log.filter(x => x.won).length, coins = run.log.filter(x => x.won).reduce((a, x) => a + COIN(x.i), 0);
+    show('<div class="rgbox" style="text-align:center"><h2>' + (won ? '🏆 ' + L('Aventure réussie !', 'Adventure complete!') : '💀 ' + L('Aventure terminée', 'Adventure over')) + '</h2><p>' + L('Combats gagnés : ', 'Fights won: ') + wins + ' / ' + FIGHTS + ' · 🪙 +' + coins + '</p>' + track(run) + '<div class="row" style="justify-content:center;gap:8px;flex-wrap:wrap"><button class="pri" data-rg="new">' + L('Nouvelle aventure', 'New adventure') + '</button><button data-rg="tal">🌳 ' + L('Talents', 'Talents') + '</button><button data-rg="deck2">🃏 ' + L('Voir mon deck final', 'See my final deck') + '</button></div>' + (run.showDeck ? deckView(run) : '') + '</div>' + statsView());
+  }
+  // Mutation : 1 unique (ou 2 avec « Double mutation »), la carte d'origine n'est remplacée qu'au choix final
+  function doMutate(run, r) {
+    const n = T(run, 'dmut') ? 2 : 1; run.reward.busy = true; run.reward.picking = false; run.reward.fail = false; save(run); screen();
+    (async () => { const res = []; for (let k = 0; k < n * 2 && res.length < n; k++) { const x = await mutate(run, r); if (x && !res.includes(x)) res.push(x); } return res; })().then(res => {
+      const rr = load(); if (!rr || !rr.reward) return; rr.uq = run.uq; rr.uqSeq = run.uqSeq; rr.reward.busy = false;
+      if (res.length) { rr.reward.res = res; rr.reward.from = r; } else rr.reward.fail = true; save(rr); screen(); });
   }
 
   document.addEventListener('click', e => {
     const b = e.target.closest('[data-rg]'); if (!b) return; const k = b.dataset.rg; let run = load();
     if (k === 'open') return screen();
     if (k === 'home') return home();
-    if (k === 'start') return start(b.dataset.f);
+    if (k === 'tal') return talents();
+    if (k === 'usetal') { const m = loadMeta(); m.useTal = !!b.checked; saveMeta(m); return; }
+    if (k === 'tadd' || k === 'tsub') { const m = loadMeta(), t = TBY[b.dataset.id]; if (!t) return; const l = m.alloc[t.id] | 0;
+      if (k === 'tadd' && l < t.costs.length && m.earned - spentOf(m.alloc) >= t.costs[l] && (!t.req || (m.alloc[t.req] | 0))) m.alloc[t.id] = l + 1;
+      if (k === 'tsub' && l && !(l === 1 && TAL.some(x => x.req === t.id && (m.alloc[x.id] | 0)))) { if (l === 1) delete m.alloc[t.id]; else m.alloc[t.id] = l - 1; }
+      saveMeta(m); return talents(); }
+    if (k === 'start') { const m = loadMeta(); if (m.useTal && (m.alloc.bi | 0) && spentOf(m.alloc)) return chooseSec(b.dataset.f); return start(b.dataset.f, ''); }
+    if (k === 'start2') return start(b.dataset.f, b.dataset.s || '');
+    if (!run) return screen();
     if (k === 'fight') return fight();
     if (k === 'deck' || k === 'deck2') { run.showDeck = !run.showDeck; save(run); return screen(); }
-    if (k === 'quit') { if (confirm(L('Abandonner cette aventure ?', 'Abandon this adventure?'))) { if (run && run.log && run.log.length) record(run); localStorage.removeItem(KEY); screen(); } return; }
+    if (k === 'quit') { if (confirm(L('Abandonner cette aventure ?', 'Abandon this adventure?'))) { if (run.log && run.log.length) record(run); localStorage.removeItem(KEY); screen(); } return; }
     if (k === 'new') { localStorage.removeItem(KEY); return screen(); }
-    if (k === 'draft') { addCard(run.deck, run.reward.cards[+b.dataset.k]); run.reward = { step: 'boon', ups: upOffer(run) }; save(run); return screen(); }
-    if (k === 'draftskip') { run.reward = { step: 'boon', ups: upOffer(run) }; save(run); return screen(); }
-    if (k === 'up') { const o = run.reward.ups[+b.dataset.k]; delCard(run.deck, o.ref); addCard(run.deck, o.to); run.reward = null; save(run); return screen(); }
-    if (k === 'boonskip' || k === 'boonok') { run.reward = null; save(run); return screen(); }
-    if (k === 'mutpick') { run.reward.picking = !run.reward.picking; save(run); return screen(); }
-    if (k === 'mut') { if (run.reward.busy || run.reward.result) return; const r = b.dataset.r; run.reward.busy = true; run.reward.picking = false; save(run); screen();
-      mutate(run, r).then(nr => { const rr = load(); if (!rr || !rr.reward) return; rr.uq = run.uq; rr.uqSeq = run.uqSeq; rr.reward.busy = false; rr.reward.fail = !nr; if (nr) { delCard(rr.deck, r); addCard(rr.deck, nr); rr.reward.result = nr; rr.reward.from = r; } save(rr); screen(); }); return; }
+    const rw = run.reward;
+    if (k === 'draft' && rw && !rw.busy) { const r = rw.cards[+b.dataset.k]; if (!r) return;
+      const done = rr => { const w = rr.reward; w.cards = w.cards.filter(x => x !== r); w.picks = (w.picks | 0) - 1; if (w.picks <= 0 || !w.cards.length) toBoon(rr); save(rr); screen(); };
+      if (!isQ(r)) { addCard(run.deck, r); return done(run); }
+      rw.busy = true; save(run); screen();
+      return mutate(run, qBase(r)).then(nr => { const rr = load(); if (!rr || !rr.reward) return; rr.uq = run.uq; rr.uqSeq = run.uqSeq; rr.reward.busy = false; addCard(rr.deck, nr || qBase(r)); done(rr); }); }
+    if (k === 'draftskip' && rw) { toBoon(run); save(run); return screen(); }
+    if (k === 'reroll' && rw && (run.rr | 0) > 0) { run.rr--; run.rrn = (run.rrn | 0) + 1; rw.cards = draftOffer(run, rw.fi, rw.mini); save(run); return screen(); }
+    if (k === 'ban' && rw && (run.ban | 0) > 0) { const r = rw.cards[+b.dataset.k]; if (!r) return; const c = P().DB[isQ(r) ? qBase(r) : r]; run.ban--; if (c) (run.banned = run.banned || []).push(c.n); rw.cards = rw.cards.filter(x => x !== r); if (!rw.cards.length) toBoon(run); save(run); return screen(); }
+    const upDone = () => { rw.upsLeft = (rw.upsLeft | 0) - 1; if (rw.upsLeft > 0) { rw.ups = upOffer(run); save(run); return screen(); } nextStep(run); save(run); return screen(); };
+    if (k === 'up' && rw) { const o = (rw.ups || [])[+b.dataset.k]; if (!o) return; delCard(run.deck, o.ref); addCard(run.deck, o.to); return upDone(); }
+    if (k === 'upd' && rw && T(run, 'pickup')) { const r = b.dataset.r, to = sameRare(r); if (!to || !run.deck.cards[r]) return; delCard(run.deck, r); addCard(run.deck, to); return upDone(); }
+    if (k === 'uprr' && rw && (run.rr | 0) > 0) { run.rr--; run.rrn = (run.rrn | 0) + 1; rw.ups = upOffer(run); save(run); return screen(); }
+    if (k === 'boonskip' || k === 'boonok') { nextStep(run); save(run); return screen(); }
+    if (k === 'mutpick' && rw) { rw.picking = !rw.picking; save(run); return screen(); }
+    if (k === 'mut' && rw && !rw.busy && !(rw.res && rw.res.length)) return doMutate(run, b.dataset.r);
+    if (k === 'mutrr' && rw && rw.from && (run.rr | 0) > 0) { run.rr--; rw.res = null; save(run); return doMutate(run, rw.from); }
+    if (k === 'mutkeep' && rw && rw.res) { const r = rw.res[+b.dataset.k]; if (!r || !run.deck.cards[rw.from]) return; delCard(run.deck, rw.from); addCard(run.deck, r); nextStep(run); save(run); return screen(); }
     if (k === 'org') { run.org = true; save(run); return screen(); }
     if (k === 'orgdone') { run.org = false; save(run); return screen(); }
     if (k === 'out') { delCard(run.deck, b.dataset.r); run.bench = run.bench || {}; addCard({ cards: run.bench }, b.dataset.r); save(run); return screen(); }
     if (k === 'in') { delCard({ cards: run.bench }, b.dataset.r); addCard(run.deck, b.dataset.r); save(run); return screen(); }
   });
-  window.AltRogue = { screen, _enemyDeck: enemyDeck, _after: after };
+  window.AltRogue = { screen, _enemyDeck: enemyDeck, _after: after, _draftOffer: draftOffer, _meta: { load: loadMeta, save: saveMeta, spentOf, heatOf } };
 })();

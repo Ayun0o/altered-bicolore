@@ -600,7 +600,17 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 .rgstats{width:100%;border-collapse:collapse;font-size:13px}.rgstats th,.rgstats td{padding:4px 6px;text-align:center;border-bottom:1px solid var(--line)}.rgstats td:first-child,.rgstats th:first-child{text-align:left}
 .rgfac{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
 .rgfac button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border-width:2px}
-.rgoffers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.rgoffers{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px}
+.rgoff{position:relative;display:flex}.rgoff>.rgoffer{flex:1}
+.rgban{position:absolute;top:4px;right:4px;min-height:0;padding:2px 6px;font-size:14px;border-radius:50%;z-index:2;background:#000b;border-color:#fff4}
+.rgmyst{position:relative;display:block;width:100%}.rgmyst .rgc{filter:saturate(.3) brightness(.55)}.rgmyst b{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:#f5c518;font-size:15px;text-shadow:0 1px 4px #000}
+.rgtok{margin-left:10px;font-size:13px;opacity:.85}.rgcoin{color:#f5c518;font-weight:700}
+.rgtalbar{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin:6px 0 4px}.rgtalbar label{display:flex;gap:6px;align-items:center}
+.rgheat{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:6px 0}.rgheatbar{width:160px;height:10px;border-radius:5px;background:var(--soft);overflow:hidden}.rgheatbar i{display:block;height:100%;background:linear-gradient(90deg,#f5c518,#e0546a)}
+.rgtal{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:10px}
+.rgbr h3{margin:0 0 8px;font-size:16px}
+.rgnode{border:1px solid var(--line);border-radius:10px;padding:8px 10px;margin-bottom:8px;background:var(--bg)}.rgnode.on{border-color:#f5c51888}.rgnode.lock{opacity:.55}.rgnode p{margin:4px 0}
+.rgnh{display:flex;align-items:center;gap:8px}.rgpips{margin-left:auto;display:flex;gap:3px}.rgpips i{width:9px;height:9px;border-radius:50%;border:1px solid #f5c518}.rgpips i.f{background:#f5c518}
 .rgoffer{display:flex;flex-direction:column;gap:8px;align-items:center;padding:10px;border-width:2px;position:relative;min-height:0}
 .rgoffer:hover{border-color:#f5c518}
 .rgc{display:block;width:100%;max-width:200px;position:relative}.rgc img{width:100%;display:block;border-radius:8px}.rgc.sm{max-width:120px}
@@ -609,7 +619,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 .rggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:10px}
 .rgitem{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px}
 .rgq{position:absolute;top:4px;right:4px;background:#000c;color:#fff;border-radius:8px;padding:0 6px;font-size:12px;font-weight:700}
-@media(max-width:600px){.rgoffers{grid-template-columns:1fr}.rgoffer .rgc{max-width:160px}}
+@media(max-width:600px){.rgoffers{grid-template-columns:1fr 1fr}.rgoffer .rgc{max-width:160px}}
 
 .uqo .uadd{position:absolute;left:6%;right:6%;bottom:21%;background:linear-gradient(90deg,#2a1d00ee,#4a3500ee);color:#ffe08a;border:1px solid #d4a017;border-radius:5px;padding:2px 4px;font-size:5.2cqw;font-weight:700;line-height:1.25;text-align:left}
 .c .uqo .uadd{font-size:7cqw}
@@ -741,7 +751,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 <script src="js/engine.js?v=1795796412"></script>
 <script src="js/ai.js?v=1795785407"></script>
 <script src="js/net.js?v=1795785407"></script>
-<script src="js/rogue.js?v=1795795086"></script>
+<script src="js/rogue.js?v=1795796791"></script>
 <script src="js/play.js?v=1795795086"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
@@ -816,7 +826,7 @@ function html(){return '<h2 style="margin:0 0 8px">🗡️ '+L('Aventure : les r
  '<li>'+L('<b>Draft</b> : choisis 1 carte parmi 3 de ta faction (de plus en plus de rares au fil des combats) et ajoute-la au deck, sans limite d’exemplaires. Tu peux aussi passer.','<b>Draft</b>: pick 1 card out of 3 from your faction (more and more rares as you go) and add it to your deck, with no copy limit. You can also skip.')+'</li>'+
  '<li>'+L('<b>Amélioration</b> : passe une commune de ton deck en rare (1 choix parmi 3)…','<b>Upgrade</b>: turn one of your commons into its rare (1 choice out of 3)…')+'</li>'+
  '<li>'+L('…ou tente une <b>mutation</b> 🎲 sur une rare : elle devient une vraie unique au hasard, meilleure ou pire.','…or try a <b>mutation</b> 🎲 on a rare: it becomes a random real unique, better or worse.')+'</li></ul></li>'+
- '<li>'+L('Une défaite coûte une vie ♥ et tu rejoues le même combat. <b>3 défaites</b> et la course s’arrête.','A loss costs a life ♥ and you replay the same fight. <b>3 losses</b> and the run is over.')+'</li></ol>'+
+ '<li>'+L('Une défaite coûte une vie ♥ : tu gardes ta récompense (draft, amélioration) et tu rejoues le même combat. <b>3 défaites</b> et la course s’arrête.','A loss costs a life ♥: you keep your reward (draft, upgrade) and replay the same fight. <b>3 losses</b> and the run is over.')+'</li>'+'<li>'+L('Après un <b>mini-boss</b> ★, le draft ne propose que des rares (et parfois une unique mystère).','After a <b>mini-boss</b> ★, the draft offers only rares (and sometimes a mystery unique).')+'</li></ol>'+'<h3 style="margin:12px 0 4px;font-size:16px">🌳 '+L('Talents','Talents')+'</h3><ul>'+'<li>'+L('Pièces 🪙 : +1 par combat gagné, +2 pour un mini-boss, +3 pour le boss (rien en cas de défaite).','Coins 🪙: +1 per fight won, +2 for a mini-boss, +3 for the boss (nothing on a loss).')+'</li>'+'<li>'+L('Elles débloquent des talents de construction de deck : drafts de départ, relances, bannissements, rares de départ, mutations… Rien ne change pendant la partie.','They unlock deckbuilding talents: opening drafts, rerolls, bans, starting rares, mutations… Nothing changes during the game.')+'</li>'+'<li>'+L('🔥 Plus tu dépenses de pièces, plus la <b>menace</b> monte : adversaires plus forts. Les talents se retirent à tout moment, et tu peux jouer sans talents (case à décocher).','🔥 The more coins you spend, the higher the <b>threat</b>: stronger opponents. Talents can be removed any time, and you can play without them (untick the box).')+'</li></ul>'+
  '<p class="note">'+L('La course est enregistrée dans ce navigateur : tu peux t’arrêter et reprendre plus tard.','The run is saved in this browser: you can stop and resume later.')+'</p>'}
 $('rgHelp').onclick=()=>{$('rgHelpBody').innerHTML=html();$('rgHelpDlg').showModal()};
 $('rgHelpDlg').addEventListener('click',e=>{if(e.target.closest('[data-rghclose]')||e.target===$('rgHelpDlg'))$('rgHelpDlg').close()});
