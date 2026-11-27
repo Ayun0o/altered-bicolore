@@ -187,6 +187,21 @@ textarea{width:100%;min-height:140px;font-size:13px}
 .li{font-size:12px;padding:2px 0;gap:5px}.li button{min-height:24px;padding:0 7px}
 .curve{height:48px}
 @media(max-width:900px){.dvgrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}}
+
+/* Stats du deck dans le panneau de droite, version compacte */
+#pstats .dstats{padding:8px 9px;gap:6px;margin:6px 0 8px;font-size:13px}
+#pstats .dsx{gap:4px 9px;font-size:13px}#pstats .dsx .dsxs{flex-basis:100%;height:0}
+#pstats .dsrow{display:grid;gap:6px}
+#pstats .dscurve{height:64px;gap:3px}#pstats .dsb{flex:1;width:auto}#pstats .dsbar{width:100%;max-width:26px}
+#pstats .dsn,#pstats .dsl{font-size:11px}
+#pstats .dstypes{grid-template-columns:1fr 1fr;font-size:12px;gap:2px 8px}
+#pstats .lbl{display:flex;align-items:center;gap:6px;flex-wrap:wrap}#pstats .curvetog{margin-left:auto}
+.rules li.rok{display:block;background:none;padding:0}.rules li.rok summary{cursor:pointer;color:var(--ok);font-weight:600;padding:3px 7px}
+.rules li.rok .rules{margin:3px 0 0}
+@media(min-width:901px){#dlist.dvhide{display:none}}
+.dvb{position:absolute;left:50%;bottom:5px;transform:translateX(-50%);display:flex;align-items:center;gap:3px;background:#000c;color:#fff;border-radius:16px;padding:2px 3px;z-index:3;font-size:13px;white-space:nowrap}
+.dvb b{padding:0 4px}.dvb button{min-height:24px;min-width:26px;padding:0 6px;border-radius:12px;background:#ffffff22;color:#fff;border:0;font-size:15px;line-height:1}
+.dvb button:disabled{opacity:.35}
 </style>
 </head>
 <body>
@@ -233,7 +248,7 @@ textarea{width:100%;min-height:140px;font-size:13px}
 <h2 id="asideTitle">Mon deck</h2>
 <div id="status"></div>
 <ul class="rules" id="rules"></ul>
-<div class="curve" id="curve"></div><div class="curvel" id="curvel"></div>
+<div id="pstats"></div>
 <div class="dl" id="dlist"></div>
 <div class="row" style="margin-top:14px">
 <button id="exp">Copier la liste</button>
@@ -428,16 +443,17 @@ function deckStats(){const d=D();if(!d)return'';const L=deckCards().filter(c=>c.
  const mx=Math.max(1,...curve);const bars=curve.map((n,i)=>'<div class="dsb"><span class="dsn">'+(n||'')+'</span><div class="dsbar" style="height:'+Math.round(70*n/mx)+'px"></div><span class="dsl">'+(i===7?'7+':i)+'</span></div>').join('');
  return '<div class="dstats"><div><b>'+tot+'</b> cartes + héros'+extra+(d.sec?' · '+src.P+' '+FN[hf]+' / '+src.S+' '+FN[d.sec]:'')+'</div><div class="dsrow"><div><span class="lbl">Courbe de mana · '+(CURVE==='rc'?'coût depuis la réserve':'coût de main')+'<button class="curvetog" data-curve="1">'+(CURVE==='rc'?'Voir coût de main':'Voir coût de réserve')+'</button></span><div class="dscurve">'+bars+'</div></div><div class="dstypes"><div><b>'+ty.CHARACTER+'</b> personnages</div><div><b>'+ty.SPELL+'</b> sorts</div><div><b>'+ty.PERM+'</b> permanents / repères</div><div><b>'+d.uniques.length+'</b> unique'+(d.uniques.length>1?'s':'')+'</div></div></div></div>'}
 function dvCard(c){const d=D(),n=c.t==='HERO'?1:c.u?1:(d.cards[c.r]||0);
- return '<article class="dvc" style="--fc:var(--'+c.f+')"><span class="cw">'+(c.u?'<span class="uqw">':'')+'<img class="art" decoding="async" data-r="'+esc(c.r)+'" alt="'+esc(NM(c))+'" width="360" height="502">'+(c.u?uqOverlay(c)+'</span>':'')+'<span class="hz" data-hz="'+esc(c.r)+'"></span></span>'+(c.t==='HERO'?'':'<b class="dvq">×'+n+'</b>')+'</article>'}
+ return '<article class="dvc" style="--fc:var(--'+c.f+')"><span class="cw">'+(c.u?'<span class="uqw">':'')+'<img class="art" decoding="async" data-r="'+esc(c.r)+'" alt="'+esc(NM(c))+'" width="360" height="502">'+(c.u?uqOverlay(c)+'</span>':'')+'<span class="hz" data-hz="'+esc(c.r)+'"></span></span>'+(c.t==='HERO'?'':'<span class="dvb">'+(c.u?'<button data-urmr="'+esc(c.r)+'" aria-label="Retirer">−</button><b>×1</b>':'<button data-rm="'+esc(c.r)+'" aria-label="Retirer">−</button><b>×'+n+'</b><button data-add="'+esc(c.r)+'" aria-label="Ajouter"'+(canAdd(c)?'':' disabled')+'>+</button>')+'</span>')+'</article>'}
 function deckGroups(L){const d=D(),cnt=c=>c.t==='HERO'?1:c.u?1:(d.cards[c.r]||0);
  const G=[['HERO',EN()?'Hero':'Héros',c=>c.t==='HERO'],['CHAR',EN()?'Characters':'Personnages',c=>c.t==='CHARACTER'],['SPELL',EN()?'Spells':'Sorts',c=>c.t==='SPELL'],['PERM',EN()?'Permanents':'Permanents',c=>c.t!=='HERO'&&c.t!=='CHARACTER'&&c.t!=='SPELL']];
  return G.map(([k,t,f])=>{const X=L.filter(f);if(!X.length)return'';const tot=X.reduce((a,c)=>a+cnt(c),0);
   return '<details class="dvg" open><summary><b>'+t+'</b><span class="dvn">'+tot+'</span>'+(k==='HERO'?'':'<span class="dvd">'+X.length+(EN()?' different':' différente'+(X.length>1?'s':''))+'</span>')+'</summary><div class="dvgrid">'+X.map(dvCard).join('')+'</div></details>'}).join('')}
 function renderGrid(){renderFacChips();const L0=filtered(),L=DECKVIEW?L0.filter(c=>c.t==='HERO').concat(sorted(L0.filter(c=>c.t!=='HERO'))):sorted(L0),d=D(),hh=d&&BY[d.hero],only=$('onlyLegal').checked;
  const n=L.length+' carte'+(L.length>1?'s':'');
- $('count').textContent=!only?n+' (toutes factions)':!hh?'Commence par choisir ton héros : '+n:'Pool du deck : '+FN[hh.f]+' (principale)'+(d.sec?' + '+FN[d.sec]+' (secondaire)':'')+' · '+n;if(DECKVIEW){$('count').innerHTML=deckStats();shown=999}else if(onlyU()){$('count').innerHTML=L.length+' unique'+(L.length>1?'s':'')+' dans ta collection · <button id="uNewBtn" class="on" style="min-height:0;padding:3px 10px">＋ Ajouter / scanner un unique</button>';setTimeout(()=>{const x=$('uNewBtn');if(x)x.onclick=()=>$('addU').click()},0)}
- LIM=lims();$('grid').classList.toggle('lite',!$('showTxt').checked);$('grid').classList.toggle('dv',DECKVIEW);$('grid').innerHTML=DECKVIEW?deckGroups(L):L.slice(0,shown).map(cardHtml).join('');LIM=null;$('viewDeck').classList.toggle('on',DECKVIEW);$('viewDeck').textContent=DECKVIEW?'← Retour aux cartes':'🃏 Voir mon deck';$('more').style.display=L.length>shown?'block':'none';fillImgs()}
+ $('count').textContent=!only?n+' (toutes factions)':!hh?'Commence par choisir ton héros : '+n:'Pool du deck : '+FN[hh.f]+' (principale)'+(d.sec?' + '+FN[d.sec]+' (secondaire)':'')+' · '+n;if(DECKVIEW){$('count').textContent='';shown=999}else if(onlyU()){$('count').innerHTML=L.length+' unique'+(L.length>1?'s':'')+' dans ta collection · <button id="uNewBtn" class="on" style="min-height:0;padding:3px 10px">＋ Ajouter / scanner un unique</button>';setTimeout(()=>{const x=$('uNewBtn');if(x)x.onclick=()=>$('addU').click()},0)}
+ LIM=lims();$('grid').classList.toggle('lite',!$('showTxt').checked);$('grid').classList.toggle('dv',DECKVIEW);$('dlist').classList.toggle('dvhide',DECKVIEW);$('grid').innerHTML=DECKVIEW?deckGroups(L):L.slice(0,shown).map(cardHtml).join('');LIM=null;$('viewDeck').classList.toggle('on',DECKVIEW);$('viewDeck').textContent=DECKVIEW?'← Retour aux cartes':'🃏 Voir mon deck';$('more').style.display=L.length>shown?'block':'none';fillImgs()}
 
+let RULESOPEN=false;
 function renderDeck(){
  const d=D();if(!d)return;
  $('dName').value=d.name;
@@ -450,14 +466,14 @@ function renderDeck(){
  const nbad=A.R.filter(x=>!x.ok).length;const ms=$('miniStat');ms.className='ministat '+(A.ok?'ok':'bad');ms.textContent=(A.ok?'Valide':nbad+' règle'+(nbad>1?'s':'')+' à revoir')+' · '+A.total+'/'+fmt.deck+' cartes';
  $('asideTitle').textContent=d.name||'Mon deck';
  const hi=$('heroImg');if(d.hero){hi.hidden=false;hi.dataset.r=d.hero;hi.classList.add('art');hi.removeAttribute('src');imgFor(d.hero).then(u=>{if(u&&hi.dataset.r===d.hero)hi.src=u})}else{hi.hidden=true;hi.removeAttribute('src')}
- $('rules').innerHTML=A.R.map(x=>'<li class="'+(x.ok?'ok':'bad')+'"><span>'+esc(x.label)+'</span><b>'+esc(x.val)+(x.max!==undefined?' / '+x.max:'')+'</b></li>').join('');
- const mx=Math.max(1,...A.curve);$('curve').innerHTML=A.curve.map(v=>'<div style="height:'+Math.round(v/mx*100)+'%" title="'+v+'"></div>').join('');$('curvel').innerHTML=A.curve.map((v,i)=>'<span>'+(i===7?'7+':i)+' ('+v+')</span>').join('');
+ {const li=x=>'<li class="'+(x.ok?'ok':'bad')+'"><span>'+esc(x.label)+'</span><b>'+esc(x.val)+(x.max!==undefined?' / '+x.max:'')+'</b></li>',bad=A.R.filter(x=>!x.ok),good=A.R.filter(x=>x.ok);$('rules').innerHTML=bad.map(li).join('')+(good.length?'<li class="rok"><details'+(RULESOPEN?' open':'')+' id="rulesOk"><summary>✓ '+good.length+' règle'+(good.length>1?'s':'')+' respectée'+(good.length>1?'s':'')+'</summary><ul class="rules">'+good.map(li).join('')+'</ul></details></li>':'');const ro=$('rulesOk');if(ro)ro.ontoggle=()=>{RULESOPEN=ro.open}}
+ $('pstats').innerHTML=deckStats();
  const groups={};for(const [r,n] of Object.entries(d.cards)){const c=BY[r];if(!c||!n)continue;(groups[c.t]=groups[c.t]||[]).push([c,n])}
  let h='';for(const t of ['CHARACTER','SPELL','LANDMARK_PERMANENT','EXPEDITION_PERMANENT','PERMANENT']){const g=groups[t];if(!g)continue;const cv=x=>parseInt(String(x.c).replace(/#/g,''),10)||0;g.sort((a,b)=>cv(a[0])-cv(b[0])||a[0].n.localeCompare(b[0].n));
   h+='<h3>'+TYL(t)+' ('+g.reduce((s,x)=>s+x[1],0)+')</h3>'+g.map(([c,n])=>'<div class="li"><span class="fd" style="background:var(--'+c.f+')" title="'+esc(FN[c.f])+'"></span><span data-pv="'+esc(c.r)+'" style="cursor:zoom-in">'+cst(c.c)+' · '+esc(NM(c))+' <span class="x">'+(c.y==='R'?'R':'C')+(A.overNames.has(norm(c.n))?' · trop d\'exemplaires':'')+'</span></span><span>×'+n+'</span><span><button data-rm="'+esc(c.r)+'">−</button><button data-add="'+esc(c.r)+'">+</button></span></div>').join('')}
  if(d.uniques.length)h+='<h3>Uniques ('+d.uniques.length+')</h3>'+d.uniques.map((u,i)=>'<div class="li"><span class="fd" style="background:var(--'+esc(u.f)+')"></span><span>'+esc(u.n)+' <span class="x">unique</span></span><span>×1</span><span><button data-urm="'+i+'">−</button></span></div>').join('');
  $('siteLink').href=SITEB+'play.html?deck='+deckCode(d);$('webLink').href=SITEB+'index.html?deck='+deckCode(d);
- $('dlist').innerHTML=h||'<p class="note">Choisis un héros, puis ajoute des cartes avec le bouton +.</p>';
+ $('dlist').innerHTML=h||'<p class="note">Choisis un héros, puis ajoute des cartes avec le bouton +.</p>';$('dlist').classList.toggle('dvhide',DECKVIEW);
 }
 function renderDots(){const d=D();if(!d)return;const P=BY[d.hero]?.f;$('deckDots').innerHTML=[P,d.sec].filter(Boolean).map(f=>'<span class="fd" style="width:16px;height:16px;background:var(--'+f+')" title="'+FN[f]+'"></span>').join('')}
 function renderSel(){const ids=Object.keys(decks).sort((a,b)=>(decks[b].updated||0)-(decks[a].updated||0));$('deckSel').innerHTML=ids.map(id=>'<option value="'+esc(id)+'"'+(id===cur?' selected':'')+'>'+esc(decks[id].name||'Sans nom')+(BY[decks[id].hero]?' · '+FN[BY[decks[id].hero].f]+(decks[id].sec?' + '+FN[decks[id].sec]:''):'')+'</option>').join('')}
@@ -469,7 +485,7 @@ async function flush(){if(!db){$('saveNote').textContent='Enregistré dans ce na
  try{for(const id of [...dirty]){dirty.delete(id);if(decks[id])await myDecks().doc(id).set(decks[id]);else await myDecks().doc(id).delete()}$('saveNote').textContent='Enregistré et partagé.'}
  catch(e){$('saveNote').textContent=e&&e.code==='invalid_argument'?'Lecture seule : tu n\'as pas le droit de modifier ces decks.':'Échec de l\'enregistrement, nouvel essai à la prochaine modification.'}saving=false}
 
-document.addEventListener('click',e=>{const hz=e.target.closest('.hz');const im=hz?hz.parentNode.querySelector('img.art'):e.target.closest('img.art');if(im){$('zoomImg').src=im.src;$('zoomImg').alt=im.alt;$('zoom').showModal();return}if(e.target.closest('#zoom')){$('zoom').close();return}const pv=e.target.closest('[data-pv]');if(pv&&!e.target.closest('button')){$('zoomImg').removeAttribute('src');imgFor(pv.dataset.pv).then(u=>{if(u)$('zoomImg').src=u});$('zoomImg').alt='';$('zoom').showModal();return}const b=e.target.closest('button');if(!b)return;const d=D();if(b.dataset.curve){CURVE=CURVE==='rc'?'c':'rc';renderGrid();return}
+document.addEventListener('click',e=>{const hz=e.target.closest('.hz');const im=hz?hz.parentNode.querySelector('img.art'):e.target.closest('img.art');if(im){$('zoomImg').src=im.src;$('zoomImg').alt=im.alt;$('zoom').showModal();return}if(e.target.closest('#zoom')){$('zoom').close();return}const pv=e.target.closest('[data-pv]');if(pv&&!e.target.closest('button')){$('zoomImg').removeAttribute('src');imgFor(pv.dataset.pv).then(u=>{if(u)$('zoomImg').src=u});$('zoomImg').alt='';$('zoom').showModal();return}const b=e.target.closest('button');if(!b)return;const d=D();if(b.dataset.curve){CURVE=CURVE==='rc'?'c':'rc';renderDeck();return}
  if(b.dataset.uadd){const c=BY[b.dataset.uadd];if(c&&!d.uniques.some(u=>u.r===c.r)){{const x={...c};delete x._s;d.uniques.push({n:c.n,f:c.f,r:c.r,card:x})};touch();renderDeck();renderGrid()}return}
  if(b.dataset.udel){const r=b.dataset.udel;if(Object.values(decks).some(k=>(k.uniques||[]).some(u=>u.r===r))){alert('Cet unique est encore dans un deck : retire-le du deck d\'abord.');return}if(confirm('Retirer cet unique de ta collection ?')){delete MYU[r];saveU();renderGrid()}return}
  if(b.dataset.urmr){const i=d.uniques.findIndex(u=>u.r===b.dataset.urmr);if(i>=0){d.uniques.splice(i,1);touch();renderDeck();renderGrid()}return}
@@ -505,12 +521,12 @@ $('imp').onclick=()=>{$('ioT').textContent='Importer une liste';$('ioTx').value=
    if(rm){const n=+rm[1],ref=rm[2].toUpperCase();
     if(BY[ref]&&BY[ref].t==='HERO'){d.hero=ref;continue}
     const um=ref.match(/^(ALT_[A-Z0-9]+_[AB]_([A-Z]{2})_\d+)_U_\d+$/);
-    if(um){const base=BY[um[1]+'_C']||BY[um[1]+'_R1'];if(BY[ref])d.uniques.push({n:BY[ref].n,f:BY[ref].f,r:ref,card:BY[ref]});else if(base){d.uniques.push({n:base.n,f:um[2],r:ref});uq++}else miss++;continue}
+    if(um){const base=BY[um[1]+'_C']||BY[um[1]+'_R1'];if(BY[ref])d.uniques.push({n:BY[ref].n,f:BY[ref].f,r:ref,card:BY[ref]});else if(base){const hf0=(BY[d.hero]||{}).f,inH=[um[1]+'_C',um[1]+'_R1',um[1]+'_R2'].some(x=>BY[x]&&BY[x].f===hf0);d.uniques.push({n:base.n,f:inH?hf0:um[2],r:ref});uq++}else miss++;continue}
     if(BY[ref])d.cards[ref]=(d.cards[ref]||0)+n;else miss++;continue}
    const m=line.match(/^(\d+)\s+(.+?)\s+\[([^\]]+)\]/);if(!m)continue;
    if(m[3].startsWith('UNIQUE:')){d.uniques.push({n:m[2],f:m[3].slice(7)});continue}
    if(BY[m[3]])d.cards[m[3]]=(d.cards[m[3]]||0)+(+m[1]);else miss++}
-  touch();renderAll();const autoS=!d.sec;autoSec(d);touch();renderAll();
+  touch();renderAll();{const hf0=(BY[d.hero]||{}).f;for(const u of d.uniques){if(u.card||!u.r)continue;const fam=u.r.replace(/_U_\d+$/,'');if([fam+'_C',fam+'_R1',fam+'_R2'].some(x=>BY[x]&&BY[x].f===hf0))u.f=hf0}}const autoS=!d.sec;autoSec(d);touch();renderAll();
   $('ioNote').textContent=(miss?miss+' ligne(s) non reconnue(s). ':'Importé. ')+(uq?uq+' unique(s) ajoutée(s) avec les stats de la version commune ici. Sur la table de jeu (lien « Jouer »), leurs vraies stats et illustrations sont récupérées automatiquement, comme dans le deckbuilder en ligne (ayun0o.github.io/altered-bicolore).':'');if(uq&&window.AltUniques){$('ioNote').textContent+=' '+(EN()?'Fetching the uniques…':'Récupération des uniques…');fillUq().then(k=>{if(autoS){d.sec='';autoSec(d);touch();renderAll()}$('ioNote').textContent=(EN()?'Imported. ':'Importé. ')+(miss?miss+(EN()?' unknown line(s). ':' ligne(s) non reconnue(s). '):'')+(EN()?k+' of '+uq+' unique(s) found with their real stats and artwork.':k+' unique(s) sur '+uq+' retrouvée(s) avec leurs vraies stats et illustrations.')})}};$('ioDlg').showModal()};
 $('ioClose').onclick=()=>$('ioDlg').close();
 $('siteLink').addEventListener('click',()=>{$('siteLink').href=SITEB+'play.html?deck='+deckCode(D())});$('webLink').addEventListener('click',()=>{$('webLink').href=SITEB+'index.html?deck='+deckCode(D())});
