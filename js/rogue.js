@@ -80,7 +80,7 @@
   async function mutate(run, ref) {
     const DB = P().DB, b = DB[ref]; if (!b) return null;
     const m = fam(ref).match(/^ALT_([A-Z0-9]+)_B_([A-Z]{2})_(\d+)$/);
-    if (m && window.AltUniques && Math.random() < .5) {
+    if (false && m && window.AltUniques) { // vraies uniques désactivées : leur force est trop aléatoire
       for (const set of m[1] === 'CORE' ? ['CORE', 'COREKS'] : [m[1]]) {
         try {
           const res = await fetch('https://api.github.com/repos/Altered-Community/databases/contents/' + set + '/' + m[2] + '/' + m[3]);
@@ -93,7 +93,7 @@
         } catch (e) { }
       }
     }
-    const ok = ALT.filter(a => a.ok(b) && (!a.rare || Math.random() < .5)); return ok.length ? alterCard(run, ref, wpick(Math.random, ok)) : null;
+    const ok = ALT.filter(a => a.ok(b) && (!a.rare || Math.random() < .6)); return ok.length ? alterCard(run, ref, wpick(Math.random, ok)) : null;
   }
   // ---- Écrans ----
   function img(ref, cls) { return '<span class="rgc' + (cls ? ' ' + cls : '') + '">' + P().cardImg(ref) + '</span>'; }
@@ -153,7 +153,7 @@
     } else if (rw.step === 'boon') {
       const ups = rw.ups || [];
       show('<div class="rgbox">' + top + '<p><b>2/2</b> · ' + L('Améliore une carte en rare…', 'Upgrade a card to rare…') + '</p>' + (ups.length ? '<div class="rgoffers">' + ups.map((o, k) => '<button class="rgoffer" data-rg="up" data-k="' + k + '"><div class="rgpair">' + img(o.ref, 'sm') + '<span class="rgarr">→</span>' + img(o.to, 'sm') + '</div></button>').join('') + '</div>' : '<p class="note">' + L('Aucune commune améliorable dans ton deck.', 'No upgradable common in your deck.') + '</p>') +
-        '<p style="margin-top:14px">' + L('…ou tente une <b>mutation</b> : choisis une <b>rare</b> de ton deck, elle devient une unique au hasard (une vraie unique de la base communautaire quand c’est possible, sinon une altération de stats).', '…or try a <b>mutation</b>: pick a <b>rare</b> from your deck, it becomes a random unique (a real unique from the community database when possible, otherwise a stat alteration).') + '</p><div class="row"><button data-rg="mutpick">🎲 ' + L('Mutation', 'Mutation') + '</button><button data-rg="boonskip">' + L('Passer', 'Skip') + '</button></div>' +
+        '<p style="margin-top:14px">' + L('…ou tente une <b>mutation</b> : choisis une <b>rare</b> de ton deck, elle devient une unique avec un bonus au hasard (effet, boosts ou coût réduit).', '…or try a <b>mutation</b>: pick a <b>rare</b> from your deck, it becomes a unique with a random bonus (effect, boosts or reduced cost).') + '</p><div class="row"><button data-rg="mutpick">🎲 ' + L('Mutation', 'Mutation') + '</button><button data-rg="boonskip">' + L('Passer', 'Skip') + '</button></div>' +
         (rw.picking ? (rareRefs(run).length ? '<p class="note">' + L('Clique la rare à faire muter :', 'Click the rare to mutate:') + '</p>' + deckView(run, 'mut', r => P().DB[r].y === 'R') : '<p class="note">' + L('Il te faut d’abord une rare : améliore une commune, puis fais-la muter à un prochain combat.', 'You need a rare first: upgrade a common, then mutate it after a later fight.') + '</p>') : '') + (rw.busy ? '<p class="note">⏳ ' + L('Mutation en cours…', 'Mutating…') + '</p>' : '') + (rw.result ? '<div class="rgbox" style="text-align:center"><p><b>' + L('Résultat :', 'Result:') + '</b></p>' + img(rw.result) + '<p class="rgalt" style="display:inline-block;margin-top:6px">✦ ' + esc(altLabel(P().DB[rw.result])) + '</p><div class="row" style="justify-content:center;margin-top:8px"><button class="pri" data-rg="boonok">' + L('Continuer', 'Continue') + '</button></div></div>' : '') + '</div>');
     }
   }

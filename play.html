@@ -612,6 +612,17 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 
 .uqo .uadd{position:absolute;left:6%;right:6%;bottom:21%;background:linear-gradient(90deg,#2a1d00ee,#4a3500ee);color:#ffe08a;border:1px solid #d4a017;border-radius:5px;padding:2px 4px;font-size:5.2cqw;font-weight:700;line-height:1.25;text-align:left}
 .c .uqo .uadd{font-size:7cqw}
+
+/* Téléphone : bascule main / réserve */
+#handMini{display:none}
+@media(max-width:900px){
+ body.rsvview #myStrip .sres .cards{visibility:hidden}
+ #handMini{position:absolute;right:6px;top:22px;z-index:5;min-height:0;padding:4px 6px;border-radius:9px;background:#000a;border:1px solid #fff3;color:#fff;font-size:11px;display:flex;flex-direction:column;align-items:center;gap:3px}
+ #handMini .hm{display:flex}#handMini .hm i{display:block;width:16px;aspect-ratio:360/502;border-radius:2px;background:center/cover #445;margin-left:-8px;box-shadow:0 0 0 1px #0009}#handMini .hm i:first-child{margin-left:0}
+ .hand{position:relative}
+ @keyframes swapin{from{transform:translateY(-70px) scale(.45);opacity:0}to{transform:none;opacity:1}}
+ #hand .c.swapin{animation:swapin .32s cubic-bezier(.2,.8,.3,1) both}
+}
 </style>
 </head>
 <body>
@@ -692,8 +703,8 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 <script src="js/engine.js?v=1795731536"></script>
 <script src="js/ai.js?v=1795741328"></script>
 <script src="js/net.js?v=1795716790"></script>
-<script src="js/rogue.js?v=1795741757"></script>
-<script src="js/play.js?v=1795741757"></script>
+<script src="js/rogue.js?v=1795742397"></script>
+<script src="js/play.js?v=1795742397"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
  t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');

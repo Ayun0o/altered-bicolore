@@ -413,7 +413,10 @@
     $('myInfo').innerHTML = P && MOB() && (P.reserve.length || HV === 'R') ? '<button id="rsvTog" class="' + (HV === 'R' ? 'on' : '') + '" title="Basculer entre ta main et ta réserve">' + (HV === 'R' ? '✋ Main ' + P.hand.length : '<span class="rmini">' + P.reserve.slice(0, 3).map(() => '<i></i>').join('') + '</span>Rés. ' + P.reserve.length) + '</button>' : '';
     $('myMana').innerHTML = P ? manaIcon(P, true) : '';
     $('hand').innerHTML = P ? cardsEl(HV === 'R' && MOB() ? P.reserve : P.hand) : '';
-    $('hand').classList.toggle('rsv', HV === 'R' && MOB());
+    const RV = HV === 'R' && MOB(); $('hand').classList.toggle('rsv', RV); document.body.classList.toggle('rsvview', RV);
+    { let mini = $('handMini'); if (!mini) { mini = document.createElement('button'); mini.id = 'handMini'; mini.type = 'button'; $('hand').parentNode.insertBefore(mini, $('prompt')); }
+      mini.style.display = RV ? '' : 'none'; if (RV && P) mini.innerHTML = '<span class="hm">' + P.hand.slice(0, 5).map(id => { const c = card(id); return '<i style="background-image:url(img/' + LANG + '/' + encodeURIComponent(c.ref) + '.webp)"></i>'; }).join('') + '</span><b>✋ ' + P.hand.length + '</b>'; }
+    if (LASTHV !== HV) { if (LASTHV !== null && MOB()) document.querySelectorAll('#hand .c').forEach((el, i) => { el.style.animationDelay = (i * 60) + 'ms'; el.classList.add('swapin'); }); LASTHV = HV; }
     $('log').innerHTML = V.log.slice().reverse().slice(0, 80).map(l => logLine(l.m)).join('');
     const fm = P && (DB[(card(P.hero) || {}).ref] || {}).f, fo = O && (DB[(card(O.hero) || {}).ref] || {}).f;
     document.body.style.background = 'var(--bg)';
@@ -619,7 +622,7 @@
   });
   { const h = document.querySelector('.hand'); if (h && window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty('--handh', h.offsetHeight + 'px')).observe(h); }
 
-  let PEEK = null, PEEKSTEP = null, HV = 'H', AUTOK = null;
+  let PEEK = null, PEEKSTEP = null, HV = 'H', AUTOK = null, LASTHV = null;
   function selPreview() {
     if (V && V.step !== PEEKSTEP) { PEEK = null; PEEKSTEP = V.step; }
     const sid = sel || PEEK, x = sid && V && MOB() ? card(sid) : null, L = x && locate(sid);
@@ -671,7 +674,7 @@
         return;
       }
       if (MOB() && t.closest('#adv')) { document.body.classList.toggle('arrows'); clearTimeout(window.__arrT); if (document.body.classList.contains('arrows')) window.__arrT = setTimeout(() => document.body.classList.remove('arrows'), 8000); return; }
-      if (t.closest('#rsvTog')) { HV = HV === 'R' ? 'H' : 'R'; render(); return; }
+      if (t.closest('#rsvTog') || t.closest('#handMini')) { HV = HV === 'R' ? 'H' : 'R'; render(); return; }
       const tool = t.closest('[data-tool]');
       if (tool) {
         const k = tool.dataset.tool;
