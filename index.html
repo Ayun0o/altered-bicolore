@@ -110,6 +110,14 @@ textarea{width:100%;min-height:140px;font-size:13px}
 .uqo .ue{position:absolute;left:83.5%;top:4.4%;width:12.5%;height:13.5%;background:linear-gradient(#f7dc8a,#b9862a);mix-blend-mode:color;border-radius:0 0 1cqw 1cqw}
 .uqo .uf{position:absolute;inset:0;border-radius:inherit;box-shadow:inset 0 0 0 .8cqw #e2b84a}
 
+
+/* Uniques : vraie illustration (CDN communautaire) + texte de l'unique */
+.uqo .uqa{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;clip-path:polygon(0 18.4%,100% 18.4%,100% 62%,0 62%)}
+.uqo .uqt{position:absolute;left:5.8%;right:5.8%;top:62.4%;bottom:6.6%;background:#fbf8f1;border-radius:2.2cqw;display:flex;flex-direction:column;overflow:hidden;color:#2a2418;font-size:3.9cqw;line-height:1.3;text-align:left;font-family:inherit}
+.uqo .uqm{padding:2cqw 2.6cqw;flex:1;overflow:hidden}
+.uqo .uqs{padding:1.6cqw 2.6cqw;background:#ead9c6;font-size:3.5cqw;font-style:normal}
+.uqo .uqg{display:block;margin-top:1cqw;color:#8a5a00;font-weight:700}
+.uqo .uqy{font-style:normal;display:inline-block;background:#2a2418;color:#fff;border-radius:.8cqw;padding:0 .7cqw;font-size:.9em;line-height:1.15}
 </style>
 </head>
 <body>
@@ -266,7 +274,16 @@ function analyse(d){
 
 function legal(c){const d=D();if(!d)return true;const h=BY[d.hero];if(!h)return true;if(c.t==='HERO')return true;return c.f===h.f||(d.sec&&c.f===d.sec)}
 
-function uqOverlay(c){if(!c||!c.u)return'';const n=v=>String(v??'').replace(/#/g,'').replace(/[<>&"']/g,'');const p=c.p||[];return '<span class="uqo"><span class="ub"></span><span class="ue"></span><span class="uc uc1">'+n(c.c)+'</span><span class="uc uc2">'+n(c.rc)+'</span><span class="us s0">'+n(p[0])+'</span><span class="us s1">'+n(p[1])+'</span><span class="us s2">'+n(p[2])+'</span><span class="uf"></span></span>'}
+function uqOverlay(c){if(!c||!c.u)return'';const n=v=>String(v??'').replace(/#/g,'').replace(/[<>&"']/g,'');const p=c.p||[];
+ const LG=(typeof LANG!=='undefined'&&LANG==='en')?'en':'fr',E=s=>String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[ch]);
+ const SY={H:'✋',R:'⤺',J:'➜',D:'🗑',T:'⟳',I:'∞',V:'✋',X:'🗑'};const F=s=>E(String(s||'').replace(/#/g,'')).replace(/\{([A-Za-z0-9])\}/g,(m,k)=>'<i class="uqy">'+(SY[k.toUpperCase()]||k)+'</i>').replace(/\[\[([^\]]+)\]\]/g,'<b>$1</b>').replace(/\[([^\]]+)\]/g,'$1');
+ const fm=String(c.r||'').match(/^(ALT_([A-Z0-9]+)_[AB]_[A-Z]{2}_\d+)/);let art='';if(fm){const fam=fm[2]==='COREKS'?fm[1].replace('_COREKS_','_CORE_'):fm[1],st=fm[2]==='COREKS'?'CORE':fm[2];art='<img class="uqa" alt="" loading="lazy" referrerpolicy="no-referrer" src="https://cdn.alteredcore.org/illustrations/'+st+'/'+fam+'_U_FRAMELESS_T1.webp" onerror="this.remove()">'}
+ const adds=Array.isArray(c.add)?c.add:[];let tx=String((LG==='en'?c.xe:c.x)||''),ec=String((LG==='en'?c.ee:c.e)||'');
+ for(const a of adds){const raw=LG==='en'?a.xe:a.x;if(raw)tx=tx.replace(raw,'')}tx=tx.trim();
+ const gold=adds.filter(a=>a.x||a.xe).map(a=>'<span class="uqg">✦ '+F(LG==='en'?a.xe:a.x)+'</span>').join('');
+ const legacy=adds.filter(a=>!(a.x||a.xe)).length?'<span class="uadd">'+adds.filter(a=>!(a.x||a.xe)).map(x=>'✦ '+n(LG==='en'?x.en:x.fr)).join('<br>')+'</span>':'';
+ const panel=(tx||ec||gold)?'<span class="uqt"><span class="uqm">'+F(tx)+gold+'</span>'+(ec?'<span class="uqs">'+F(ec)+'</span>':'')+'</span>':'';
+ return '<span class="uqo">'+art+'<span class="ub"></span><span class="ue"></span><span class="uc uc1">'+n(c.c)+'</span><span class="uc uc2">'+n(c.rc)+'</span><span class="us s0">'+n(p[0])+'</span><span class="us s1">'+n(p[1])+'</span><span class="us s2">'+n(p[2])+'</span>'+panel+(panel?'':legacy)+'<span class="uf"></span></span>'}
 function uqBase(fam,f,MAP){const r1=fam+'_R1',r2=fam+'_R2';if(MAP[r2]&&MAP[r2].f===f)return r2;if(MAP[r1])return r1;return fam+'_C'}
 function cardHtml(c){
  const d=D(),n=d?(c.t==='HERO'?(d.hero===c.r?1:0):c.u?1:(d.cards[c.r]||0)):0,oof=c.y==='R'&&c.f!==c.h;

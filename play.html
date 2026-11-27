@@ -623,6 +623,14 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
  @keyframes swapin{from{transform:translateY(-70px) scale(.45);opacity:0}to{transform:none;opacity:1}}
  #hand .c.swapin{animation:swapin .32s cubic-bezier(.2,.8,.3,1) both}
 }
+
+/* Uniques : vraie illustration (CDN communautaire) + texte de l'unique */
+.uqo .uqa{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;clip-path:polygon(0 18.4%,100% 18.4%,100% 62%,0 62%)}
+.uqo .uqt{position:absolute;left:5.8%;right:5.8%;top:62.4%;bottom:6.6%;background:#fbf8f1;border-radius:2.2cqw;display:flex;flex-direction:column;overflow:hidden;color:#2a2418;font-size:3.9cqw;line-height:1.3;text-align:left;font-family:inherit}
+.uqo .uqm{padding:2cqw 2.6cqw;flex:1;overflow:hidden}
+.uqo .uqs{padding:1.6cqw 2.6cqw;background:#ead9c6;font-size:3.5cqw;font-style:normal}
+.uqo .uqg{display:block;margin-top:1cqw;color:#8a5a00;font-weight:700}
+.uqo .uqy{font-style:normal;display:inline-block;background:#2a2418;color:#fff;border-radius:.8cqw;padding:0 .7cqw;font-size:.9em;line-height:1.15}
 </style>
 </head>
 <body>
@@ -697,14 +705,14 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/i18n.js?v=1795741328"></script>
-<script src="js/uniques.js?v=1795716790"></script>
-<script src="js/cloud.js?v=1795716790"></script>
-<script src="js/engine.js?v=1795731536"></script>
-<script src="js/ai.js?v=1795741328"></script>
-<script src="js/net.js?v=1795716790"></script>
-<script src="js/rogue.js?v=1795768983"></script>
-<script src="js/play.js?v=1795742397"></script>
+<script src="js/i18n.js?v=1795779328"></script>
+<script src="js/uniques.js?v=1795779328"></script>
+<script src="js/cloud.js?v=1795779328"></script>
+<script src="js/engine.js?v=1795779328"></script>
+<script src="js/ai.js?v=1795779328"></script>
+<script src="js/net.js?v=1795779328"></script>
+<script src="js/rogue.js?v=1795779328"></script>
+<script src="js/play.js?v=1795779328"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
  t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');

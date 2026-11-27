@@ -45,8 +45,19 @@
     const s = STARTERS.find(x => x.id === id); if (s) return { hero: s.hero, cards: s.cards, name: s.name };
     const d = store.get('alt-bi-decks', {})[id]; if (!d || !d.hero) return null;
     const cards = Object.assign({}, d.cards || {}), uq = {};
-    for (const u of d.uniques || []) { const c = u.card && window.AltUniques ? AltUniques.sanitize(u.card) : null; if (c) { DB[c.r] = c; uq[c.r] = c; cards[c.r] = 1; } }
+    for (const u of d.uniques || []) { const c = window.AltUniques ? AltUniques.sanitize(u.card || uqStub(u)) : null; if (c) { DB[c.r] = c; uq[c.r] = c; cards[c.r] = 1; } }
     return { hero: d.hero, cards, name: d.name, uq };
+  }
+
+  // Unique importée sans données (liste altered.re) : stats de la version commune en attendant
+  function uqStub(u) { const m = /^(ALT_[A-Z0-9]+_B_[A-Z]{2}_\d+)_U_\d+$/.exec(String(u && u.r || '')); if (!m) return null; const b = DB[m[1] + '_C'] || DB[m[1] + '_R1']; return b ? Object.assign({}, b, { r: u.r, f: u.f || b.f }) : null; }
+  // Récupère en arrière-plan les vraies données des uniques importées (base communautaire)
+  async function fillUniques() {
+    if (!window.AltUniques) return; const all = store.get('alt-bi-decks', {}); let ch = false;
+    for (const d of Object.values(all)) for (const u of (d && d.uniques) || []) {
+      if (u.card || !u.r) continue; try { const c = await AltUniques.fetchRef(u.r); if (c) { u.card = c; u.n = c.n || u.n; ch = true; } } catch (e) { }
+    }
+    if (ch) { store.set('alt-bi-decks', all); try { renderPickers(); } catch (e) { } }
   }
 
   async function init() {
@@ -57,6 +68,7 @@
         const name = String(o.n || 'Deck importé').slice(0, 80); let id = Object.keys(all).find(k => all[k] && all[k].name === name && all[k].hero === o.h);
         id = id || ('d' + Date.now().toString(36)); all[id] = { name, hero: o.h, sec: o.s || '', cards, uniques: Array.isArray(o.u) ? o.u : [], updated: Date.now() };
         store.set('alt-bi-decks', all); store.set('alt-bi-lastdeck', id); } } catch (e) { } history.replaceState(null, '', location.pathname + (new URLSearchParams(location.search).get('join') ? '?join=' + new URLSearchParams(location.search).get('join') : '')); }
+    fillUniques();
     $('pname').value = store.get('alt-bi-name', '');
     $('pdeck').innerHTML = deckOpts(store.get('alt-bi-lastdeck', '')); $('sdeck').innerHTML = deckOpts(''); renderPickers();
     document.addEventListener('click', async e => {
@@ -206,7 +218,16 @@
     if (c.tok) { const r = tokRef(c.tok.n); if (r) return '<img loading="lazy" draggable="false" alt="' + esc(tokName(c.tok.n)) + '" src="img/tok/' + r + '_' + LANG + '.webp">' + (c.tok.p ? '<span class="tokst">' + c.tok.p.join('/') + '</span>' : ''); }
     return imgOld(c);
   }
-  function uqOverlay(c){if(!c||!c.u)return'';const n=v=>String(v??'').replace(/#/g,'').replace(/[<>&"']/g,'');const p=c.p||[];return '<span class="uqo"><span class="ub"></span><span class="ue"></span><span class="uc uc1">'+n(c.c)+'</span><span class="uc uc2">'+n(c.rc)+'</span><span class="us s0">'+n(p[0])+'</span><span class="us s1">'+n(p[1])+'</span><span class="us s2">'+n(p[2])+'</span><span class="uf"></span>'+(Array.isArray(c.add)&&c.add.length?'<span class="uadd">'+c.add.map(x=>'✦ '+n(LANG==='en'?x.en:x.fr)).join('<br>')+'</span>':'')+'</span>'}
+  function uqOverlay(c){if(!c||!c.u)return'';const n=v=>String(v??'').replace(/#/g,'').replace(/[<>&"']/g,'');const p=c.p||[];
+ const LG=(typeof LANG!=='undefined'&&LANG==='en')?'en':'fr',E=s=>String(s??'').replace(/[&<>"]/g,ch=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[ch]);
+ const SY={H:'✋',R:'⤺',J:'➜',D:'🗑',T:'⟳',I:'∞',V:'✋',X:'🗑'};const F=s=>E(String(s||'').replace(/#/g,'')).replace(/\{([A-Za-z0-9])\}/g,(m,k)=>'<i class="uqy">'+(SY[k.toUpperCase()]||k)+'</i>').replace(/\[\[([^\]]+)\]\]/g,'<b>$1</b>').replace(/\[([^\]]+)\]/g,'$1');
+ const fm=String(c.r||'').match(/^(ALT_([A-Z0-9]+)_[AB]_[A-Z]{2}_\d+)/);let art='';if(fm){const fam=fm[2]==='COREKS'?fm[1].replace('_COREKS_','_CORE_'):fm[1],st=fm[2]==='COREKS'?'CORE':fm[2];art='<img class="uqa" alt="" loading="lazy" referrerpolicy="no-referrer" src="https://cdn.alteredcore.org/illustrations/'+st+'/'+fam+'_U_FRAMELESS_T1.webp" onerror="this.remove()">'}
+ const adds=Array.isArray(c.add)?c.add:[];let tx=String((LG==='en'?c.xe:c.x)||''),ec=String((LG==='en'?c.ee:c.e)||'');
+ for(const a of adds){const raw=LG==='en'?a.xe:a.x;if(raw)tx=tx.replace(raw,'')}tx=tx.trim();
+ const gold=adds.filter(a=>a.x||a.xe).map(a=>'<span class="uqg">✦ '+F(LG==='en'?a.xe:a.x)+'</span>').join('');
+ const legacy=adds.filter(a=>!(a.x||a.xe)).length?'<span class="uadd">'+adds.filter(a=>!(a.x||a.xe)).map(x=>'✦ '+n(LG==='en'?x.en:x.fr)).join('<br>')+'</span>':'';
+ const panel=(tx||ec||gold)?'<span class="uqt"><span class="uqm">'+F(tx)+gold+'</span>'+(ec?'<span class="uqs">'+F(ec)+'</span>':'')+'</span>':'';
+ return '<span class="uqo">'+art+'<span class="ub"></span><span class="ue"></span><span class="uc uc1">'+n(c.c)+'</span><span class="uc uc2">'+n(c.rc)+'</span><span class="us s0">'+n(p[0])+'</span><span class="us s1">'+n(p[1])+'</span><span class="us s2">'+n(p[2])+'</span>'+panel+(panel?'':legacy)+'<span class="uf"></span></span>'}
   function uqBase(fam,f,MAP){const r1=fam+'_R1',r2=fam+'_R2';if(MAP[r2]&&MAP[r2].f===f)return r2;if(MAP[r1])return r1;return fam+'_C'}
     function imgOld(c) { return c.tok ? '<div class="tok"><b>' + esc(tokName(c.tok.n)) + '</b><span>' + c.tok.p.join(' / ') + '</span><span class="note">jeton</span></div>' : ((DB[c.ref] && DB[c.ref].u) ? '<span class="uqw"><img loading="lazy" draggable="false" alt="' + esc(NM(DB[c.ref])) + '" src="img/' + LANG + '/' + encodeURIComponent(uqBase(AltUniques.familyOf(c.ref), DB[c.ref].f, DB)) + '.webp">' + uqOverlay(DB[c.ref]) + '</span><span class="uqtag">U</span>' : '<img loading="lazy" draggable="false" alt="' + esc(NM(DB[c.ref])) + '" src="img/' + LANG + '/' + encodeURIComponent(c.ref) + '.webp">'); }
   const CH = () => V && V.choices && V.choices[0];

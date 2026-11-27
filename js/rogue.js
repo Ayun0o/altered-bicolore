@@ -22,7 +22,7 @@
 
   // ---- Cartes altérées : une « unique » fabriquée à partir d'une carte, avec ses stats modifiées ----
   const CH = c => c.t === 'CHARACTER';
-  const fx = (fr, en, xe, x) => c => { c.xe = (c.xe ? c.xe + '  ' : '') + xe; c.x = (c.x ? c.x + '  ' : '') + x; c.add = (c.add || []).concat([{ fr, en }]); };
+  const fx = (fr, en, xe, x) => c => { c.xe = (c.xe ? c.xe + '  ' : '') + xe; c.x = (c.x ? c.x + '  ' : '') + x; c.add = (c.add || []).concat([{ fr, en, x, xe }]); };
   const ALT = [
     // Effets ajoutés (tous automatisés par le moteur)
     { k: 'd', w: 3, fr: 'Main : piochez une carte', en: 'Hand: draw a card', ok: c => true, ap: fx('Main : piochez une carte', 'Hand: draw a card', '{H} Draw a card.', '{H} Piochez une carte.') },
