@@ -674,6 +674,46 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 .beta{display:inline-block;font-size:11px;font-weight:700;padding:1px 6px;border-radius:8px;background:#f5c518;color:#222;vertical-align:middle;margin-left:4px;text-transform:uppercase;letter-spacing:.4px}
 .dtfm{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}.dtfm i{font-style:normal;font-size:10.5px;padding:0 5px;border-radius:6px;background:#3c8a4a33;color:#9fdcaa;white-space:nowrap}.dtfm i.no{background:#ff8a8022;color:#ff8a80}
 .hfmt{display:flex;gap:8px;align-items:center;margin:4px 0 8px;font-size:13px}.hfmt select{flex:1;min-width:0}
+
+/* Aventure : ambiance, carte du parcours, zoom, organisateur façon deckbuilder */
+body.rgon{background:radial-gradient(ellipse at 18% 0%,color-mix(in srgb,var(--rf,#c9a24a) 30%,#0d1330) 0%,#0b1026 45%,#070a18 100%) fixed;color:#e9e6f2}
+#rogue{position:relative;max-width:1240px}
+#rogue .rgbg{position:fixed;inset:0;z-index:-1;background-size:cover;background-position:center 42%;opacity:.22;filter:saturate(1.1) blur(2px);-webkit-mask-image:linear-gradient(180deg,#000 0%,#0008 45%,transparent 85%);mask-image:linear-gradient(180deg,#000 0%,#0008 45%,transparent 85%)}
+#rogue .rgbg.none{background:radial-gradient(circle at 80% 10%,#5a4bb540,transparent 50%),radial-gradient(circle at 10% 80%,#c9a24a30,transparent 50%)}
+#rogue .rgwrap::before{content:"";position:fixed;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(90deg,color-mix(in srgb,var(--rf) 22%,transparent),transparent 30%,transparent 70%,color-mix(in srgb,var(--rs) 22%,transparent))}
+#rogue h1{color:#e8c46a;letter-spacing:.5px;text-shadow:0 2px 12px #0008}
+#rogue .rgbox{background:color-mix(in srgb,#141a3a 82%,transparent);border:1px solid #ffffff1f;box-shadow:0 8px 30px #0006;backdrop-filter:blur(6px);color:#e9e6f2}
+#rogue .note,#rogue .small{color:#b9b5cf}
+#rogue button{background:#ffffff12;color:#eee;border-color:#ffffff30}#rogue button:hover:not(:disabled){background:#ffffff22}
+#rogue button.pri{background:linear-gradient(180deg,#e8c46a,#c99a35);color:#1b1405;border-color:#e8c46a;font-weight:700}
+#rogue .rgoffer{background:#0c1130;border-color:#ffffff24}#rogue .rgoffer:hover{border-color:#e8c46a;box-shadow:0 0 0 1px #e8c46a,0 6px 20px #e8c46a33}
+.rgtrack{position:relative;display:flex;justify-content:space-between;align-items:center;gap:4px;margin:16px 2px;flex-wrap:nowrap;padding:8px 0}
+.rgtrack .rgline{position:absolute;left:16px;right:16px;top:50%;border-top:2px dashed #ffffff33}
+.rgtrack .rgn{position:relative;z-index:1;background:#0c1130;border-color:#ffffff3a;color:#ddd;opacity:1;flex:none}
+.rgtrack .rgn:nth-child(odd){transform:translateY(-9px)}.rgtrack .rgn:nth-child(even){transform:translateY(9px)}
+.rgtrack .rgn.done{background:#2e6b4e;border-color:#5fd39a;color:#fff}.rgtrack .rgn.cur{border-color:#e8c46a;box-shadow:0 0 0 3px #e8c46a44,0 0 16px #e8c46a88;color:#e8c46a}
+.rgtrack .rgn.boss{border-color:#e0546a;width:40px;height:40px}.rgtrack .rgn.mini{border-color:#b08cff}
+@media(max-width:600px){.rgtrack .rgn{width:26px;height:26px;font-size:12px}.rgtrack .rgn.boss{width:32px;height:32px}}
+#rgZoom{position:fixed;z-index:9999;pointer-events:none;opacity:0;transform:scale(.96);transition:opacity .12s,transform .12s;filter:drop-shadow(0 12px 30px #000c)}
+#rgZoom.on{opacity:1;transform:none}#rgZoom img{width:100%;display:block;border-radius:14px}
+.rgorgh{display:flex;gap:16px;align-items:flex-start}.rghero{width:120px;border-radius:9px;box-shadow:0 4px 14px #0008}
+.rgorg{display:grid;grid-template-columns:minmax(0,1fr) 260px;gap:12px;align-items:start}
+.rgside{position:sticky;top:10px}
+.rgog{display:flex;align-items:center;gap:8px;font-size:16px;margin:10px 0 8px}.rgog span{font-size:12px;background:#ffffff1a;border-radius:10px;padding:1px 8px}
+.rgogrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(max(110px,calc((100% - 50px)/6)),1fr));gap:10px}
+.rgoc{position:relative}.rgoc .rgc{max-width:none}.rgoc .rgalt{position:absolute;left:4px;top:4px}
+.rgob{position:absolute;right:4%;bottom:2.5%;display:flex;align-items:center;gap:3px;background:#000c;border-radius:16px;padding:2px 3px;font-size:13px;color:#fff}
+.rgob b{padding:0 5px}.rgob button{min-height:24px;min-width:26px;padding:0 6px;border-radius:12px;font-size:15px;line-height:1}
+.rgst{background:color-mix(in srgb,#141a3a 82%,transparent);border:1px solid #ffffff1f;border-radius:14px;padding:12px;display:grid;gap:10px}
+.rgsth{font-size:15px}.rgsth b{font-size:22px;color:#e8c46a}
+.rggem{display:flex;align-items:center;gap:5px;flex-wrap:wrap;font-size:12.5px}.rggem .g{display:inline-grid;place-items:center;min-width:24px;height:24px;border-radius:7px;font-weight:800;font-size:13px;margin-left:4px}
+.rggem .g.c{background:#9aa3b3;color:#111}.rggem .g.r{background:#4b86d6;color:#fff}.rggem .g.u{background:#e8c46a;color:#1b1405}
+.rgcurve{display:flex;align-items:flex-end;gap:3px;height:80px}.rgcurve div{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:flex-end;height:100%;gap:2px}
+.rgcurve i{display:block;width:100%;max-width:22px;background:linear-gradient(180deg,#e8c46a,#a77d24);border-radius:4px 4px 0 0;min-height:2px}.rgcurve small,.rgcurve span{font-size:11px;color:#b9b5cf}
+.rgtyp{display:grid;grid-template-columns:1fr 1fr;gap:2px 8px;font-size:12.5px}
+.rgpw{display:flex;gap:6px}.rgpw span{flex:1;text-align:center;border-radius:12px;padding:3px 0;font-weight:800;color:#fff}.rgpw .F{background:#4a8a3a}.rgpw .M{background:#a0622d}.rgpw .O{background:#2f6fb5}
+@media(max-width:800px){.rgorg{grid-template-columns:1fr}.rgside{position:static;order:-1}.rgogrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.rghero{width:80px}.rgob button{min-width:22px;min-height:22px;padding:0 4px}}
+@media(max-width:600px){#rogue .rgoffers{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}#rogue .rgoffer{padding:4px}}
 </style>
 </head>
 <body>
@@ -756,7 +796,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 <script src="js/engine.js?v=1795798404"></script>
 <script src="js/ai.js?v=1795785407"></script>
 <script src="js/net.js?v=1795785407"></script>
-<script src="js/rogue.js?v=1795800854"></script>
+<script src="js/rogue.js?v=1795803386"></script>
 <script src="js/play.js?v=1795803205"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');

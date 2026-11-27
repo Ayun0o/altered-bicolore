@@ -160,10 +160,12 @@
   function img(ref, cls) { return '<span class="rgc' + (cls ? ' ' + cls : '') + '">' + P().cardImg(ref) + '</span>'; }
   function qImg(r, cls) { return isQ(r) ? '<span class="rgmyst">' + img(qBase(r), cls) + '<b>✦ ' + L('Unique mystère', 'Mystery unique') + '</b></span>' : img(r, cls); }
   function hearts(n) { return '♥'.repeat(Math.max(0, n)) + '<span style="opacity:.25">' + '♥'.repeat(Math.max(0, LIVES - n)) + '</span>'; }
-  function track(run) { let h = ''; for (let i = 0; i < FIGHTS; i++) h += '<span class="rgn' + (i < run.i ? ' done' : i === run.i ? ' cur' : '') + (i === FIGHTS - 1 ? ' boss' : MINI.includes(i) ? ' mini' : '') + '">' + (i === FIGHTS - 1 ? '👑' : MINI.includes(i) ? '★' : i + 1) + '</span>'; return '<div class="rgtrack">' + h + '</div>'; }
+  function track(run) { let h = ''; for (let i = 0; i < FIGHTS; i++) h += '<span class="rgn' + (i < run.i ? ' done' : i === run.i ? ' cur' : '') + (i === FIGHTS - 1 ? ' boss' : MINI.includes(i) ? ' mini' : '') + '">' + (i === FIGHTS - 1 ? '👑' : MINI.includes(i) ? '★' : i + 1) + '</span>'; return '<div class="rgtrack"><div class="rgline"></div>' + h + '</div>'; }
   function deckCount(d) { return Object.values(d.cards).reduce((a, b) => a + b, 0); }
-  function show(html) { $('lobby').classList.add('hidden'); $('game').classList.add('hidden'); const r = $('rogue'); r.classList.remove('hidden'); r.innerHTML = '<div class="rgwrap"><div class="row lhead"><h1 style="font-size:28px;margin-right:auto">🗡️ ' + L('Aventure', 'Adventure') + ' <span class="beta">' + L('bêta', 'beta') + '</span></h1><button data-rg="home">' + L('← Table', '← Table') + '</button></div>' + html + '</div>'; window.scrollTo(0, 0); }
-  function home() { $('rogue').classList.add('hidden'); $('lobby').classList.remove('hidden'); }
+  function show(html) { $('lobby').classList.add('hidden'); $('game').classList.add('hidden'); const r = $('rogue'); r.classList.remove('hidden'); const run0 = load(), f0 = run0 && !run0.over ? run0.f : null, s0 = run0 && run0.sec, h0 = run0 && run0.deck && run0.deck.hero;
+    r.style.setProperty('--rf', f0 ? FC[f0] : '#c9a24a'); r.style.setProperty('--rs', s0 ? FC[s0] : (f0 ? FC[f0] : '#5a4bb5')); document.body.classList.add('rgon');
+    r.innerHTML = (h0 && f0 ? '<div class="rgbg" style="background-image:url(\'img/' + P().LANG + '/' + esc(h0) + '.webp\')"></div>' : '<div class="rgbg none"></div>') + '<div class="rgwrap"><div class="row lhead"><h1 style="font-size:28px;margin-right:auto">🗡️ ' + L('Aventure', 'Adventure') + ' <span class="beta">' + L('bêta', 'beta') + '</span></h1><button data-rg="home">' + L('← Table', '← Table') + '</button></div>' + html + '</div>'; window.scrollTo(0, 0); }
+  function home() { document.body.classList.remove('rgon'); $('rogue').classList.add('hidden'); $('lobby').classList.remove('hidden'); }
   const tokens = run => ((run.rr | 0) || (run.ban | 0)) ? '<span class="rgtok">' + (run.rr | 0 ? '🎲 ' + run.rr + ' ' : '') + (run.ban | 0 ? '⛔ ' + run.ban : '') + '</span>' : '';
   const facLine = run => '<span style="color:' + FC[run.f] + ';font-weight:700">' + FN[run.f] + '</span>' + (run.sec ? ' + <span style="color:' + FC[run.sec] + ';font-weight:700">' + FN[run.sec] + '</span>' : '');
 
@@ -265,9 +267,25 @@
       '<div class="row" style="margin-top:12px"><button class="pri" data-rg="open">' + L('Retour', 'Back') + '</button></div></div>');
   }
   // Organiser son deck : retirer des cartes vers la réserve d'aventure (banc) ou les remettre, minimum 39 cartes
+  // Organiser son deck : même présentation que le deckbuilder (héros en haut, cartes par type, stats à droite)
+  function orgCard(r, n, act) { const c = P().DB[r]; return '<div class="rgoc">' + img(r) + (c.u ? '<span class="rgalt">✦ ' + esc(altLabel(c)) + '</span>' : '') + '<span class="rgob"><button data-rg="' + act + '" data-r="' + esc(r) + '" title="' + (act === 'out' ? L('Mettre de côté', 'Set aside') : L('Remettre dans le deck', 'Put back in the deck')) + '">' + (act === 'out' ? '−' : '+') + '</button><b>×' + n + '</b></span></div>'; }
+  function orgGroups(m, act) { const DB = P().DB, refs = sorted(m), G = [['CHARACTER', L('Personnages', 'Characters')], ['SPELL', L('Sorts', 'Spells')], ['PERM', L('Permanents', 'Permanents')]];
+    return G.map(([k, t]) => { const R = refs.filter(r => k === 'PERM' ? /PERMANENT/.test(DB[r].t) : DB[r].t === k); if (!R.length) return ''; const n = R.reduce((a, r) => a + m[r], 0);
+      return '<h3 class="rgog">' + t + ' <span>' + n + '</span></h3><div class="rgogrid">' + R.map(r => orgCard(r, m[r], act)).join('') + '</div>'; }).join(''); }
+  function orgStats(d) { const DB = P().DB, cur = [0, 0, 0, 0, 0, 0, 0, 0], pw = [0, 0, 0]; let C = 0, R = 0, U = 0, ch = 0, sp = 0, pe = 0;
+    for (const [r, n] of Object.entries(d.cards)) { const c = DB[r]; if (!c) continue; if (c.u) U += n; else if (c.y === 'R') R += n; else C += n;
+      cur[Math.min(7, num(c.c))] += n; if (c.t === 'CHARACTER') { ch += n; (c.p || []).forEach((v, i) => { if (i < 3) pw[i] += num(v) * n; }); } else if (c.t === 'SPELL') sp += n; else pe += n; }
+    const mx = Math.max(1, ...cur), tot = deckCount(d);
+    return '<div class="rgst"><div class="rgsth"><b>' + tot + '</b> / ' + MINDECK + '+ ' + L('cartes', 'cards') + '</div>' +
+      '<div class="rggem"><span class="g c">' + C + '</span>' + L('communes', 'commons') + '<span class="g r">' + R + '</span>' + L('rares', 'rares') + '<span class="g u">' + U + '</span>' + L('uniques', 'uniques') + '</div>' +
+      '<div class="rgcurve">' + cur.map((v, i) => '<div><small>' + v + '</small><i style="height:' + Math.round(v / mx * 100) + '%"></i><span>' + (i === 7 ? '7+' : i) + '</span></div>').join('') + '</div>' +
+      '<div class="rgtyp"><span>' + L('Personnages', 'Characters') + ' <b>' + ch + '</b></span><span>' + L('Sorts', 'Spells') + ' <b>' + sp + '</b></span><span>' + L('Permanents', 'Permanents') + ' <b>' + pe + '</b></span></div>' +
+      '<div class="rgpw"><span class="F" title="' + L('Forêt', 'Forest') + '">' + pw[0] + '</span><span class="M" title="' + L('Montagne', 'Mountain') + '">' + pw[1] + '</span><span class="O" title="' + L('Océan', 'Ocean') + '">' + pw[2] + '</span></div><p class="small" style="margin:4px 0 0">' + L('Puissance totale des personnages par terrain', 'Total character power per terrain') + '</p></div>'; }
   function organize(run) {
-    show('<div class="rgbox"><div class="rgtop"><b>🃏 ' + L('Organiser mon deck', 'Organise my deck') + '</b><span style="margin-left:auto">' + deckCount(run.deck) + ' / ' + MINDECK + '+</span></div><p class="note">' + L('Clique une carte du deck pour la mettre de côté, ou une carte de côté pour la remettre. Il faut au moins 39 cartes pour combattre ; pas de limite d’exemplaires.', 'Click a deck card to set it aside, or a set-aside card to put it back. You need at least 39 cards to fight; no copy limit.') + '</p>' +
-      '<h3>' + L('Deck', 'Deck') + '</h3>' + deckView(run, 'out') + '<h3 style="margin-top:14px">' + L('De côté', 'Set aside') + ' (' + Object.values(run.bench || {}).reduce((a, b) => a + b, 0) + ')</h3>' + benchView(run) + '<div class="row" style="margin-top:12px"><button class="pri" data-rg="orgdone">' + L('Terminé', 'Done') + '</button></div></div>');
+    const DB = P().DB, h = DB[run.deck.hero], nb = Object.values(run.bench || {}).reduce((a, b) => a + b, 0), ok = deckCount(run.deck) >= MINDECK;
+    show('<div class="rgbox rgorgh"><img class="rghero" alt="" src="img/' + P().LANG + '/' + esc(run.deck.hero) + '.webp"><div><div class="small">🃏 ' + L('Organiser mon deck', 'Organise my deck') + '</div><h2 style="margin:2px 0 4px">' + esc(h ? NM(h) : '') + '</h2><div>' + facLine(run) + '</div><p class="note" style="margin:6px 0 0">' + L('« − » met une carte de côté, « + » la remet. Au moins 39 cartes pour combattre, pas de limite d’exemplaires. Survole une carte pour la lire.', '“−” sets a card aside, “+” puts it back. At least 39 cards to fight, no copy limit. Hover a card to read it.') + '</p></div>' +
+      '<button class="pri" data-rg="orgdone" style="margin-left:auto;align-self:center"' + (ok ? '' : ' title="' + L('Il faut au moins 39 cartes', 'You need at least 39 cards') + '"') + '>' + L('Terminé', 'Done') + '</button></div>' +
+      '<div class="rgorg"><div class="rgbox">' + orgGroups(run.deck.cards, 'out') + '<h3 class="rgog" style="margin-top:18px">' + L('De côté', 'Set aside') + ' <span>' + nb + '</span></h3>' + (nb ? orgGroups(run.bench, 'in') : '<p class="note">—</p>') + '</div><aside class="rgside">' + orgStats(run.deck) + '</aside></div>');
   }
   function sorted(m) { const DB = P().DB; return Object.keys(m).filter(r => DB[r]).sort((a, b) => num(DB[a].c) - num(DB[b].c) || NM(DB[a]).localeCompare(NM(DB[b]))); }
   function benchView(run) { const b = run.bench || {}, DB = P().DB, refs = sorted(b); return refs.length ? '<div class="rggrid">' + refs.map(r => '<div class="rgitem" data-rg="in" data-r="' + r + '" style="cursor:pointer">' + img(r) + '<span class="rgq">×' + b[r] + '</span>' + (DB[r].u ? '<span class="rgalt">✦ ' + esc(altLabel(DB[r])) + '</span>' : '') + '</div>').join('') + '</div>' : '<p class="note">—</p>'; }
@@ -323,5 +341,18 @@
     if (k === 'out') { delCard(run.deck, b.dataset.r); run.bench = run.bench || {}; addCard({ cards: run.bench }, b.dataset.r); save(run); return screen(); }
     if (k === 'in') { delCard({ cards: run.bench }, b.dataset.r); addCard(run.deck, b.dataset.r); save(run); return screen(); }
   });
+  // Zoom des cartes : survol (PC) ou appui long (téléphone), comme dans le deckbuilder
+  { const Z = document.createElement('div'); Z.id = 'rgZoom'; document.body.appendChild(Z); let tm = null, lp = false;
+    const showZ = (el, x) => { Z.innerHTML = el.innerHTML; Z.classList.add('on'); const w = Math.min(340, innerWidth * .8); Z.style.width = w + 'px';
+      if (x == null || innerWidth < 700) { Z.style.left = (innerWidth - w) / 2 + 'px'; Z.style.top = Math.max(10, (innerHeight - w * 1.4) / 2) + 'px'; }
+      else { Z.style.left = (x > innerWidth / 2 ? Math.max(10, x - w - 30) : Math.min(innerWidth - w - 10, x + 30)) + 'px'; Z.style.top = Math.max(10, (innerHeight - w * 1.4) / 2) + 'px'; } };
+    const hideZ = () => { clearTimeout(tm); Z.classList.remove('on'); };
+    document.addEventListener('mouseover', e => { const c = e.target.closest && e.target.closest('#rogue .rgc'); if (!c || matchMedia('(hover: none)').matches) return; clearTimeout(tm); tm = setTimeout(() => showZ(c, e.clientX), 250); });
+    document.addEventListener('mouseout', e => { const c = e.target.closest && e.target.closest('#rogue .rgc'); if (c && !(e.relatedTarget && c.contains(e.relatedTarget))) hideZ(); });
+    document.addEventListener('touchstart', e => { const c = e.target.closest && e.target.closest('#rogue .rgc'); lp = false; if (!c) return; clearTimeout(tm); tm = setTimeout(() => { lp = true; showZ(c); }, 420); }, { passive: true });
+    document.addEventListener('touchmove', () => clearTimeout(tm), { passive: true });
+    document.addEventListener('touchend', () => { clearTimeout(tm); if (lp) setTimeout(hideZ, 0); });
+    document.addEventListener('click', e => { if (lp && e.target.closest && e.target.closest('#rogue')) { lp = false; e.stopPropagation(); e.preventDefault(); } }, true);
+    document.addEventListener('scroll', hideZ, { passive: true }); }
   window.AltRogue = { screen, _enemyDeck: enemyDeck, _after: after, _draftOffer: draftOffer, _meta: { load: loadMeta, save: saveMeta, spentOf, heatOf } };
 })();
