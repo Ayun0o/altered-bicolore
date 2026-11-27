@@ -248,6 +248,7 @@ img[hidden],.heroimg[hidden]{display:none!important}
 .heroimg{width:150px;border-radius:9px;box-shadow:0 4px 14px #0005}
 .herow.empty{width:150px}
 @media(max-width:600px){.setup{min-height:0;padding:10px;gap:12px}.heroimg,.herow.empty{width:96px}}
+.act .n{font-weight:800;color:#ffd76a;min-width:1.2em;text-align:center}
 </style>
 </head>
 <body>
@@ -428,7 +429,7 @@ function cardHtml(c){
  const cost=c.t==='HERO'?'':'<div class="cost" title="Coût de main / coût de réserve">'+'<span>'+cst(c.c)+'</span><span>'+cst(c.rc)+'</span></div>';
  const rb=c.t==='HERO'?'<span class="badge">Héros</span>':c.u?'<span class="badge U">Unique</span>':c.y==='R'?'<span class="badge R">Rare</span>':'<span class="badge">Commune</span>';
  const ob=oof?'<span class="badge oof">hors faction · origine '+esc(FN[c.h])+'</span>':'';
- const inD=c.u&&d&&d.uniques.some(u=>u.r===c.r);const btn=c.u?(inD?'<button data-urmr="'+esc(c.r)+'">Retirer du deck</button>':'<button data-uadd="'+esc(c.r)+'">Ajouter au deck</button><button data-udel="'+esc(c.r)+'" title="Retirer de ma collection" style="margin-left:auto">🗑</button>'):c.t==='HERO'?'<button data-hero="'+esc(c.r)+'">'+(n?'Héros choisi':'Choisir ce héros')+'</button>':'<button data-rm="'+esc(c.r)+'" aria-label="Retirer">−</button><span class="n">'+n+'</span><button data-add="'+esc(c.r)+'" aria-label="Ajouter">+</button>';
+ const inD=c.u&&d&&d.uniques.some(u=>u.r===c.r);const btn=c.u?(inD?'<button data-urmr="'+esc(c.r)+'">Retirer du deck</button>':'<button data-uadd="'+esc(c.r)+'">Ajouter au deck</button><button data-udel="'+esc(c.r)+'" title="Retirer de ma collection" style="margin-left:auto">🗑</button>'):c.t==='HERO'?'<button data-hero="'+esc(c.r)+'">'+(n?'Héros choisi':'Choisir ce héros')+'</button>':(n?'<button data-rm="'+esc(c.r)+'" aria-label="Retirer">−</button><span class="n">'+n+'</span>':'')+'<button data-add="'+esc(c.r)+'" aria-label="Ajouter">+</button>';
  const inDk=c.u?inD:n>0,ok=canAdd(c),mx=!DECKVIEW&&!ok&&c.t!=='HERO'&&!(c.u&&inD);
  const btn2=(!c.u&&c.t!=='HERO'&&!ok)?btn.replace('data-add=','disabled data-add='):btn;
  const img='<span class="cw">'+(c.u?'<span class="uqw">':'')+'<img class="art" decoding="async" data-r="'+esc(c.r)+'" alt="'+esc(NM(c))+'" width="360" height="502">'+(c.u?uqOverlay(c)+'</span>':'')+'<span class="hz" data-hz="'+esc(c.r)+'"></span></span>';
