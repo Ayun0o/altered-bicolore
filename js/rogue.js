@@ -18,14 +18,14 @@
   // Les talents ne touchent jamais la partie elle-même : seulement la construction du deck entre les combats.
   // Plus on dépense de pièces, plus la menace monte (adversaires plus forts). Sans talents : aventure « pure ».
   const MKEY = 'alt-bi-rogue-meta';
-  const loadMeta = () => { let m = null; try { m = JSON.parse(localStorage.getItem(MKEY) || 'null'); } catch (e) { } m = m && typeof m === 'object' ? m : {}; m.earned = m.earned | 0; m.alloc = m.alloc && typeof m.alloc === 'object' ? m.alloc : {}; if (m.useTal === undefined) m.useTal = true; return m; };
+  const loadMeta = () => { let m = null; try { m = JSON.parse(localStorage.getItem(MKEY) || 'null'); } catch (e) { } m = m && typeof m === 'object' ? m : {}; m.earned = m.earned | 0; m.alloc = m.alloc && typeof m.alloc === 'object' ? m.alloc : {}; if (m.useTal === undefined) m.useTal = true; for (const t of TAL) { if ((m.alloc[t.id] | 0) > t.costs.length) m.alloc[t.id] = t.costs.length; if (t.req && !(m.alloc[t.req] | 0)) delete m.alloc[t.id]; } return m; };
   const saveMeta = m => { try { localStorage.setItem(MKEY, JSON.stringify(m)); } catch (e) { } };
   const BR = { rec: ['🎴', 'Recrutement', 'Recruitment'], for: ['🎲', 'Fortune', 'Fortune'], ate: ['🔨', 'Atelier', 'Workshop'], bic: ['🧭', 'Exploration', 'Exploration'] };
   const TAL = [
     { id: 'pre', b: 'rec', costs: [1, 3, 5], fr: 'Draft de départ', en: 'Opening draft', d: l => L(l + ' draft' + (l > 1 ? 's' : '') + ' avant le 1er combat', l + ' draft' + (l > 1 ? 's' : '') + ' before the first fight') },
     { id: 'rare', b: 'rec', req: 'pre', costs: [3, 6, 10], fr: 'Flair', en: 'Keen eye', d: l => l < 3 ? L('+' + (10 * l) + ' % de chance de rare au draft', '+' + (10 * l) + '% rare chance in drafts') : L('+20 % de rares, et 5 % de chance d’une unique par carte', '+20% rares, and a 5% chance of a unique per card') },
-    { id: 'mini2', b: 'rec', req: 'rare', costs: [6], fr: 'Butin de mini-boss', en: 'Mini-boss loot', d: () => L('Après un mini-boss vaincu, garde 2 cartes du draft', 'After beating a mini-boss, keep 2 cards from the draft') },
-    { id: 'wide', b: 'rec', req: 'rare', costs: [10, 20], fr: 'Large choix', en: 'Wide choice', d: l => L((3 + l) + ' cartes proposées au draft', (3 + l) + ' cards offered in drafts') },
+    { id: 'mini2', b: 'rec', req: 'wide', costs: [8], fr: 'Butin de mini-boss', en: 'Mini-boss loot', d: () => L('Après un mini-boss vaincu, garde 2 cartes du draft', 'After beating a mini-boss, keep 2 cards from the draft') },
+    { id: 'wide', b: 'rec', req: 'rare', costs: [10], fr: 'Large choix', en: 'Wide choice', d: l => L((3 + l) + ' cartes proposées au draft', (3 + l) + ' cards offered in drafts') },
     { id: 'rr', b: 'for', costs: [2, 4, 8], fr: 'Relances', en: 'Rerolls', d: l => L([0, 2, 5, 10][l] + ' jetons de relance par aventure (draft, amélioration, unique)', [0, 2, 5, 10][l] + ' reroll tokens per adventure (draft, upgrade, unique)') },
     { id: 'ban', b: 'for', req: 'rr', costs: [2, 4, 6], fr: 'Bannissement', en: 'Ban', d: l => L(l + ' jeton' + (l > 1 ? 's' : '') + ' de bannissement : retire une carte proposée (et son nom du reste de l’aventure)', l + ' ban token' + (l > 1 ? 's' : '') + ': remove an offered card (and its name for the rest of the adventure)') },
     { id: 'mtok', b: 'for', req: 'rr', costs: [4, 8], fr: 'Prime', en: 'Bounty', d: l => L('+' + l + ' jeton' + (l > 1 ? 's' : '') + ' de relance après chaque mini-boss vaincu', '+' + l + ' reroll token' + (l > 1 ? 's' : '') + ' after each mini-boss beaten') },
