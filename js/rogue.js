@@ -213,7 +213,7 @@
     for (let k = 0; k < (t.srare | 0); k++) { const cs = upgradable(run); if (!cs.length) break; const r = pick(R, cs); delCard(run.deck, r); addCard(run.deck, sameRare(r)); }
     for (let k = 0; k < (t.pre | 0); k++) run.queue.push('draft');
     if (t.smut) run.queue.push('smut');
-    nextStep(run); save(run); screen();
+    nextStep(run, true); save(run); screen();
   }
   function fight() {
     const run = load(); if (!run) return;
@@ -238,7 +238,9 @@
     save(run); screen();
   }
   function toBoon(run) { const rw = run.reward; if (rw.pre) return nextStep(run); run.reward = { step: 'boon', fi: rw.fi, mini: rw.mini, won: rw.won, coins: rw.coins, upsLeft: rw.won && rw.mini && T(run, 'mini2up') ? 2 : 1, ups: upOffer(run) }; }
-  function nextStep(run) { run.reward = null; const s = (run.queue || []).shift(); if (s === 'draft') run.reward = { step: 'draft', pre: true, fi: 0, picks: 1, cards: draftOffer(run, 0, false) }; else if (s === 'smut') run.reward = { step: 'boon', pre: true, free: true }; }
+  function nextStep(run, start) { run.reward = null; const s = (run.queue || []).shift(); if (s === 'draft') run.reward = { step: 'draft', pre: true, fi: 0, picks: 1, cards: draftOffer(run, 0, false) }; else if (s === 'smut') run.reward = { step: 'boon', pre: true, free: true };
+    // Récompenses finies : on passe par l'organiseur de deck, pour montrer qu'on peut retirer des cartes
+    if (!run.reward && !run.over && !start) { run.org = true; run.orgAuto = true; } }
   function reward(run) {
     const rw = run.reward, top = '<div class="rgtop">' + (rw.pre ? '<b>🎒 ' + L('Préparation de l’aventure', 'Getting ready') + '</b>' : rw.won ? '<b>' + L('Victoire !', 'Victory!') + '</b>' + (rw.coins ? ' <span class="rgcoin">+' + rw.coins + ' 🪙</span>' : '') : '<b>' + L('Défaite…', 'Defeat…') + '</b> <span class="small">' + L('tu gardes ta récompense, sans pièce', 'you keep your reward, no coin') + '</span>') + tokens(run) + '<span style="margin-left:auto;font-size:20px;color:#e0546a">' + hearts(run.lives) + '</span></div>' + track(run);
     if (rw.step === 'draft') {
@@ -313,7 +315,7 @@
       '<div class="rgstr"><div class="rgcvh" data-rg="curv" title="' + L('Cliquer pour changer', 'Click to switch') + '">' + L('Courbe de mana', 'Mana curve') + ' · <b>' + (CURV === 'res' ? L('en réserve', 'from reserve') : L('en main', 'from hand')) + '</b> ⇄</div><div class="rgcurve" data-rg="curv">' + cur.map((v, i) => '<div><small>' + v + '</small><i style="height:' + Math.round(v / mx * 100) + '%"></i><span>' + (i === 7 ? '7+' : i) + '</span></div>').join('') + '</div></div></div>'; }
   function organize(run) {
     const DB = P().DB, h = DB[run.deck.hero], nb = Object.values(run.bench || {}).reduce((a, b) => a + b, 0), ok = deckCount(run.deck) >= MINDECK;
-    show('<div class="rgbox rgorgh"><span class="rgc rghero"><img alt="" src="img/' + P().LANG + '/' + esc(run.deck.hero) + '.webp"></span><div><div class="small">🃏 ' + L('Organiser mon deck', 'Organise my deck') + '</div><h2 style="margin:2px 0 4px">' + esc(h ? NM(h) : '') + '</h2><div>' + facLine(run) + '</div><button class="pri rgobig" data-rg="orgdone"' + (ok ? '' : ' disabled title="' + L('Il faut au moins 39 cartes', 'You need at least 39 cards') + '"') + '>✓ ' + (ok ? L('Terminé, continuer l’aventure', 'Done, continue the adventure') : L('Il manque ', 'Missing ') + (MINDECK - deckCount(run.deck)) + L(' carte(s)', ' card(s)')) + '</button></div>' +
+    show('<div class="rgbox rgorgh"><span class="rgc rghero"><img alt="" src="img/' + P().LANG + '/' + esc(run.deck.hero) + '.webp"></span><div><div class="small">🃏 ' + L('Organiser mon deck', 'Organise my deck') + '</div><h2 style="margin:2px 0 4px">' + esc(h ? NM(h) : '') + '</h2><div>' + facLine(run) + '</div>' + (run.orgAuto ? '<p class="rgotip">💡 ' + L('Tu n’es pas obligé de tout garder : « − » met une carte de côté, « + » la remet. Il faut au moins 39 cartes.', 'You don’t have to keep everything: “−” sets a card aside, “+” puts it back. You need at least 39 cards.') + '</p>' : '') + '<button class="pri rgobig" data-rg="orgdone"' + (ok ? '' : ' disabled title="' + L('Il faut au moins 39 cartes', 'You need at least 39 cards') + '"') + '>✓ ' + (ok ? L('Terminé, continuer l’aventure', 'Done, continue the adventure') : L('Il manque ', 'Missing ') + (MINDECK - deckCount(run.deck)) + L(' carte(s)', ' card(s)')) + '</button></div>' +
       orgStats(run.deck) + '</div>' +
       '<div class="rgorg"><div class="rgbox">' + orgGroups(run.deck.cards, 'out') + '<h3 class="rgog" style="margin-top:18px">' + L('De côté', 'Set aside') + ' <span>' + nb + '</span></h3>' + (nb ? orgGroups(run.bench, 'in') : '<p class="note">—</p>') + '</div></div>', '<button class="pri" data-rg="orgdone">✓ ' + L('Terminé', 'Done') + ' · ' + deckCount(run.deck) + '/' + MINDECK + '</button>', { wide: 1, key: 'org' });
   }
@@ -367,7 +369,7 @@
     if (k === 'mutrr' && rw && rw.from && (run.rr | 0) > 0) { run.rr--; rw.res = null; save(run); return doMutate(run, rw.from); }
     if (k === 'mutkeep' && rw && rw.res) { const r = rw.res[+b.dataset.k]; if (!r || !run.deck.cards[rw.from]) return; delCard(run.deck, rw.from); addCard(run.deck, r); nextStep(run); save(run); return screen(); }
     if (k === 'org') { run.org = true; save(run); return screen(); }
-    if (k === 'orgdone') { run.org = false; save(run); return screen(); }
+    if (k === 'orgdone') { run.org = false; run.orgAuto = false; save(run); return screen(); }
     if (k === 'curv') { CURV = CURV === 'res' ? 'main' : 'res'; return screen(); }
     if (k === 'out') { delCard(run.deck, b.dataset.r); run.bench = run.bench || {}; addCard({ cards: run.bench }, b.dataset.r); save(run); return screen(); }
     if (k === 'in') { delCard({ cards: run.bench }, b.dataset.r); addCard(run.deck, b.dataset.r); save(run); return screen(); }
