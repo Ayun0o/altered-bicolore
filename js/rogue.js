@@ -288,19 +288,20 @@
   function orgGroups(m, act) { const DB = P().DB, refs = sorted(m), G = [['CHARACTER', L('Personnages', 'Characters')], ['SPELL', L('Sorts', 'Spells')], ['PERM', L('Permanents', 'Permanents')]];
     return G.map(([k, t]) => { const R = refs.filter(r => k === 'PERM' ? /PERMANENT/.test(DB[r].t) : DB[r].t === k); if (!R.length) return ''; const n = R.reduce((a, r) => a + m[r], 0);
       return '<h3 class="rgog">' + t + ' <span>' + n + '</span></h3><div class="rgogrid">' + R.map(r => orgCard(r, m[r], act)).join('') + '</div>'; }).join(''); }
+  let CURV = 'main';
   function orgStats(d) { const DB = P().DB, cur = [0, 0, 0, 0, 0, 0, 0, 0], pw = [0, 0, 0]; let C = 0, R = 0, U = 0, ch = 0, sp = 0, pe = 0;
     for (const [r, n] of Object.entries(d.cards)) { const c = DB[r]; if (!c) continue; if (c.u) U += n; else if (c.y === 'R') R += n; else C += n;
-      cur[Math.min(7, num(c.c))] += n; if (c.t === 'CHARACTER') { ch += n; (c.p || []).forEach((v, i) => { if (i < 3) pw[i] += num(v) * n; }); } else if (c.t === 'SPELL') sp += n; else pe += n; }
+      cur[Math.min(7, num(CURV === 'res' ? (c.rc != null ? c.rc : c.c) : c.c))] += n; if (c.t === 'CHARACTER') { ch += n; (c.p || []).forEach((v, i) => { if (i < 3) pw[i] += num(v) * n; }); } else if (c.t === 'SPELL') sp += n; else pe += n; }
     const mx = Math.max(1, ...cur), tot = deckCount(d);
     return '<div class="rgst"><div class="rgsth"><b>' + tot + '</b> / ' + MINDECK + '+ ' + L('cartes', 'cards') + '</div>' +
       '<div class="rggem"><span class="g c">' + C + '</span>' + L('communes', 'commons') + '<span class="g r">' + R + '</span>' + L('rares', 'rares') + '<span class="g u">' + U + '</span>' + L('uniques', 'uniques') + '</div>' +
-      '<div class="rgcurve">' + cur.map((v, i) => '<div><small>' + v + '</small><i style="height:' + Math.round(v / mx * 100) + '%"></i><span>' + (i === 7 ? '7+' : i) + '</span></div>').join('') + '</div>' +
+      '<div class="rgcvh" data-rg="curv" title="' + L('Cliquer pour changer', 'Click to switch') + '">' + L('Courbe de mana', 'Mana curve') + ' · <b>' + (CURV === 'res' ? L('en réserve', 'from reserve') : L('en main', 'from hand')) + '</b> ⇄</div><div class="rgcurve" data-rg="curv">' + cur.map((v, i) => '<div><small>' + v + '</small><i style="height:' + Math.round(v / mx * 100) + '%"></i><span>' + (i === 7 ? '7+' : i) + '</span></div>').join('') + '</div>' +
       '<div class="rgtyp"><span>' + L('Personnages', 'Characters') + ' <b>' + ch + '</b></span><span>' + L('Sorts', 'Spells') + ' <b>' + sp + '</b></span><span>' + L('Permanents', 'Permanents') + ' <b>' + pe + '</b></span></div>' +
       '<div class="rgpw"><span class="F" title="' + L('Forêt', 'Forest') + '">' + pw[0] + '</span><span class="M" title="' + L('Montagne', 'Mountain') + '">' + pw[1] + '</span><span class="O" title="' + L('Océan', 'Ocean') + '">' + pw[2] + '</span></div><p class="small" style="margin:4px 0 0">' + L('Puissance totale des personnages par terrain', 'Total character power per terrain') + '</p></div>'; }
   function organize(run) {
     const DB = P().DB, h = DB[run.deck.hero], nb = Object.values(run.bench || {}).reduce((a, b) => a + b, 0), ok = deckCount(run.deck) >= MINDECK;
-    show('<div class="rgbox rgorgh"><img class="rghero" alt="" src="img/' + P().LANG + '/' + esc(run.deck.hero) + '.webp"><div><div class="small">🃏 ' + L('Organiser mon deck', 'Organise my deck') + '</div><h2 style="margin:2px 0 4px">' + esc(h ? NM(h) : '') + '</h2><div>' + facLine(run) + '</div><p class="note" style="margin:6px 0 0">' + L('« − » met une carte de côté, « + » la remet. Au moins 39 cartes pour combattre, pas de limite d’exemplaires. Survole une carte pour la lire.', '“−” sets a card aside, “+” puts it back. At least 39 cards to fight, no copy limit. Hover a card to read it.') + '</p></div>' +
-      '<button class="pri" data-rg="orgdone" style="margin-left:auto;align-self:center"' + (ok ? '' : ' title="' + L('Il faut au moins 39 cartes', 'You need at least 39 cards') + '"') + '>' + L('Terminé', 'Done') + '</button></div>' +
+    show('<div class="rgbox rgorgh"><span class="rgc rghero"><img alt="" src="img/' + P().LANG + '/' + esc(run.deck.hero) + '.webp"></span><div><div class="small">🃏 ' + L('Organiser mon deck', 'Organise my deck') + '</div><h2 style="margin:2px 0 4px">' + esc(h ? NM(h) : '') + '</h2><div>' + facLine(run) + '</div></div>' +
+      '</div>' +
       '<div class="rgorg"><div class="rgbox">' + orgGroups(run.deck.cards, 'out') + '<h3 class="rgog" style="margin-top:18px">' + L('De côté', 'Set aside') + ' <span>' + nb + '</span></h3>' + (nb ? orgGroups(run.bench, 'in') : '<p class="note">—</p>') + '</div><aside class="rgside">' + orgStats(run.deck) + '</aside></div>', '<button class="pri" data-rg="orgdone">✓ ' + L('Terminé', 'Done') + ' · ' + deckCount(run.deck) + '/' + MINDECK + '</button>', { wide: 1, key: 'org' });
   }
   function sorted(m) { const DB = P().DB; return Object.keys(m).filter(r => DB[r]).sort((a, b) => num(DB[a].c) - num(DB[b].c) || NM(DB[a]).localeCompare(NM(DB[b]))); }
@@ -354,6 +355,7 @@
     if (k === 'mutkeep' && rw && rw.res) { const r = rw.res[+b.dataset.k]; if (!r || !run.deck.cards[rw.from]) return; delCard(run.deck, rw.from); addCard(run.deck, r); nextStep(run); save(run); return screen(); }
     if (k === 'org') { run.org = true; save(run); return screen(); }
     if (k === 'orgdone') { run.org = false; save(run); return screen(); }
+    if (k === 'curv') { CURV = CURV === 'res' ? 'main' : 'res'; return screen(); }
     if (k === 'out') { delCard(run.deck, b.dataset.r); run.bench = run.bench || {}; addCard({ cards: run.bench }, b.dataset.r); save(run); return screen(); }
     if (k === 'in') { delCard({ cards: run.bench }, b.dataset.r); addCard(run.deck, b.dataset.r); save(run); return screen(); }
   });
