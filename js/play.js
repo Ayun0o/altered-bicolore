@@ -662,8 +662,12 @@
 
     document.addEventListener('dragend', () => { DRAG = null; PREVZ = null; clearPreview(); });
     document.addEventListener('dragstart', e => { const c = e.target.closest && e.target.closest('.c[draggable]'); if (!c) return; DRAG = c.dataset.id; PREVZ = null; clearPreview(); e.dataTransfer.setData('text/plain', c.dataset.id); e.dataTransfer.effectAllowed = 'move'; hideZoom();
-      // Image de glisser propre (juste la carte) : sinon, depuis la réserve, le navigateur capture tout un morceau de l'interface
-      try { const r = c.getBoundingClientRect(), g = document.createElement('div'); g.className = 'dragghost'; g.style.width = r.width + 'px'; g.style.height = r.height + 'px'; const im = c.querySelector('.uqw') || c.querySelector('img'); if (im) g.appendChild(im.cloneNode(true)); document.body.appendChild(g); e.dataTransfer.setDragImage(g, r.width / 2, r.height / 2); setTimeout(() => g.remove(), 0); } catch (_) {} });
+      // Image de glisser propre (juste la carte), préparée dès l'appui pour qu'elle soit déjà dessinée au début du glisser
+      try { const g = DGH && DGH.id === c.dataset.id ? DGH.el : prepGhost(c); e.dataTransfer.setDragImage(g, g.offsetWidth / 2, g.offsetHeight / 2); } catch (_) {} });
+    let DGH = null;
+    function prepGhost(c) { let g = document.getElementById('dragGhost'); if (!g) { g = document.createElement('div'); g.id = 'dragGhost'; g.className = 'dragghost'; document.body.appendChild(g); }
+      const r = c.getBoundingClientRect(); g.style.width = r.width + 'px'; g.style.height = r.height + 'px'; g.innerHTML = ''; const im = c.querySelector('.uqw') || c.querySelector('img'); if (im) g.appendChild(im.cloneNode(true)); DGH = { id: c.dataset.id, el: g }; return g; }
+    document.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse') return; const c = e.target.closest && e.target.closest('.c[draggable]'); if (c) prepGhost(c); }, true);
     document.addEventListener('dragover', e => { const z = e.target.closest && e.target.closest('[data-drop]'); if (!z) return; e.preventDefault(); z.style.outline = '2px dashed var(--acc)'; if (DRAG && PREVZ !== z.dataset.drop) { PREVZ = z.dataset.drop; previewPlay(DRAG, PREVZ); } });
     document.addEventListener('dragleave', e => { const z = e.target.closest && e.target.closest('[data-drop]'); if (!z) return; if (e.relatedTarget && z.contains(e.relatedTarget)) return; z.style.outline = ''; PREVZ = null; clearPreview(); });
     document.addEventListener('drop', e => { const z = e.target.closest && e.target.closest('[data-drop]'); if (!z) return; e.preventDefault(); z.style.outline = ''; const id = e.dataTransfer.getData('text/plain'); if (id) playTo(id, z.dataset.drop); });
