@@ -184,7 +184,7 @@ textarea{width:100%;min-height:140px;font-size:13px}
 <h1>Altered bicolore</h1>
 <span id="deckDots" style="display:inline-flex;gap:4px"></span><select id="deckSel" aria-label="Deck"></select>
 <button id="newDeck">Nouveau deck</button>
-<a id="siteLink" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener"><button tabindex="-1" class="on">▶ Jouer en ligne</button></a>
+<a id="siteLink" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener"><button tabindex="-1" class="on">▶ Jouer en ligne</button></a><a id="webLink" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener" title="Ouvre ce deck, uniques comprises, dans le deckbuilder en ligne"><button tabindex="-1">🌐 Ouvrir en ligne</button></a>
 <button id="fmtBtn">Format</button>
 <button id="langBtn" aria-label="Langue des cartes"></button>
 <button id="viewDeck" title="Voir les cartes de ton deck en grand, avec les statistiques">🃏 Voir mon deck</button>
@@ -285,6 +285,7 @@ let LANG='fr';try{LANG=localStorage.getItem('alt-bi-lang')==='en'?'en':'fr'}catc
 const TYE={HERO:'Hero',CHARACTER:'Character',SPELL:'Spell',LANDMARK_PERMANENT:'Landmark',EXPEDITION_PERMANENT:'Expedition permanent',PERMANENT:'Permanent'};
 const SETE={CORE:'Beyond the Gates',ALIZE:'Trial by Frost',BISE:'Whispers from the Maze',CYCLONE:'Skybound Odyssey',DUSTER:'Seeds of Unity',EOLE:'Roots of Corruption'};
 const EN=()=>LANG==='en';const NM=c=>EN()?c.en:c.n;const TX=c=>EN()?c.xe:c.x;const EC=c=>EN()?c.ee:c.e;const ST=c=>EN()?c.ste:c.st;const TYL=t=>(EN()?TYE:TYN)[t];const SETL=s=>(EN()?SETE:SETN)[s];
+const SITEB=window.AltUniques?'':'https://ayun0o.github.io/altered-bicolore/';
 const deckCode=d=>{const o={n:d.name,h:d.hero,s:d.sec,c:d.cards,u:d.uniques};return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
 const deckFromCode=s=>{try{s=String(s).replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const o=JSON.parse(decodeURIComponent(escape(atob(s))));return{name:String(o.n||'Deck importé').slice(0,80),hero:o.h,sec:o.s||'',cards:o.c||{},uniques:Array.isArray(o.u)?o.u:[],updated:Date.now()}}catch(e){return null}};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -445,7 +446,7 @@ function renderDeck(){
  let h='';for(const t of ['CHARACTER','SPELL','LANDMARK_PERMANENT','EXPEDITION_PERMANENT','PERMANENT']){const g=groups[t];if(!g)continue;const cv=x=>parseInt(String(x.c).replace(/#/g,''),10)||0;g.sort((a,b)=>cv(a[0])-cv(b[0])||a[0].n.localeCompare(b[0].n));
   h+='<h3>'+TYL(t)+' ('+g.reduce((s,x)=>s+x[1],0)+')</h3>'+g.map(([c,n])=>'<div class="li"><span class="fd" style="background:var(--'+c.f+')" title="'+esc(FN[c.f])+'"></span><span data-pv="'+esc(c.r)+'" style="cursor:zoom-in">'+cst(c.c)+' · '+esc(NM(c))+' <span class="x">'+(c.y==='R'?'R':'C')+(A.overNames.has(norm(c.n))?' · trop d\'exemplaires':'')+'</span></span><span>×'+n+'</span><span><button data-rm="'+esc(c.r)+'">−</button><button data-add="'+esc(c.r)+'">+</button></span></div>').join('')}
  if(d.uniques.length)h+='<h3>Uniques ('+d.uniques.length+')</h3>'+d.uniques.map((u,i)=>'<div class="li"><span class="fd" style="background:var(--'+esc(u.f)+')"></span><span>'+esc(u.n)+' <span class="x">unique</span></span><span>×1</span><span><button data-urm="'+i+'">−</button></span></div>').join('');
- $('siteLink').href='https://ayun0o.github.io/altered-bicolore/play.html?deck='+deckCode(d);
+ $('siteLink').href=SITEB+'play.html?deck='+deckCode(d);$('webLink').href=SITEB+'index.html?deck='+deckCode(d);
  $('dlist').innerHTML=h||'<p class="note">Choisis un héros, puis ajoute des cartes avec le bouton +.</p>';
 }
 function renderDots(){const d=D();if(!d)return;const P=BY[d.hero]?.f;$('deckDots').innerHTML=[P,d.sec].filter(Boolean).map(f=>'<span class="fd" style="width:16px;height:16px;background:var(--'+f+')" title="'+FN[f]+'"></span>').join('')}
@@ -502,7 +503,7 @@ $('imp').onclick=()=>{$('ioT').textContent='Importer une liste';$('ioTx').value=
   touch();renderAll();const autoS=!d.sec;autoSec(d);touch();renderAll();
   $('ioNote').textContent=(miss?miss+' ligne(s) non reconnue(s). ':'Importé. ')+(uq?uq+' unique(s) ajoutée(s) avec les stats de la version commune ici. Sur la table de jeu (lien « Jouer »), leurs vraies stats et illustrations sont récupérées automatiquement, comme dans le deckbuilder en ligne (ayun0o.github.io/altered-bicolore).':'');if(uq&&window.AltUniques){$('ioNote').textContent+=' '+(EN()?'Fetching the uniques…':'Récupération des uniques…');fillUq().then(k=>{if(autoS){d.sec='';autoSec(d);touch();renderAll()}$('ioNote').textContent=(EN()?'Imported. ':'Importé. ')+(miss?miss+(EN()?' unknown line(s). ':' ligne(s) non reconnue(s). '):'')+(EN()?k+' of '+uq+' unique(s) found with their real stats and artwork.':k+' unique(s) sur '+uq+' retrouvée(s) avec leurs vraies stats et illustrations.')})}};$('ioDlg').showModal()};
 $('ioClose').onclick=()=>$('ioDlg').close();
-$('siteLink').addEventListener('click',()=>{$('siteLink').href='https://ayun0o.github.io/altered-bicolore/play.html?deck='+deckCode(D())});
+$('siteLink').addEventListener('click',()=>{$('siteLink').href=SITEB+'play.html?deck='+deckCode(D())});$('webLink').addEventListener('click',()=>{$('webLink').href=SITEB+'index.html?deck='+deckCode(D())});
 
 let uList=[],uScan=null;function uRender(){const q=norm($('uQ').value);const seen=new Set();uList=CARDS.filter(c=>c.t==='CHARACTER'&&c.y==='C'&&(!q||norm(c.n+' '+c.en).includes(q))).filter(c=>{const k=c.r.replace(/_C$/,'');if(seen.has(k))return false;seen.add(k);return true}).slice(0,80);$('uPick').innerHTML=uList.map((c,i)=>'<option value="'+i+'">'+esc(NM(c))+' — '+esc(FN[c.h]||'')+' · '+esc(SETN[c.s]||c.s)+'</option>').join('')}
 $('addU').onclick=()=>{const d=D(),P=BY[d.hero]?.f;$('uFac').innerHTML=FAC.map(f=>'<option value="'+f+'"'+(f===P?' selected':'')+'>'+FN[f]+'</option>').join('');$('uQ').value='';$('uRes').innerHTML='';uScan=null;$('uPhoto').value='';uRender();$('uDlg').showModal()};
@@ -569,6 +570,10 @@ async function start(){
  try{const mu=JSON.parse(localStorage.getItem('alt-bi-uniques')||'null');if(mu)for(const c of Object.values(mu))regU(c)}catch(e){}
  try{const f=validFmt(JSON.parse(localStorage.getItem('alt-bi-fmt')||'null'));if(f)fmt=f;const ds=JSON.parse(localStorage.getItem('alt-bi-decks')||'null');if(ds)for(const [k,v] of Object.entries(ds)){const c=cleanDeck(v);if(c)decks[k]=c}cur=localStorage.getItem('alt-bi-cur')}catch(e){}
  if(Object.keys(MYU).length)saveU();
+ if(window.AltUniques){const w=$('webLink');if(w)w.style.display='none';$('siteLink').removeAttribute('target');
+  const qd=new URLSearchParams(location.search).get('deck');if(qd){try{let b=qd.replace(/-/g,'+').replace(/_/g,'/');while(b.length%4)b+='=';const o=JSON.parse(decodeURIComponent(escape(atob(b))));
+   const nd=cleanDeck({name:o.n,hero:o.h,sec:o.s,cards:o.c,uniques:o.u,updated:Date.now()});if(nd&&BY[nd.hero]){let id=Object.keys(decks).find(k=>decks[k]&&decks[k].name===nd.name&&decks[k].hero===nd.hero)||('d'+Date.now().toString(36));decks[id]=nd;cur=id;
+    for(const u of nd.uniques)if(u.card&&BY[u.r])MYU[u.r]=BY[u.r];saveU();try{localStorage.setItem('alt-bi-decks',JSON.stringify(decks));localStorage.setItem('alt-bi-cur',cur)}catch(e){}}}catch(e){}history.replaceState(null,'',location.pathname)}}
  if(!Object.keys(decks).length){decks.d0=newDeckObj('Mon premier deck')}
  if(!decks[cur])cur=Object.keys(decks)[0];
  renderAll();$('sync').textContent='Hors ligne : decks gardés dans ce navigateur';fillUq();
