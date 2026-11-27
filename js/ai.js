@@ -83,6 +83,22 @@
 
   // Règles d'or de l'ordinateur :
   //  0. Mise en place : garder un Personnage jouable au tour 1 (idéalement 3, puis 4, puis 5) ; les sorts vont en mana (voir setupPick).
+  // Effet « quand je suis joué » (➜ / {J}) sur une carte
+  const playFx = (s, id, db) => { const d = db[s.cards[id].ref] || {}; return /\{[JH]\}|when i'm played|when i am played/i.test(d.xe || ''); };
+  // L'effet a-t-il servi ? Un choix créé par la carte, ou un changement ailleurs sur le plateau (cartes déplacées, boosts, pioche)
+  function sig(s, id) { return s.players.map(X => X ? [X.hand.length, X.deck.length, X.reserve.join(), X.exp.H.join(), X.exp.C.join(), X.lm.join(), X.discard.length, X.mana.length].join('|') : '').join('#') + '#' + Object.keys(s.cards).filter(k => k !== id).map(k => (s.cards[k].boost | 0) + (s.cards[k].ex ? 'x' : '') + (s.cards[k].anchored ? 'a' : '') + (s.cards[k].asleep ? 's' : '') + (s.cards[k].fleeting ? 'f' : '')).join(''); }
+  // L'effet a servi s'il touche l'adversaire (cartes, boosts, main…) ou s'il me rapporte (boosts, pioche, mana).
+  // Renvoyer un de ses propres personnages en réserve ne compte pas.
+  const side = (s, q, id) => { const X = s.players[q]; if (!X) return ''; return [X.hand.length, X.deck.length, X.reserve.filter(x => x !== id).join(), X.exp.H.filter(x => x !== id).join(), X.exp.C.filter(x => x !== id).join(), X.lm.join(), X.discard.filter(x => x !== id).length, X.mana.length].join('|') + '#' + X.exp.H.concat(X.exp.C).filter(x => x !== id).map(k => (s.cards[k].boost | 0) + (s.cards[k].ex ? 'x' : '') + (s.cards[k].asleep ? 's' : '') + (s.cards[k].anchored ? 'a' : '')).join(); };
+  const mine = (s, q, id) => { const X = s.players[q]; return { b: X.exp.H.concat(X.exp.C).filter(x => x !== id).reduce((a, k) => a + (s.cards[k].boost | 0), 0), h: X.hand.filter(x => x !== id).length, m: X.mana.length }; };
+  const useful = (a, b, p, id) => { if (side(a, 1 - p, id) !== side(b, 1 - p, id)) return true; const x = mine(a, p, id), y = mine(b, p, id); return y.b > x.b || y.h > x.h || y.m > x.m; };
+  function fxDone(s0, s1, id, p, db) {
+    if (s1.choices.some(ch => ch.src === id)) {
+      const run = pickNull => { const t = clone(s1); let g = 0; while (t.choices.length && t.choices[0].p === p && g++ < 6) { const ch = t.choices[0]; const a = pickNull && ch.src === id && ch.opt ? { type: 'choose', target: null } : (bestChoice(t, p, db) || { type: 'choose', target: null }); if (E.act(t, p, a, db)) return null; } return t; };
+      const best = run(false), none = run(true); if (!best || !none) return true;
+      return useful(none, best, p, id);
+    }
+    return useful(s0, s1, p, id); }
   // Règle n°1 : dépenser tout son mana. Il cherche la combinaison de cartes qui utilise le plus de mana
   // (main + réserve), et ne joue que des cartes de cette combinaison, la plus chère d'abord, au meilleur endroit.
   function bestPlay(s, p, db) {
@@ -93,9 +109,12 @@
     for (const id of ids) for (const e of ['H', 'C']) {
       const c = clone(s); const before = E.readyMana(c.players[p]);
       const err = E.act(c, p, { type: 'play', id, e }, db); if (err) continue;
-      opts.push({ id, e, spent: before - E.readyMana(c.players[p]), gain: score(c, p, db) - base });
+      opts.push({ id, e, spent: before - E.readyMana(c.players[p]), gain: score(c, p, db) - base, wasted: P.hand.includes(id) && playFx(s, id, db) && !fxDone(s, c, id, p, db) });
     }
     if (!opts.length) return null;
+    // Règle d'or : un Personnage dont l'effet en arrivant (➜) ne ferait rien maintenant (aucune cible chez l'adversaire,
+    // aucun allié à booster…) n'est pas joué tant qu'il a autre chose d'utile à jouer : il le garde pour le bon moment.
+    { const keep = opts.filter(o => !o.wasted && o.gain > 0.01); if (keep.length) { opts.length = 0; opts.push(...keep); } else if (P.hand.length > 2) { const k2 = opts.filter(o => !o.wasted); opts.length = 0; opts.push(...k2); if (!opts.length) return null; } }
     // Ne pas dépenser son mana pour rien : une carte qui ne change rien au plateau (sort sans cible, effet manuel) n'est pas jouée
     { const useful = opts.filter(o => o.gain > 0.01); if (!useful.length) return null; opts.length = 0; opts.push(...useful); }
     const per = {}; for (const o of opts) per[o.id] = Math.min(per[o.id] ?? 99, o.spent);
