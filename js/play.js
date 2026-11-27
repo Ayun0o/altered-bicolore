@@ -216,10 +216,16 @@
     if (mode === 'ai') aiTick();
   }
   let aiT = null;
+  // Vitesse du jeu : ×1, ×1.5, ×2 ou 0 = sans animation (les effets d'ambiance, eux, ne changent pas)
+  let SPD = +(localStorage.getItem('alt-bi-speed') || 1) || 0;
+  const AS = () => SPD ? 1 / SPD : 0;
+  function applySpd() { const r = document.documentElement; r.style.setProperty('--as', SPD ? (1 / SPD).toFixed(3) : '0.001'); document.body.classList.toggle('noanim', !SPD); document.querySelectorAll('[data-spd]').forEach(b => b.classList.toggle('on', +b.dataset.spd === SPD)); }
+  document.addEventListener('click', e => { const b = e.target.closest && e.target.closest('[data-spd]'); if (!b) return; SPD = +b.dataset.spd; try { localStorage.setItem('alt-bi-speed', SPD); } catch (_) {} applySpd(); });
+  document.addEventListener('DOMContentLoaded', applySpd); setTimeout(applySpd, 0);
   function aiTick() {
     clearTimeout(aiT); if (!window.AlteredAI || mode !== 'ai') return;
     const a = AlteredAI.next(S, 1, DB); if (!a) return;
-    aiT = setTimeout(() => { if (mode !== 'ai') return; const b = AlteredAI.next(S, 1, DB); if (!b) return; const err = applyAct(1, b); if (err) { console.warn('IA', err, b); if (b.type === 'play') applyAct(1, { type: 'pass' }); } push(); }, a.type === 'play' ? 900 : 450);
+    aiT = setTimeout(() => { if (mode !== 'ai') return; const b = AlteredAI.next(S, 1, DB); if (!b) return; const err = applyAct(1, b); if (err) { console.warn('IA', err, b); if (b.type === 'play') applyAct(1, { type: 'pass' }); } push(); }, SPD ? Math.round((a.type === 'play' ? 1400 : 750) * AS()) : (a.type === 'play' ? 120 : 60));
   }
   function showGame() { $('lobby').classList.add('hidden'); $('game').classList.remove('hidden'); if (!V && S) V = E.view(S, me); render(); }
   function setConn(t) { $('conn').textContent = t; }
@@ -426,8 +432,21 @@
       tbl('Par deck', by('deck').map(([k, v]) => row(k, v[0], v[1])).join('')) +
       '<h3 class="sth">Dernières parties</h3>' + g.slice(-8).reverse().map(x => '<div class="stlast ' + (x.win ? 'w' : 'l') + '">' + (x.win ? 'Victoire' : 'Défaite') + ' · ' + esc(x.heroMe) + ' contre ' + esc(x.heroVs) + ' (' + esc(x.opp) + ') · jour ' + x.days + '</div>').join('');
   }
+  let PRE = null;
+  function preSnap() { if (!SPD) { PRE = null; return; } const m = {}; document.querySelectorAll('#hand .c[data-id], #game .main .c[data-id]').forEach(e => { const r = e.getBoundingClientRect(); if (r.width) m[e.dataset.id] = { r, el: e.cloneNode(true) }; });
+    const of = document.querySelector('.herocol:not(.mine) .ofan2'); PRE = { m, of: of ? of.getBoundingClientRect() : null }; }
+  // Carte posée en mana : elle file vers la boule de mana de son joueur
+  function manaFly(id, p, d) { if (!SPD || !PRE) return; const box = document.querySelector(p === me ? '.manabox.mine .manaico' : '.manabox:not(.mine) .manaico'); if (!box) return; const t = box.getBoundingClientRect(); if (!t.width) return;
+    const src = PRE.m[id]; let r, g;
+    if (src) { r = src.r; g = src.el; g.classList.remove('sel', 'drawn', 'landed'); }
+    else if (p !== me && PRE.of) { r = { left: PRE.of.left + PRE.of.width / 2 - 30, top: PRE.of.top, width: 60, height: 84 }; g = document.createElement('div'); g.className = 'mflyb'; }
+    else return;
+    const w = document.createElement('div'); w.className = 'mfly'; w.style.cssText = 'left:' + r.left + 'px;top:' + r.top + 'px;width:' + r.width + 'px;height:' + r.height + 'px'; w.appendChild(g); document.body.appendChild(w);
+    const dx = t.left + t.width / 2 - (r.left + r.width / 2), dy = t.top + t.height / 2 - (r.top + r.height / 2), ms = 650 * AS();
+    const an = w.animate([{ transform: 'none', opacity: 1 }, { transform: 'translate(' + dx * .55 + 'px,' + (dy * .55 - 30) + 'px) rotate(-12deg) scale(.7)', opacity: 1, offset: .55 }, { transform: 'translate(' + dx + 'px,' + dy + 'px) rotate(-25deg) scale(.18)', opacity: .15 }], { duration: ms, delay: d * 120 * AS(), easing: 'cubic-bezier(.45,.05,.4,1)', fill: 'both' });
+    an.onfinish = () => { w.remove(); box.classList.remove('mgain'); void box.offsetWidth; box.classList.add('mgain'); }; }
   function render() {
-    if (!V) return;
+    if (!V) return; preSnap();
     const _sy = window.scrollY, _mn = document.querySelector('#game .main'), _mt = _mn ? _mn.scrollTop : 0;
     if (V.step !== lastStep) { pick = new Set(); lastStep = V.step; }
     computeGlow();
@@ -504,11 +523,12 @@
   let SNAP = null, LOGN = 0, POSS = null, HANDN = null;
   function animate() {
     const cur = {};
-    for (const id in V.cards) { const c = V.cards[id], L = locate(id); if (!L) continue; cur[id] = { z: L.z, b: c.boost || 0, st: (c.fleeting ? 'f' : '') + (c.anchored ? 'a' : '') + (c.asleep ? 's' : '') + (c.completed ? 'c' : ''), ct: c.ctr ? Object.values(c.ctr).reduce((a, v) => a + v, 0) : 0 }; }
+    for (const id in V.cards) { const c = V.cards[id], L = locate(id); if (!L) continue; cur[id] = { p: L.p, z: L.z, b: c.boost || 0, st: (c.fleeting ? 'f' : '') + (c.anchored ? 'a' : '') + (c.asleep ? 's' : '') + (c.completed ? 'c' : ''), ct: c.ctr ? Object.values(c.ctr).reduce((a, v) => a + v, 0) : 0 }; }
+    V.players.forEach((X, p) => { if (X && X.mana) X.mana.forEach(m => { if (m && m.id != null && !cur[m.id]) cur[m.id] = { p, z: 'mana' }; }); });
     let sCard = false, sTok = false, nDrawn = 0;
     if (SNAP) {
       document.querySelectorAll('#game .main .c[data-id]').forEach(el => {
-        const id = el.dataset.id, n = cur[id], o = SNAP[id]; if (n && el.closest('.hand')) { if (!o || o.z !== n.z) { el.style.animationDelay = (nDrawn++ * 90) + 'ms'; el.classList.add('drawn'); } return; } if (!n) return;
+        const id = el.dataset.id, n = cur[id], o = SNAP[id]; if (n && el.closest('.hand')) { if (!o || o.z !== n.z) { el.style.animationDelay = Math.round(nDrawn++ * 150 * (SPD ? 1 / SPD : 0)) + 'ms'; el.classList.add('drawn'); } return; } if (!n) return;
         if ((!o && (n.z === 'exp' || n.z === 'lm')) || (o && o.z !== n.z && ['exp', 'lm', 'reserve'].includes(n.z))) { el.classList.add('landed'); sCard = true; }
         if (o && n.b > o.b) { const b = el.querySelector('.bd b.bst'); if (b) { b.classList.add('drop'); sTok = true; } }
         if (o && n.ct > o.ct) { el.querySelectorAll('.bd b:not(.bst)').forEach(b => b.classList.add('drop')); sTok = true; }
@@ -521,7 +541,8 @@
     if (sCard) SFX.card(); else if (sDraw) SFX.draw();
     if (sTok) setTimeout(() => SFX.token(), 140);
     if (sMove) setTimeout(() => SFX.move(), 60);
-    document.querySelectorAll('#hand .c[data-id]').forEach(el => { const id = el.dataset.id, n = cur[id], o = SNAP && SNAP[id]; if (n && n.z === 'hand' && (!o || o.z !== 'hand')) { el.style.animationDelay = (nDrawn++ * 90) + 'ms'; el.classList.add('drawn'); } });
+    document.querySelectorAll('#hand .c[data-id]').forEach(el => { const id = el.dataset.id, n = cur[id], o = SNAP && SNAP[id]; if (n && n.z === 'hand' && (!o || o.z !== 'hand')) { el.style.animationDelay = Math.round(nDrawn++ * 150 * (SPD ? 1 / SPD : 0)) + 'ms'; el.classList.add('drawn'); } });
+    if (SNAP) { let k = 0; for (const id in cur) { const n = cur[id], o = SNAP[id]; if (n.z === 'mana' && o && o.z !== 'mana') manaFly(id, n.p, k++); } }
     SNAP = cur;
     if (V.log.length < LOGN) LOGN = V.log.length;
     const fresh = V.log.slice(LOGN); LOGN = V.log.length;
