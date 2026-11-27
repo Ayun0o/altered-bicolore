@@ -177,6 +177,16 @@ textarea{width:100%;min-height:140px;font-size:13px}
 .uqo .uqs{padding:1.6cqw 2.6cqw;background:#ead9c6;font-size:3.5cqw;font-style:normal}
 .uqo .uqg{display:block;margin-top:1cqw;color:#8a5a00;font-weight:700}
 .uqo .uqy{font-style:normal;display:inline-block;background:#2a2418;color:#fff;border-radius:.8cqw;padding:0 .7cqw;font-size:.9em;line-height:1.15}
+
+/* Vue deck plus lisible (6 cartes max par ligne) + panneau de droite plus compact */
+@media(min-width:901px){.wrap{grid-template-columns:minmax(0,1fr) 320px}}
+.dvgrid{grid-template-columns:repeat(auto-fill,minmax(max(130px,calc((100% - 50px)/6)),1fr));gap:10px}
+.deck{padding:10px}.deck h2{font-size:18px;margin-bottom:4px}
+.rules{gap:3px;font-size:12px;margin:6px 0}.rules li{padding:3px 7px}
+.status{padding:6px 9px;margin:6px 0;font-size:14px}
+.li{font-size:12px;padding:2px 0;gap:5px}.li button{min-height:24px;padding:0 7px}
+.curve{height:48px}
+@media(max-width:900px){.dvgrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}}
 </style>
 </head>
 <body>
