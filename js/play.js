@@ -32,12 +32,13 @@
   function dot(f) { return '<span style="display:inline-block;width:14px;height:14px;border-radius:50%;background:' + FC[f] + ';flex:none"></span>'; }
   function picker(selId, cur) {
     const L = deckList(); let g = '';
-    return '<div style="display:grid;gap:6px">' + L.map(d => {
-      const f = DB[d.hero] ? DB[d.hero].f : null; const head = d.g !== g ? '<span class="lbl" style="margin-top:6px">' + esc(d.g) + '</span>' : ''; g = d.g;
-      const on = d.id === cur;
-      return head + '<button type="button" data-pick="' + esc(selId) + '" data-val="' + esc(d.id) + '" style="display:flex;gap:8px;align-items:center;text-align:left;justify-content:flex-start;' + (on ? 'outline:2px solid ' + (FC[f] || 'var(--acc)') + ';background:var(--soft)' : '') + '">' +
-        (f ? dot(f) : '') + (d.sec && FC[d.sec] ? dot(d.sec) : '') +
-        '<span style="flex:1"><b>' + esc(d.name) + '</b><br><span class="small"><span style="color:' + (FC[f] || 'inherit') + ';font-weight:600">' + esc(FN[f] || '') + '</span>' + (d.sec && FN[d.sec] ? ' + <span style="color:' + FC[d.sec] + ';font-weight:600">' + FN[d.sec] + '</span>' : '') + ' · ' + esc(NM(DB[d.hero])) + ' · ' + d.n + ' cartes</span></span>' + (d.g === 'Mes decks' ? '<span class="pdel" data-del="' + esc(d.id) + '" title="Supprimer ce deck" role="button">🗑</span>' : '') + '</button>';
+    return '<div class="dtiles">' + L.map(d => {
+      const f = DB[d.hero] ? DB[d.hero].f : null, f2 = d.sec && FC[d.sec] ? d.sec : f; const head = d.g !== g ? '<span class="lbl dtl">' + esc(d.g) + '</span>' : ''; g = d.g;
+      const on = d.id === cur, c1 = FC[f] || '#666', c2 = FC[f2] || c1;
+      return head + '<button type="button" class="dtile' + (on ? ' on' : '') + '" data-pick="' + esc(selId) + '" data-val="' + esc(d.id) + '" style="--c1:' + c1 + ';--c2:' + c2 + '">' +
+        (d.hero ? '<span class="dtart" style="background-image:url(\'img/' + LANG + '/' + esc(d.hero) + '.webp\')"></span>' : '') +
+        '<span class="dttx"><b>' + esc(d.name) + '</b><span class="dtsub">' + (f ? dot(f) : '') + (d.sec && FC[d.sec] ? dot(d.sec) : '') + ' ' + esc(NM(DB[d.hero])) + '</span><span class="dtn">' + d.n + ' cartes</span></span>' +
+        (d.g === 'Mes decks' ? '<span class="pdel" data-del="' + esc(d.id) + '" title="Supprimer ce deck" role="button">🗑</span>' : '') + '</button>';
     }).join('') + '</div>';
   }
   function renderPickers() { for (const id of ['pdeck', 'sdeck']) { const box = $(id + 'Pick'); if (box) box.innerHTML = picker(id, $(id).value); } }
