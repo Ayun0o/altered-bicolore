@@ -50,7 +50,8 @@
   const SKEY = 'alt-bi-rogue-stats';
   const loadStats = () => { try { return JSON.parse(localStorage.getItem(SKEY) || '{}') || {}; } catch (e) { return {}; } };
   function record(run) { if (!run || run.counted) return; const S = loadStats(), w = run.log.filter(x => x.won).length, key = (run.tal ? 't:' : '') + run.f, o = S[key] || { runs: 0, wins: 0, best: 0, fights: 0 };
-    o.runs++; if (run.over === 'win') o.wins++; o.best = Math.max(o.best, w); o.fights += w; S[key] = o; try { localStorage.setItem(SKEY, JSON.stringify(S)); } catch (e) { } run.counted = true; }
+    o.runs++; if (run.over === 'win') o.wins++; o.best = Math.max(o.best, w); o.fights += w; S[key] = o; try { localStorage.setItem(SKEY, JSON.stringify(S)); } catch (e) { } run.counted = true;
+    const C = window.AltCloud; if (C && C.user && C.user()) C.addGame({ kind: 'run', t: Date.now(), f: run.f, sec: run.sec || null, result: run.over, wins: w, tal: !!run.tal, heat: run.heat | 0, last: (run.log[run.log.length - 1] || {}).i }); }
   function statsView() { const S = loadStats(), rows = [];
     for (const [pre, lab] of [['', L('sans talents', 'no talents')], ['t:', L('avec talents', 'with talents')]]) for (const f of FAC) { const o = S[pre + f]; if (o && o.runs) rows.push('<tr><td><b style="color:' + FC[f] + '">' + FN[f] + '</b> <span class="small">' + lab + '</span></td><td>' + o.runs + '</td><td>' + o.wins + '</td><td>' + (o.best >= FIGHTS ? '👑' : o.best + ' / ' + FIGHTS) + '</td><td>' + o.fights + '</td></tr>'); }
     if (!rows.length) return '';

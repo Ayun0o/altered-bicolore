@@ -115,6 +115,7 @@
       }
     }
     if (!u) return;
+    C.ensureProfile(); C.isAdmin().then(a => { if (a) adminButton(); });
     if (!$('pname').value) { $('pname').value = (u.email || '').split('@')[0].slice(0, 24); }
     try {
       const db = C.db(); db.collection('decks').onSnapshot(s => { const all = store.get('alt-bi-decks', {}); for (const x of s.docs) { const v = x.data(); if (DELETED.has(x.id)) continue; if (v && v.hero && (!all[x.id] || (v.updated || 0) >= (all[x.id].updated || 0))) all[x.id] = v; } store.set('alt-bi-decks', all); $('pdeck').innerHTML = deckOpts($('pdeck').value || store.get('alt-bi-lastdeck', '')); $('sdeck').innerHTML = deckOpts($('sdeck').value); renderPickers(); });
@@ -124,6 +125,23 @@
       CLOUDGAMES = await C.games(); const sb = $('statsBox'); if (sb) sb.innerHTML = statsHtml();
     } catch (e) { }
   }
+  // Tableau d'administration : visible seulement pour les comptes « admins » (la base refuse les autres)
+  function adminButton() { if ($('admBtn')) return; const h = document.querySelector('#lobby .lhead'); if (!h) return; const b = document.createElement('button'); b.id = 'admBtn'; b.type = 'button'; b.textContent = '📊 Stats joueurs'; b.onclick = openAdmin; h.insertBefore(b, h.children[1] || null); }
+  async function openAdmin() { let d = $('admDlg'); if (!d) { d = document.createElement('dialog'); d.id = 'admDlg'; d.className = 'admDlg'; document.body.appendChild(d); d.addEventListener('click', e => { if (e.target === d || e.target.closest('[data-adm=close]')) d.close(); }); }
+    d.innerHTML = '<p>Chargement…</p>'; d.showModal(); const D = await window.AltCloud.adminData(); d.innerHTML = D ? adminHtml(D) : '<p>Accès refusé ou base indisponible.</p><button data-adm="close">Fermer</button>'; }
+  function adminHtml(D) {
+    const FN = { AX: 'Axiom', BR: 'Bravos', LY: 'Lyra', MU: 'Muna', OR: 'Ordis', YZ: 'Yzmir' }, fn = f => FN[f] || f || '?', dt = x => new Date(x).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit' }) + ' ' + new Date(x).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
+    const P = {}; for (const r of D.games) { const id = r.user_id, g = r.data || {}; const o = P[id] = P[id] || { name: D.names[id] || id.slice(0, 8), n: 0, w: 0, an: 0, aw: 0, runs: 0, rwin: 0, best: 0, lossBy: {}, last: 0 };
+      o.last = Math.max(o.last, +new Date(r.created_at));
+      if (g.kind === 'run') { o.runs++; if (g.result === 'win') o.rwin++; o.best = Math.max(o.best, g.wins | 0); continue; }
+      if (g.adv) { o.an++; if (g.win) o.aw++; else { const k = fn(g.vs) + (g.adv === 'boss' ? ' 👑' : /mini/.test(g.adv) ? ' ★' : ''); o.lossBy[k] = (o.lossBy[k] || 0) + 1; } } else { o.n++; if (g.win) o.w++; } }
+    const rows = Object.values(P).sort((a, b) => b.last - a.last).map(o => '<tr><td><b>' + esc(o.name) + '</b><br><span class="small">' + dt(o.last) + '</span></td><td>' + o.n + '</td><td>' + o.w + ' / ' + (o.n - o.w) + '</td><td>' + o.runs + (o.runs ? ' <span class="small">(' + o.rwin + ' réussie' + (o.rwin > 1 ? 's' : '') + ', record ' + o.best + '/10)</span>' : '') + '</td><td>' + o.aw + ' / ' + (o.an - o.aw) + '</td><td class="small">' + (Object.entries(o.lossBy).sort((a, b) => b[1] - a[1]).map(([k, n]) => esc(k) + ' ×' + n).join(', ') || '—') + '</td></tr>').join('');
+    const recent = D.games.slice(0, 40).map(r => { const g = r.data || {}, who = esc(D.names[r.user_id] || r.user_id.slice(0, 8));
+      if (g.kind === 'run') return '<tr><td class="small">' + dt(r.created_at) + '</td><td>' + who + '</td><td>🗡️ Aventure terminée</td><td>' + fn(g.f) + (g.sec ? ' + ' + fn(g.sec) : '') + '</td><td>' + (g.result === 'win' ? '🏆 réussie' : '💀 ' + (g.wins | 0) + '/10') + '</td></tr>';
+      return '<tr><td class="small">' + dt(r.created_at) + '</td><td>' + who + '</td><td>' + (g.adv ? '🗡️ Aventure' + (g.adv === 'boss' ? ' 👑' : /mini/.test(g.adv) ? ' ★' : '') : '⚔️ Partie') + '</td><td>' + fn(g.me) + ' vs ' + (g.adv ? fn(g.vs) : esc(g.opp || fn(g.vs))) + '</td><td>' + (g.win ? '✅ gagnée' : '❌ perdue') + ' <span class="small">(jour ' + (g.days || '?') + ')</span></td></tr>'; }).join('');
+    return '<div class="row"><h3 style="margin:0 auto 0 0">📊 Stats des joueurs</h3><button data-adm="close">Fermer</button></div><p class="small">Seuls les joueurs connectés à un compte apparaissent. Visible uniquement par toi.</p>' +
+      '<div class="admsc"><table class="admt"><tr><th>Joueur</th><th>Parties</th><th>Gagnées / perdues</th><th>Aventures</th><th>Combats d’aventure G / P</th><th>Battu par</th></tr>' + (rows || '<tr><td colspan="6">Aucune donnée.</td></tr>') + '</table></div>' +
+      '<h4>Dernières parties</h4><div class="admsc"><table class="admt">' + (recent || '<tr><td>—</td></tr>') + '</table></div>'; }
   const myName = (def) => ($('pname').value.trim() || def || 'Joueur 1').slice(0, 24);
   function needDeck() { const d = getDeck($('pdeck').value); if (!d) { $('lobbyMsg').innerHTML = '<span class="err">Choisis un deck avec un héros.</span>'; } return d; }
 
@@ -414,7 +432,7 @@
     const P = V.players[me], O = V.players[1 - me]; if (!P || !O) return;
     const fac = X => (DB[(card(X.hero) || {}).ref] || {}).f || '?', hero = X => NM(DB[(card(X.hero) || {}).ref] || {}) || '?';
     const st = store.get('alt-bi-stats', { games: [] }); st.games = st.games || [];
-    st.games.push({ t: Date.now(), win: V.winner === me, me: fac(P), heroMe: hero(P), deck: (decksUsed[me] || {}).name || hero(P), vs: fac(O), heroVs: hero(O), opp: O.name, days: V.day });
+    st.games.push({ t: Date.now(), win: V.winner === me, me: fac(P), heroMe: hero(P), deck: (decksUsed[me] || {}).name || hero(P), vs: fac(O), heroVs: hero(O), opp: O.name, days: V.day, adv: ROGUE ? (document.body.dataset.foe || 'n') : undefined });
     if (st.games.length > 500) st.games = st.games.slice(-500);
     store.set('alt-bi-stats', st);
     const C = window.AltCloud; if (C && C.user()) C.addGame(st.games[st.games.length - 1]).then(ok => { if (ok) store.set('alt-bi-stats-sent', st.games.length); });

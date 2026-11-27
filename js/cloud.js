@@ -77,7 +77,14 @@
   }
 
   async function addGame(g) { const c = client(); if (!c || !user) return false; const { error } = await c.from('games').insert({ user_id: user.id, data: g }); return !error; }
-  async function games() { const c = client(); if (!c || !user) return null; const { data, error } = await c.from('games').select('data,created_at').eq('user_id', user.id).order('created_at', { ascending: true }).limit(1000); if (error) return null; return (data || []).map(r => r.data); }
+  async function games() { const c = client(); if (!c || !user) return null; const { data, error } = await c.from('games').select('data,created_at').eq('user_id', user.id).order('created_at', { ascending: true }).limit(1000); if (error) return null; return (data || []).map(r => r.data).filter(d => d && d.kind !== 'run'); }
 
-  root.AltCloud = { init, signIn, verify, signInPwd, signUpPwd, resetPwd, signOut, db, addGame, games, user: () => user, onChange: f => subs.push(f), ready: () => !!client() };
+  // Pseudo du profil (partie avant le @ de l'e-mail), lisible seulement par le joueur et l'administrateur
+  async function ensureProfile() { const c = client(); if (!c || !user) return; try { const { data } = await c.from('profiles').select('id').eq('id', user.id).maybeSingle(); if (!data) await c.from('profiles').insert({ id: user.id, name: String(user.email || '').split('@')[0].slice(0, 40) }); } catch (e) { } }
+  // Administration : réservé aux comptes listés dans la table « admins » (la base refuse tout le reste)
+  async function isAdmin() { const c = client(); if (!c || !user) return false; try { const { data, error } = await c.from('admins').select('user_id').eq('user_id', user.id).maybeSingle(); return !error && !!data; } catch (e) { return false; } }
+  async function adminData() { const c = client(); if (!c || !user) return null;
+    const [g, p] = await Promise.all([c.from('games').select('user_id,data,created_at').order('created_at', { ascending: false }).limit(5000), c.from('profiles').select('id,name')]);
+    if (g.error) return null; const names = {}; for (const r of (p.data || [])) names[r.id] = r.name; return { games: g.data || [], names }; }
+  root.AltCloud = { ensureProfile, isAdmin, adminData, init, signIn, verify, signInPwd, signUpPwd, resetPwd, signOut, db, addGame, games, user: () => user, onChange: f => subs.push(f), ready: () => !!client() };
 })(window);
