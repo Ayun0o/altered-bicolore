@@ -218,13 +218,13 @@ textarea{width:100%;min-height:140px;font-size:13px}
 /* Ambiance : illustration du héros en fondu derrière le bloc du deck, couleurs des factions en fond */
 .setup{position:relative;overflow:hidden;isolation:isolate}
 .setup>*{position:relative;z-index:1}
-.setup>.setbg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center 38%;opacity:.3;
- -webkit-mask-image:linear-gradient(90deg,transparent 0%,transparent 28%,#000 75%);mask-image:linear-gradient(90deg,transparent 0%,transparent 28%,#000 75%);pointer-events:none;filter:saturate(.9)}
+.setup>.setbg{position:absolute;inset:0;z-index:0;background-size:cover;background-position:center 17.5%;opacity:.5;
+ -webkit-mask-image:linear-gradient(90deg,transparent 8%,#0008 35%,#000 70%);mask-image:linear-gradient(90deg,transparent 8%,#0008 35%,#000 70%);pointer-events:none;filter:saturate(.9)}
 html.themed .setup{background:linear-gradient(90deg,color-mix(in srgb,var(--pc) 16%,var(--panel)),var(--panel) 55%)}
 html.themed body{background:linear-gradient(90deg,color-mix(in srgb,var(--pc) 13%,var(--bg)) 0%,var(--bg) 45%,var(--bg) 60%,color-mix(in srgb,var(--sc) 15%,var(--bg)) 100%) fixed}
 html.themed .deck{background:linear-gradient(180deg,color-mix(in srgb,var(--sc) 14%,var(--panel)),color-mix(in srgb,var(--sc) 6%,var(--panel)))}
 html.themed .top{background:linear-gradient(90deg,color-mix(in srgb,var(--pc) 10%,var(--panel)),var(--panel) 50%,color-mix(in srgb,var(--sc) 10%,var(--panel)))}
-@media(max-width:600px){.setup>.setbg{background-size:160% auto;background-position:center 45%}}
+@media(max-width:600px){.setup>.setbg{background-size:160% auto;background-position:center 21%}}
 img[hidden],.heroimg[hidden]{display:none!important}
 .herow.empty{width:84px;aspect-ratio:5/7;border:2px dashed var(--line);border-radius:6px;background:color-mix(in srgb,var(--panel) 85%,transparent)}
 @media(max-width:600px){.herow.empty{width:70px}}
@@ -242,6 +242,12 @@ img[hidden],.heroimg[hidden]{display:none!important}
 .gtb{display:flex;gap:6px;flex-wrap:wrap}.gtag{font-size:12px;font-weight:700;padding:2px 9px;border-radius:10px;background:#0007}.gtag.ok{background:#2e8b47}.gtag.bad{background:#c0392b}
 .gtx{display:flex;flex-direction:column;gap:2px;text-shadow:0 1px 3px #000b}.gtx b{font-size:19px;line-height:1.15}.gts{font-size:13px;opacity:.95}.gtn{font-size:12.5px;opacity:.85}
 .gnew{background:none;border:2px dashed var(--line);color:var(--ink);justify-content:center;align-items:center;box-shadow:none}.gnew .gtx{text-shadow:none}
+
+/* Bloc du deck plus grand, héros mis en avant */
+.setup{min-height:200px;padding:14px 16px;gap:20px}
+.heroimg{width:150px;border-radius:9px;box-shadow:0 4px 14px #0005}
+.herow.empty{width:150px}
+@media(max-width:600px){.setup{min-height:0;padding:10px;gap:12px}.heroimg,.herow.empty{width:96px}}
 </style>
 </head>
 <body>
