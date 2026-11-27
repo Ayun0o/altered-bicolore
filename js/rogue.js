@@ -34,7 +34,7 @@
     { id: 'mini2up', b: 'ate', req: 'srare', costs: [6], fr: 'Forge', en: 'Forge', d: () => L('Après un mini-boss vaincu, améliore 2 cartes au lieu d’une', 'After beating a mini-boss, upgrade 2 cards instead of one') },
     { id: 'smut', b: 'ate', req: 'pickup', costs: [8], fr: 'Mutation de départ', en: 'Opening mutation', d: () => L('Une mutation offerte avant le 1er combat', 'A free mutation before the first fight') },
     { id: 'dmut', b: 'ate', req: 'pickup', costs: [8], fr: 'Double mutation', en: 'Double mutation', d: () => L('Chaque mutation révèle 2 uniques : tu gardes celle que tu veux', 'Each mutation reveals 2 uniques: keep the one you want') },
-    { id: 'bi', b: 'bic', costs: [20], fr: 'Aventure bicolore', en: 'Bicolore adventure', d: () => L('Option au départ : choisis une faction voisine sur la roue. Chaque carte draftée a 1 chance sur 2 d’en venir.', 'Start option: pick a neighbouring faction on the wheel. Each drafted card has a 50% chance to come from it.') }
+    { id: 'bi', b: 'bic', costs: [10], fr: 'Aventure bicolore', en: 'Bicolore adventure', d: () => L('Option au départ : choisis une faction voisine sur la roue. Chaque carte draftée a 1 chance sur 2 d’en venir.', 'Start option: pick a neighbouring faction on the wheel. Each drafted card has a 50% chance to come from it.') }
   ];
   const TBY = Object.fromEntries(TAL.map(t => [t.id, t]));
   const spentOf = alloc => TAL.reduce((s, t) => s + t.costs.slice(0, alloc[t.id] | 0).reduce((a, b) => a + b, 0), 0);
