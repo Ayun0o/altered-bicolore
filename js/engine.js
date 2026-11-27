@@ -551,6 +551,7 @@
       case 'selfBoost': { const w = c && where(s, self); if (c && w && (w.z === 'exp' || w.z === 'reserve')) { const before = c.boost; c.boost = a.max != null ? Math.min(a.max, c.boost + a.n) : c.boost + a.n; if (c.boost !== before) log(s, '→ ' + nm() + ' gagne ' + (c.boost - before) + ' boost(s).'); } break; }
       case 'itBoost': { const t = ctx.target && s.cards[ctx.target]; if (t && expOf(s, ctx.target)) { t.boost += a.n; log(s, '→ ' + cname(s, ctx.target, db) + ' gagne ' + a.n + ' boost(s).'); } break; }
       case 'myExpFwd': { const e = ctx.e || expOf(s, self); if (e) { const np = P.pos[e] + (e === 'H' ? 1 : -1); if (np >= 0 && np <= LAST) { const r = s.adv[np]; if (!r.up) s.adv.forEach(x => { if (x.card === r.card) x.up = true; }); P.pos[e] = np; log(s, '→ l’expédition ' + (e === 'H' ? 'Héros' : 'Compagnon') + ' de ' + P.name + ' avance.'); } } break; }
+      case 'jinnMana': { const c = s.cards[a.id]; if (!c || !where(s, a.id)) break; const O = s.players[c.owner]; if (O.mana.some(m => m.id === a.id)) break; moveTo(s, a.id, 'mana'); const m = O.mana.find(x => x.id === a.id); if (m) m.ex = true; log(s, '→ ' + (db[c.ref] ? db[c.ref].n : 'La carte') + ' va dans la zone de Mana (épuisé).'); break; }
       case 'draw': for (let i = 0; i < a.n; i++) draw(s, p); log(s, '→ ' + P.name + ' pioche ' + a.n + ' carte(s).'); break;
       case 'token': {
         let es = a.where === 'both' ? ['H', 'C'] : a.where === 'H' ? ['H'] : a.where === 'C' ? ['C'] : a.where === 'other' ? [(expOf(s, self) || 'C') === 'H' ? 'C' : 'H'] : [a.e || ctx.e || expOf(s, self) || 'H'];
@@ -816,6 +817,12 @@
     let guard = 0;
     while (s.ev && s.ev.length && guard++ < 60) {
       const e = s.ev.shift();
+      // Puissant Djinn : « Si je devais quitter la zone d'Expédition, vous pouvez me mettre dans la zone de Mana à la place (si vous ne le faites pas, piochez une carte) »
+      if (e.k === 'leave' && e.to !== 'mana' && s.cards[e.id] && db[s.cards[e.id].ref] && /if i would leave the expedition zone, you may put me in my owner's mana zone instead/i.test(db[s.cards[e.id].ref].xe || '')) {
+        const dj = db[s.cards[e.id].ref], nm = (dj.n || 'cette carte'), dr = /if you don't, draw a card/i.test(dj.xe || '');
+        s.choices.push({ p: s.cards[e.id].owner, kind: 'option', opt: false, left: 1, src: e.id, label: nm + ' quitte l’expédition : le mettre dans ta zone de Mana à la place ?',
+          opts: [{ label: 'Oui, en Mana (épuisé)', acts: [{ k: 'jinnMana', id: e.id }] }, { label: dr ? 'Non, je pioche une carte' : 'Non', acts: dr ? [{ k: 'draw', n: 1 }] : [] }] });
+      }
       const ids = [];
       for (const X of s.players) ids.push(...(X.hero ? [X.hero] : []), ...X.exp.H, ...X.exp.C, ...X.lm, ...X.reserve);
       if (['leave', 'sac', 'handRes'].includes(e.k) && !ids.includes(e.id)) ids.push(e.id);
