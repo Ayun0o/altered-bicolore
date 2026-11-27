@@ -946,7 +946,8 @@
           if (s.duskManual && !(s.ready[0] && s.ready[1])) { if (s.pending !== 'dusk') { s.pending = 'dusk'; if (Array.isArray(s.duskManual)) s.ready = [!s.duskManual[0], !s.duskManual[1]]; log(s, 'Crépuscule : appliquez les effets « Au Crépuscule », puis validez.'); } return; }
           s.pending = null; s.ready = [false, false];
           for (const X of s.players) { X.disc = []; X.nb = []; X.nf = []; X.noFleet = false; X.nextR = false; }
-          progress(s, db); s.phase = 'NIGHT'; s.step = 'NIGHT'; continue;
+          // Victoire vérifiée dès la fin du Crépuscule : pas de Nuit ni de défausse de réserve si la partie est gagnée
+          progress(s, db); if (s.winner === null) checkVictory(s); if (s.winner !== null) return; s.phase = 'NIGHT'; s.step = 'NIGHT'; continue;
         case 'NIGHT':
           if (s.nightDay !== s.day) { s.nightDay = s.day; s.nightManual = noonAuto(s, db, 'night'); if (s.choices.length) return; }
           if (s.nightManual && !(s.ready[0] && s.ready[1]) && s.pending !== 'night-done') { if (s.pending !== 'night') { s.pending = 'night'; if (Array.isArray(s.nightManual)) s.ready = [!s.nightManual[0], !s.nightManual[1]]; log(s, 'Nuit : appliquez les effets « À la Nuit », puis validez.'); } return; }
