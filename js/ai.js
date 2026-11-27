@@ -89,6 +89,8 @@
       opts.push({ id, e, spent: before - E.readyMana(c.players[p]), gain: score(c, p, db) - base });
     }
     if (!opts.length) return null;
+    // Ne pas dépenser son mana pour rien : une carte qui ne change rien au plateau (sort sans cible, effet manuel) n'est pas jouée
+    { const useful = opts.filter(o => o.gain > 0.01); if (!useful.length) return null; opts.length = 0; opts.push(...useful); }
     const per = {}; for (const o of opts) per[o.id] = Math.min(per[o.id] ?? 99, o.spent);
     const set = bestSet(Object.entries(per).map(([id, c]) => ({ id, c })).sort((a, b) => b.c - a.c), mana);
     const pool = opts.filter(o => set.ids.includes(o.id) || (set.ids.length === 0 && o.spent === 0));
