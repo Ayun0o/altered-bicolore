@@ -714,6 +714,12 @@ body.rgon{background:radial-gradient(ellipse at 18% 0%,color-mix(in srgb,var(--r
 .rgpw{display:flex;gap:6px}.rgpw span{flex:1;text-align:center;border-radius:12px;padding:3px 0;font-weight:800;color:#fff}.rgpw .F{background:#4a8a3a}.rgpw .M{background:#a0622d}.rgpw .O{background:#2f6fb5}
 @media(max-width:800px){.rgorg{grid-template-columns:1fr}.rgside{position:static;order:-1}.rgogrid{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}.rghero{width:80px}.rgob button{min-width:22px;min-height:22px;padding:0 4px}}
 @media(max-width:600px){#rogue .rgoffers{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}#rogue .rgoffer{padding:4px}}
+
+/* Améliorations : chaque offre montre la carte actuelle → la rare, côte à côte */
+.rgups{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:10px}
+.rgup .rgpair{width:100%;gap:8px}.rgup .rgpair .rgc{flex:1;max-width:170px}.rgup .rgarr{font-size:26px}
+.rgupl{font-size:13px;color:#e8c46a;font-weight:700}
+@media(max-width:600px){.rgups{grid-template-columns:1fr;gap:8px}.rgup{padding:6px}.rgup .rgpair .rgc{max-width:none}}
 </style>
 </head>
 <body>
@@ -796,7 +802,7 @@ body.rgon{background:radial-gradient(ellipse at 18% 0%,color-mix(in srgb,var(--r
 <script src="js/engine.js?v=1795798404"></script>
 <script src="js/ai.js?v=1795785407"></script>
 <script src="js/net.js?v=1795785407"></script>
-<script src="js/rogue.js?v=1795803386"></script>
+<script src="js/rogue.js?v=1795803475"></script>
 <script src="js/play.js?v=1795803205"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
