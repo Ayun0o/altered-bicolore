@@ -268,6 +268,13 @@ img[hidden],.heroimg[hidden]{display:none!important}
  .artb{font-size:11px!important}
  .hpgrid{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px!important}
 }
+
+/* Mode « Détails » : explication des symboles et mots-clés de la carte */
+.card.det{display:flex;flex-direction:column}
+.dtx{list-style:none;margin:8px 2px 4px;padding:0;display:grid;gap:5px;font-size:13px;line-height:1.35}
+.dtx li{background:var(--soft);border-radius:8px;padding:5px 8px}.dtx li.none{background:none;color:var(--mute);padding:2px 4px}
+.dtx .dsy{font-style:normal;display:inline-block;min-width:1.3em;text-align:center}
+@media(max-width:600px){.dtx{font-size:12px}}
 </style>
 </head>
 <body>
@@ -276,7 +283,7 @@ img[hidden],.heroimg[hidden]{display:none!important}
 <span id="deckDots" style="display:inline-flex;gap:4px"></span><select id="deckSel" aria-label="Deck"></select>
 <button id="myDecks" type="button">📚 Mes decks</button><button id="newDeck">Nouveau deck</button>
 <a id="siteLink" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener"><button tabindex="-1" class="on">▶ Jouer en ligne</button></a><a id="webLink" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener" title="Ouvre ce deck dans le deckbuilder en ligne et y copie toutes tes uniques scannées"><button tabindex="-1">🌐 Ouvrir en ligne</button></a>
-<button id="fmtBtn">Format</button>
+<button id="fmtBtn" hidden>Format</button>
 <button id="langBtn" aria-label="Langue des cartes"></button>
 <button id="viewDeck" title="Voir les cartes de ton deck en grand, avec les statistiques">🃏 Voir mon deck</button>
 <span class="sync" id="sync">Chargement…</span>
@@ -305,7 +312,7 @@ img[hidden],.heroimg[hidden]{display:none!important}
 </div>
 <div class="filters" id="facF"></div>
 
-<div class="filters"><label class="chip"><input type="checkbox" id="onlyLegal" checked> Pool du deck seulement</label><label class="chip"><input type="checkbox" id="showTxt"> Texte des cartes</label><button id="addU" type="button" class="adduq">＋ Ajouter un unique</button></div>
+<div class="filters"><label class="chip"><input type="checkbox" id="onlyLegal" checked> Pool du deck seulement</label><label class="chip"><input type="checkbox" id="showTxt"> Détails</label><button id="addU" type="button" class="adduq">＋ Ajouter un unique</button></div>
 </div>
 <div class="count" id="count"></div>
 <div class="grid" id="grid"></div>
@@ -326,6 +333,7 @@ img[hidden],.heroimg[hidden]{display:none!important}
 </aside>
 </div>
 
+<dialog id="uSite"><h3 style="margin:0 0 6px">📷 Ajouter un unique</h3><p style="margin:0 0 8px">Le <b>scan photo</b> d’une unique ne marche que dans la version Claude (l’artifact) : scanne-la là-bas, puis clique sur <b>🌐 Ouvrir en ligne</b> pour qu’elle arrive ici avec toute ta collection.</p><p class="note" style="margin:0 0 12px">Tu peux aussi la saisir à la main ici (carte de base + stats).</p><div class="row" style="justify-content:flex-end;gap:8px;flex-wrap:wrap"><button type="button" id="uSiteClose">Fermer</button><button type="button" id="uSiteMan">Saisir à la main</button><a href="https://claude.ai/artifact/8Zpm9SqwXtycyrcbmj6e8F" target="_blank" rel="noopener"><button type="button" class="on" tabindex="-1">Ouvrir l’artifact pour scanner</button></a></div></dialog>
 <dialog id="zoom"><img id="zoomImg" alt=""></dialog>
 <dialog id="newDlg">
 <h2 style="margin-bottom:8px">Nouveau deck</h2>
@@ -445,6 +453,36 @@ function canAdd(c){const d=D();if(!d||c.t==='HERO')return true;const L=LIM||lims
  if((L.names[norm(c.n)]||0)>=fmt.copies)return false;
  if(c.u)return true;
  return true} // quotas de rares / secondaires : pas bloquants, les règles passent en rouge
+const KWX=[['Fugace','Fleeting','Envoyez-moi à la Défausse plutôt qu’en Réserve. Un personnage joué depuis la Réserve devient Fugace.','Sent to the Discard instead of the Reserve. A character played from Reserve becomes Fleeting.'],
+ ['Ancré','Anchored','Au Repos, il ne va pas en Réserve et perd Ancré.','During Rest, it doesn’t go to Reserve and loses Anchored.'],
+ ['Endormi','Asleep','Ignorez ses statistiques au Crépuscule. Au Repos, il ne va pas en Réserve et perd Endormi.','Ignore its statistics during Dusk. During Rest, it doesn’t go to Reserve and loses Asleep.'],
+ ['boost','boost','Compteur +1/+1/+1, retiré quand la carte quitte l’Expédition.','A +1/+1/+1 counter, removed when the card leaves the Expedition.'],
+ ['Aguerri','Seasoned','Garde ses boosts quand il va en Réserve.','Keeps its boosts when it goes to Reserve.'],
+ ['Éternel','Eternal','Au Repos, il ne va pas en Réserve.','During Rest, it doesn’t go to Reserve.'],
+ ['Gigantesque','Gigantic','Compte comme présent dans vos deux Expéditions.','Counts as present in both of your Expeditions.'],
+ ['Défenseur','Defender','Son Expédition ne peut pas avancer au Crépuscule.','Its Expedition can’t move forward during Dusk.'],
+ ['Coriace','Tough','Vos adversaires doivent payer X de plus pour le cibler.','Opponents must pay X more to target it.'],
+ ['Ravitaill','Resupply','Mettez la première carte de votre deck en Réserve.','Put the top card of your deck in Reserve.'],
+ ['Sabot','Sabotage','Défaussez jusqu’à une carte ciblée d’une Réserve.','Discard up to one target card from a Reserve.'],
+ ['Rafraîchissement','Cooldown','Si la carte va en Réserve après son effet, elle y arrive épuisée (injouable, sans Soutien).','If it goes to Reserve after resolving, it arrives exhausted (unplayable, no Support).'],
+ ['Repérage','Scout','Jouable depuis la main pour X ; elle part ensuite en Réserve.','Can be played from hand for X; it then goes to Reserve.'],
+ ['Foncer','Rush','Jouez une autre carte tout de suite, sans que l’adversaire joue entre les deux.','Play another card right away, before your opponent plays.'],
+ ['Après vous','After You','Défaussez-la de la Réserve pour finir votre tour comme si vous aviez joué une carte.','Discard it from Reserve to end your turn as if you had played a card.'],
+ ['En Contact','In Contact','Même s’il n’y a pas d’autre Expédition dans sa région.','Even if there’s no other Expedition in its region.'],
+ [' Don','Gift','Vous faites un Don quand un adversaire pioche, Ravitaille ou reçoit un jeton pendant votre tour.','You make a Gift when an opponent draws, Resupplies or gets a token during your turn.'],
+ ['Graine de Mana','Manaseed','Permanent : épuisez-la et sacrifiez-la pour redresser un Orbe de Mana.','Permanent: exhaust and sacrifice it to ready a Mana Orb.'],
+ ['Aérolithe','Aerolith','Permanent : sacrifié, il Ravitaille ; épuisez-le et payez 1 pour le sacrifier.','Permanent: when sacrificed, Resupply; exhaust it and pay 1 to sacrifice it.'],
+ ['Prouesse','Feat','Une Prouesse réussie débloque sa capacité « Accomplie ».','Completing a Feat unlocks its “Completed” ability.']];
+const SYX={J:['➜','Quand je suis joué','When I’m played','Se déclenche quand la carte est jouée (main ou Réserve).','Triggers when the card is played (hand or Reserve).'],
+ H:['✋','Depuis la main','From hand','Seulement si la carte est jouée depuis la main.','Only if the card is played from hand.'],
+ R:['⤺','Depuis la Réserve','From Reserve','Seulement si la carte est jouée depuis la Réserve.','Only if the card is played from Reserve.'],
+ T:['⟳','Épuiser','Exhaust','Tournez la carte : plus utilisable avant d’être redressée, au Matin.','Turn the card: it can’t be used again until readied in the Morning.'],
+ I:['∞','En Réserve','In Reserve','Capacité active tant que la carte est dans votre Réserve.','Active while the card is in your Reserve.'],
+ D:['🗑','Soutien','Support','Défaussez la carte de votre Réserve pour obtenir l’effet.','Discard the card from your Reserve to get the effect.']};
+function explain(c){const fr=String(c.x||'')+' '+String(c.e||''),N=norm(fr),E=EN(),out=[],seen=new Set();
+ for(const m of fr.matchAll(/\{([A-Za-z])\}/g)){const k=m[1].toUpperCase(),y=SYX[k];if(!y||seen.has(k))continue;seen.add(k);out.push('<li><b><i class="dsy">'+y[0]+'</i> '+(E?y[2]:y[1])+'</b> — '+(E?y[4]:y[3])+'</li>')}
+ for(const k of KWX){if(N.includes(norm(k[0]))&&!seen.has(k[1])){seen.add(k[1]);out.push('<li><b>'+(E?k[1]:k[0].trim())+'</b> — '+(E?k[3]:k[2])+'</li>')}}
+ return '<ul class="dtx">'+(out.length?out.join(''):'<li class="none">'+(E?'Nothing special to explain.':'Rien de particulier à expliquer.')+'</li>')+'</ul>'}
 function cardHtml(c){
  const d=D(),n=d?(c.t==='HERO'?(d.hero===c.r?1:0):c.u?1:(d.cards[c.r]||0)):0,oof=c.y==='R'&&c.f!==c.h;
  const pw=c.p?'<div class="pwp" title="Forêt / Montagne / Eau"><span class="F">'+esc(String(c.p[0]).replace(/#/g,''))+'</span><span class="M">'+esc(String(c.p[1]).replace(/#/g,''))+'</span><span class="O">'+esc(String(c.p[2]).replace(/#/g,''))+'</span></div>':'';
@@ -458,7 +496,7 @@ function cardHtml(c){
  const full=$('showTxt').checked;
  const cls='card'+(legal(c)?'':' off')+(mx?' maxed':'')+(full?'':' lite');
  if(!full)return '<article class="'+cls+'" style="--fc:var(--'+c.f+')">'+img+'<div class="act">'+btn2+'</div></article>';
- return '<article class="'+cls+'" style="--fc:var(--'+c.f+')">'+img+'<div class="hd"><div class="nm">'+esc(NM(c))+'</div>'+cost+'</div><div class="meta">'+rb+'<span>'+esc(TYL(c.t))+(ST(c).length?' · '+esc(ST(c).join(', ')):'')+'</span></div>'+(c.t==='CHARACTER'?pw:'')+'<div class="fx">'+fxHtml(TX(c))+(EC(c)?'<br><span class="sym">'+(EN()?'echo':'écho')+'</span> '+fxHtml(EC(c)):'')+'</div><div class="act">'+btn2+'</div></article>';
+ return '<article class="'+cls+' det" style="--fc:var(--'+c.f+')">'+img+explain(c)+'<div class="act">'+btn2+'</div></article>';
 }
 
 const BUN=new Map();
@@ -629,6 +667,8 @@ $('siteLink').addEventListener('click',()=>{$('siteLink').href=SITEB+'play.html?
 
 let uList=[],uScan=null;function uRender(){const q=norm($('uQ').value);const seen=new Set();uList=CARDS.filter(c=>c.t==='CHARACTER'&&c.y==='C'&&(!q||norm(c.n+' '+c.en).includes(q))).filter(c=>{const k=c.r.replace(/_C$/,'');if(seen.has(k))return false;seen.add(k);return true}).slice(0,80);$('uPick').innerHTML=uList.map((c,i)=>'<option value="'+i+'">'+esc(NM(c))+' — '+esc(FN[c.h]||'')+' · '+esc(SETN[c.s]||c.s)+'</option>').join('')}
 $('addU').onclick=()=>{const d=D(),P=BY[d.hero]?.f;$('uFac').innerHTML=FAC.map(f=>'<option value="'+f+'"'+(f===P?' selected':'')+'>'+FN[f]+'</option>').join('');$('uQ').value='';$('uRes').innerHTML='';uScan=null;$('uPhoto').value='';uRender();$('uDlg').showModal()};
+{const _uOpen=$('addU').onclick;$('addU').onclick=()=>{if(window.AltUniques){$('uSite').showModal();return}_uOpen()};$('uSiteClose').onclick=()=>$('uSite').close();$('uSiteMan').onclick=()=>{$('uSite').close();_uOpen()}}
+{const fb=()=>{$('fmtBtn').hidden=location.hash!=='#reglages'};fb();addEventListener('hashchange',fb)}
 $('uQ').oninput=uRender;$('uPick').onchange=()=>{const c=uList[+$('uPick').value];if(c)$('uFac').value=c.h};
 $('uCancel').onclick=()=>$('uDlg').close();
 const SCANP='You are reading a photo of one card from the trading card game Altered (a Unique character card). Return ONLY a JSON object with these keys: '+
