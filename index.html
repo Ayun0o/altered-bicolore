@@ -421,9 +421,7 @@ let LIM=null;
 function canAdd(c){const d=D();if(!d||c.t==='HERO')return true;const L=LIM||lims(),bi=!!d.sec;
  if((L.names[norm(c.n)]||0)>=fmt.copies)return false;
  if(c.u)return true;
- if(c.y==='R'&&!/_E$/.test(c.r)&&L.rares>=(bi?fmt.biR:fmt.monoR))return false;
- if(bi&&c.f===d.sec){if(L.sec>=fmt.secMax)return false;if(c.y==='R'&&L.secR>=fmt.secR)return false}
- return true}
+ return true} // quotas de rares / secondaires : pas bloquants, les règles passent en rouge
 function cardHtml(c){
  const d=D(),n=d?(c.t==='HERO'?(d.hero===c.r?1:0):c.u?1:(d.cards[c.r]||0)):0,oof=c.y==='R'&&c.f!==c.h;
  const pw=c.p?'<div class="pwp" title="Forêt / Montagne / Eau"><span class="F">'+esc(String(c.p[0]).replace(/#/g,''))+'</span><span class="M">'+esc(String(c.p[1]).replace(/#/g,''))+'</span><span class="O">'+esc(String(c.p[2]).replace(/#/g,''))+'</span></div>':'';
