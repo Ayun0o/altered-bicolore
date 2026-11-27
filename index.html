@@ -437,14 +437,14 @@ img[hidden],.heroimg[hidden]{display:none!important}
 {
 const FN={AX:'Axiom',BR:'Bravos',LY:'Lyra',MU:'Muna',OR:'Ordis',YZ:'Yzmir'};
 const FAC=Object.keys(FN);
-const SETN={CORE:'Au-delà des portes',ALIZE:'Épreuve du froid',BISE:'Murmures du labyrinthe',CYCLONE:'Odyssée céleste',DUSTER:'Graines d\'unité',EOLE:'Racines de la corruption'};
+const SETN={CORE:'Au-delà des portes',ALIZE:'Épreuve du froid',BISE:'Murmures du labyrinthe',CYCLONE:'Odyssée céleste',DUSTER:'Graines d\'unité',EOLE:'Racines de la corruption',FUGUE:'Neverending Journey'};
 const TYN={HERO:'Héros',CHARACTER:'Personnage',SPELL:'Sort',LANDMARK_PERMANENT:'Repère',EXPEDITION_PERMANENT:'Permanent d\'expédition',PERMANENT:'Permanent'};
 const DEF={deck:39,copies:3,monoR:15,monoU:3,biR:12,secMax:12,secR:3,uP:1,uS:1,wheel:['AX','BR','MU','LY','YZ','OR']};
 const FIELDS=[['deck','Cartes dans le deck (hors héros)'],['copies','Exemplaires max par nom'],['monoR','Mono : rares max'],['monoU','Mono : uniques max'],['biR','Bicolore : rares max au total'],['secMax','Bicolore : cartes secondaires max'],['secR','Bicolore : rares secondaires max'],['uP','Bicolore : uniques de la faction principale'],['uS','Bicolore : uniques de la faction secondaire']];
 const SYM={T:'épuiser',H:'joué depuis la main',R:'joué depuis la réserve',J:'quand je suis joué',D:'défaussez-moi de la réserve',V:'forêt',M:'montagne',O:'océan'};
 let LANG='fr';try{LANG=localStorage.getItem('alt-bi-lang')==='en'?'en':'fr'}catch(e){}
 const TYE={HERO:'Hero',CHARACTER:'Character',SPELL:'Spell',LANDMARK_PERMANENT:'Landmark',EXPEDITION_PERMANENT:'Expedition permanent',PERMANENT:'Permanent'};
-const SETE={CORE:'Beyond the Gates',ALIZE:'Trial by Frost',BISE:'Whispers from the Maze',CYCLONE:'Skybound Odyssey',DUSTER:'Seeds of Unity',EOLE:'Roots of Corruption'};
+const SETE={CORE:'Beyond the Gates',ALIZE:'Trial by Frost',BISE:'Whispers from the Maze',CYCLONE:'Skybound Odyssey',DUSTER:'Seeds of Unity',EOLE:'Roots of Corruption',FUGUE:'Neverending Journey'};
 const EN=()=>LANG==='en';const NM=c=>EN()?c.en:c.n;const TX=c=>EN()?c.xe:c.x;const EC=c=>EN()?c.ee:c.e;const ST=c=>EN()?c.ste:c.st;const TYL=t=>(EN()?TYE:TYN)[t];const SETL=s=>(EN()?SETE:SETN)[s];
 const SITEB=window.AltUniques?'':'https://ayun0o.github.io/altered-bicolore/';
 const uqCode=()=>{const L=Object.values(MYU).map(c=>{const x={...c};delete x._s;delete x.base;return x});return L.length?btoa(unescape(encodeURIComponent(JSON.stringify(L)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''):''};
@@ -828,7 +828,7 @@ function mselBuild(id){const sel=$(id),opts=[...sel.options],all=opts[0].text,it
  w.querySelector('.msclr').onclick=()=>{set.clear();w.querySelectorAll('input').forEach(i=>i.checked=false);upd();shown=60;renderGrid()}}
 document.addEventListener('click',()=>document.querySelectorAll('.ms.open').forEach(x=>x.classList.remove('open')));
 async function start(){
- try{const r=await fetch('cards.json');CARDS=await r.json()}catch(e){$('sync').textContent='Impossible de charger les cartes.';return}
+ try{const r=await fetch('cards.json?v=1795813434');CARDS=await r.json()}catch(e){$('sync').textContent='Impossible de charger les cartes.';return}
  if(window.AltUniques){try{const ra=await fetch('alts.json');if(ra.ok)ALTS=await ra.json()}catch(e){}}
  for(const c of CARDS){BY[c.r]=c;c._s=norm(c.n+' '+c.en+' '+c.x+' '+c.e+' '+c.xe+' '+c.ee+' '+c.st.join(' ')+' '+c.ste.join(' '))}
  $('fSet').innerHTML+=Object.entries(SETN).map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('');
