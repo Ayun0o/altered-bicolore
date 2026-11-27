@@ -220,8 +220,8 @@
     const e = enemyDeck(run, run.i);
     const me = deckObj(run, run.deck, L('Mon deck', 'My deck')), foe = deckObj(run, e.d, e.boss ? 'Boss' : e.mini ? L('Mini-boss', 'Mini-boss') : FN[e.f]);
     save(run);
-    const who = (e.boss ? '👑 ' + L('Boss', 'Boss') + ' ' : e.mini ? '★ ' + L('Mini-boss', 'Mini-boss') + ' ' : '') + FN[e.f];
-    $('rogue').classList.add('hidden'); document.body.dataset.foe = e.boss ? 'boss' : e.mini ? 'mini' : ''; document.body.dataset.foef = e.f;
+    const who = (e.boss ? L('Boss', 'Boss') + ' ' : e.mini ? L('Mini-boss', 'Mini-boss') + ' ' : '') + FN[e.f];
+    $('rogue').classList.add('hidden'); document.body.dataset.foe = e.boss ? 'boss' : e.mini ? (run.i === MINI[0] ? 'mini1' : 'mini2') : ''; document.body.dataset.foef = e.f;
     P().start(me, foe, L('Toi', 'You'), who, won => after(won), e.bonus);
   }
   // Après chaque combat, gagné ou perdu : draft puis amélioration. Les pièces ne viennent qu'avec une victoire.

@@ -446,7 +446,7 @@
     const an = w.animate([{ transform: 'none', opacity: 1 }, { transform: 'translate(' + dx * .55 + 'px,' + (dy * .55 - 30) + 'px) rotate(-12deg) scale(.7)', opacity: 1, offset: .55 }, { transform: 'translate(' + dx + 'px,' + dy + 'px) rotate(-25deg) scale(.18)', opacity: .15 }], { duration: ms, delay: d * 120 * AS(), easing: 'cubic-bezier(.45,.05,.4,1)', fill: 'both' });
     an.onfinish = () => { w.remove(); box.classList.remove('mgain'); void box.offsetWidth; box.classList.add('mgain'); }; }
   function render() {
-    if (!V) return; preSnap();
+    if (!V) return; preSnap(); { const q = $('rgQuit'); if (q) q.hidden = !ROGUE; }
     const _sy = window.scrollY, _mn = document.querySelector('#game .main'), _mt = _mn ? _mn.scrollTop : 0;
     if (V.step !== lastStep) { pick = new Set(); lastStep = V.step; }
     computeGlow();
@@ -731,6 +731,7 @@
         else if (k === 'undo') { if (mode === 'guest') net.send({ type: 'undo' }); else { const e = undo(me); if (e) flash(e); push(); } }
         else if (k === 'mana') { const ids = [...pick]; pick = new Set(); dispatch({ type: 'toManaMany', ids }); }
         else if (k === 'rematch') rematch();
+        else if (k === 'rogueQuit') { if (!ROGUE || !confirm('Abandonner ce combat ? Il compte comme une défaite.')) return; const cb = ROGUE; ROGUE = null; mode = null; S = null; V = null; $('game').classList.add('hidden'); if (cb) cb(false); }
         else if (k === 'rogueEnd') { const cb = ROGUE, w = V.winner === me; ROGUE = null; mode = null; S = null; V = null; $('game').classList.add('hidden'); if (cb) cb(w); }
         else if (k === 'cleanup') { const P = V.players[me]; dispatch({ type: 'cleanup', keepR: P.reserve.filter(x => !keep.R.has(x)), keepL: P.lm.filter(x => !keep.L.has(x)) }); keep = { R: new Set(), L: new Set() }; }
         else if (k === 'closeSide') { sideView = 'card'; renderSide(); }
