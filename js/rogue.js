@@ -282,9 +282,9 @@
     show('<div class="rgbox rgtalh"><div class="rgtop"><b style="font-size:20px">🌳 ' + L('Arbre de talents', 'Talent tree') + '</b><span style="margin-left:auto;font-size:18px">🪙 <b>' + avail + '</b> <span class="small">/ ' + m.earned + ' ' + L('gagnées', 'earned') + '</span></span></div>' +
       '<p class="note">' + L('Pièces : +1 par combat gagné, +2 pour un mini-boss, +3 pour le boss. Les talents ne changent rien pendant la partie : ils aident à construire ton deck. Tu peux les retirer à tout moment pour récupérer tes pièces.', 'Coins: +1 per fight won, +2 for a mini-boss, +3 for the boss. Talents change nothing during the game: they help you build your deck. You can remove them any time to get your coins back.') + '</p>' +
       '<div class="rgheat"><div class="rgheatbar"><i style="width:' + Math.min(100, sp) + '%"></i></div><span>🔥 ' + L('Menace ', 'Threat ') + '<b>' + h + '</b> : ' + heatTxt(h) + '</span></div><p class="small">' + L('Chaque tranche de 10 pièces dépensées rend les adversaires plus forts. Décoche « Jouer avec mes talents » pour une aventure sans talents ni menace.', 'Every 10 coins spent makes opponents stronger. Untick “Play with my talents” for an adventure with no talents and no threat.') + '</p>' +
-      (run && !run.over ? '<p class="note">⚠️ ' + L('Les changements s’appliqueront à ta prochaine aventure.', 'Changes apply to your next adventure.') + '</p>' : '') + '</div>' +
+      (run && !run.over ? '<p class="note">⚠️ ' + L('Les changements s’appliqueront à ta prochaine aventure.', 'Changes apply to your next adventure.') + '</p>' : '') + '<div class="row" style="justify-content:flex-end;margin-top:6px"><button class="pri" data-rg="open">← ' + L('Retour', 'Back') + '</button></div></div>' +
       '<div class="rgtal">' + Object.keys(BR).map(b => '<div class="rgbr"><h3><span class="rgbic">' + BR[b][0] + '</span>' + L(BR[b][1], BR[b][2]) + '</h3>' + tree(b) + '</div>').join('') + '</div>',
-      '<button class="pri" data-rg="open">← ' + L('Retour', 'Back') + '</button>', { wide: 1, key: 'tal' });
+      '', { wide: 1, key: 'tal' });
     requestAnimationFrame(drawLinks);
   }
   // Traits entre un talent et ceux qu'il débloque
