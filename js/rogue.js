@@ -1,0 +1,163 @@
+/* Mode Aventure (roguelike) : un deck de départ, une suite de combats contre l'IA, des récompenses entre les combats. */
+(function () {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const P = () => window.AltPlay;
+  const KEY = 'alt-bi-rogue', FIGHTS = 8, LIVES = 3;
+  const FAC = ['AX', 'BR', 'LY', 'MU', 'OR', 'YZ'];
+  const FN = { AX: 'Axiom', BR: 'Bravos', LY: 'Lyra', MU: 'Muna', OR: 'Ordis', YZ: 'Yzmir' };
+  const FC = { AX: '#a0622d', BR: '#c4302b', LY: '#c84f86', MU: '#4a8a3a', OR: '#2f6fb5', YZ: '#6b55c9' };
+  const EN = () => P() && P().LANG === 'en';
+  const L = (fr, en) => EN() ? en : fr;
+  const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+  const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } };
+  const save = r => { try { localStorage.setItem(KEY, JSON.stringify(r)); } catch (e) { } };
+  // Hasard reproductible (graine de la partie)
+  function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+  const pick = (R, a) => a[Math.floor(R() * a.length)];
+  const shuffle = (R, a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(R() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const fam = r => r.replace(/_(C|R\d|U_\d+)$/, '');
+  const num = v => parseInt(String(v ?? '').replace(/#/g, ''), 10) || 0;
+  const NM = c => (EN() ? c.en : c.n) || c.n;
+
+  // ---- Cartes altérées : une « unique » fabriquée à partir d'une carte, avec ses stats modifiées ----
+  const ALT = [
+    { k: 'F', fr: '+1 Forêt', en: '+1 Forest', ok: c => c.t === 'CHARACTER', ap: c => { c.p[0] = String(num(c.p[0]) + 1); } },
+    { k: 'M', fr: '+1 Montagne', en: '+1 Mountain', ok: c => c.t === 'CHARACTER', ap: c => { c.p[1] = String(num(c.p[1]) + 1); } },
+    { k: 'O', fr: '+1 Océan', en: '+1 Ocean', ok: c => c.t === 'CHARACTER', ap: c => { c.p[2] = String(num(c.p[2]) + 1); } },
+    { k: 'A', fr: '+1 partout', en: '+1 to all stats', ok: c => c.t === 'CHARACTER', rare: 1, ap: c => { c.p = c.p.map(v => String(num(v) + 1)); } },
+    { k: 'H', fr: '−1 coût de main', en: '−1 hand cost', ok: c => num(c.c) >= 2, ap: c => { c.c = String(num(c.c) - 1); } },
+    { k: 'R', fr: '−1 coût de Réserve', en: '−1 Reserve cost', ok: c => num(c.rc) >= 2, ap: c => { c.rc = String(num(c.rc) - 1); } },
+  ];
+  let UQN = 0;
+  function alterCard(run, ref, alt) {
+    const DB = P().DB, b = DB[ref]; if (!b) return null;
+    const c = JSON.parse(JSON.stringify(b)); delete c._s;
+    c.p = (c.p || ['0', '0', '0']).slice(); alt.ap(c);
+    const n = 900000 + (run.uqSeq = (run.uqSeq || 0) + 1) + (UQN++ % 1);
+    c.r = fam(ref) + '_U_' + n; c.u = true; c.y = 'U'; c.v = 'U'; c.alt = (b.alt || []).concat(alt.k);
+    c.base = b.base || ref;
+    run.uq[c.r] = c; DB[c.r] = c; return c.r;
+  }
+  function altLabel(c) { return (c && c.alt || []).map(k => { const a = ALT.find(x => x.k === k); return a ? L(a.fr, a.en) : ''; }).join(', '); }
+
+  // ---- Decks ----
+  function starter(f) { return P().STARTERS.find(s => s.id === 'starter-' + f); }
+  function deckObj(run, d, name) { const uq = {}; for (const r in d.cards) if (run.uq[r]) uq[r] = run.uq[r]; return { hero: d.hero, cards: Object.assign({}, d.cards), name, uq }; }
+  function rareOf(R, ref, f) { const DB = P().DB, b = fam(ref); const opts = ['_R1', '_R2'].map(x => b + x).filter(r => DB[r] && (!f || DB[r].f === f || DB[r].h === f)); return opts.length ? pick(R, opts) : null; }
+  function addCard(d, r, n = 1) { d.cards[r] = (d.cards[r] || 0) + n; }
+  function delCard(d, r, n = 1) { d.cards[r] = (d.cards[r] || 0) - n; if (d.cards[r] <= 0) delete d.cards[r]; }
+  // Deck de l'adversaire : un deck de départ de plus en plus amélioré selon le combat
+  function enemyDeck(run, i) {
+    const R = rng(run.seed * 31 + i * 977), DB = P().DB;
+    const others = FAC.filter(f => f !== run.f), f = pick(R, others), st = starter(f);
+    const d = { hero: st.hero, cards: Object.assign({}, st.cards) };
+    const boss = i === FIGHTS - 1;
+    const ups = [0, 2, 4, 6, 8, 10, 12, 16][i] || 0, alts = [0, 0, 0, 2, 3, 5, 7, 12][i] || 0;
+    for (let k = 0; k < ups; k++) { const commons = Object.keys(d.cards).filter(r => /_C$/.test(r) && DB[r].t !== 'HERO'); if (!commons.length) break; const r = pick(R, commons), up = rareOf(R, r, f); if (!up) continue; delCard(d, r); addCard(d, up); }
+    for (let k = 0; k < alts; k++) { const pool = Object.keys(d.cards).filter(r => !DB[r].u && DB[r].t !== 'HERO'); if (!pool.length) break; const r = pick(R, pool), ok = ALT.filter(a => a.ok(DB[r]) && (!a.rare || boss || R() < .3)); if (!ok.length) continue; const nr = alterCard(run, r, pick(R, ok)); if (nr) { delCard(d, r); addCard(d, nr); } }
+    return { d, f, boss };
+  }
+
+  // ---- Récompenses ----
+  function cardPool(f) { const DB = P().DB; return Object.values(DB).filter(c => !c.u && c.t !== 'HERO' && !/TOKEN|FOILER/.test(c.t) && (c.f === f || c.h === f) && (c.y === 'C' || (c.y === 'R' && c.f === f))); }
+  function offers(run) {
+    const R = rng(run.seed * 7 + run.i * 131 + (run.rr || 0)), DB = P().DB, d = run.deck, out = [];
+    const deckRefs = Object.keys(d.cards).filter(r => DB[r] && DB[r].t !== 'HERO');
+    const types = shuffle(R, ['card', 'card', 'up', 'alt', 'alt']).slice(0, 3);
+    for (const t of types) {
+      if (t === 'card') { const pool = cardPool(run.f), c = pick(R, pool.filter(c => !out.some(o => o.ref === c.r))); if (c) out.push({ t, ref: c.r }); }
+      else if (t === 'up') { const cs = shuffle(R, deckRefs.filter(r => /_C$/.test(r))); for (const r of cs) { const up = rareOf(R, r, run.f) || rareOf(R, r); if (up) { out.push({ t, ref: r, to: up }); break; } } }
+      else { const cs = shuffle(R, deckRefs); for (const r of cs) { const ok = ALT.filter(a => a.ok(DB[r]) && (!a.rare || R() < .25)); if (ok.length) { out.push({ t, ref: r, a: pick(R, ok).k }); break; } } }
+    }
+    while (out.length < 3) { const c = pick(R, cardPool(run.f)); if (c) out.push({ t: 'card', ref: c.r }); else break; }
+    return out;
+  }
+  function applyOffer(run, o) {
+    const d = run.deck;
+    if (o.t === 'card') addCard(d, o.ref);
+    else if (o.t === 'up') { delCard(d, o.ref); addCard(d, o.to); }
+    else if (o.t === 'alt') { const nr = alterCard(run, o.ref, ALT.find(a => a.k === o.a)); if (nr) { delCard(d, o.ref); addCard(d, nr); } }
+  }
+
+  // ---- Écrans ----
+  function img(ref, cls) { return '<span class="rgc' + (cls ? ' ' + cls : '') + '">' + P().cardImg(ref) + '</span>'; }
+  function hearts(n) { return '♥'.repeat(n) + '<span style="opacity:.25">' + '♥'.repeat(LIVES - n) + '</span>'; }
+  function track(run) { let h = ''; for (let i = 0; i < FIGHTS; i++) h += '<span class="rgn' + (i < run.i ? ' done' : i === run.i ? ' cur' : '') + (i === FIGHTS - 1 ? ' boss' : '') + '">' + (i === FIGHTS - 1 ? '👑' : i + 1) + '</span>'; return '<div class="rgtrack">' + h + '</div>'; }
+  function deckCount(d) { return Object.values(d.cards).reduce((a, b) => a + b, 0); }
+  function show(html) { $('lobby').classList.add('hidden'); $('game').classList.add('hidden'); const r = $('rogue'); r.classList.remove('hidden'); r.innerHTML = '<div class="rgwrap"><div class="row lhead"><h1 style="font-size:28px;margin-right:auto">🗡️ ' + L('Aventure', 'Adventure') + '</h1><button data-rg="home">' + L('← Table', '← Table') + '</button></div>' + html + '</div>'; window.scrollTo(0, 0); }
+  function home() { $('rogue').classList.add('hidden'); $('lobby').classList.remove('hidden'); }
+
+  function screen() {
+    const run = load(); if (!run) return choose();
+    if (P().DB) for (const c of Object.values(run.uq || {})) P().DB[c.r] = c;
+    if (run.over) return end(run);
+    if (run.reward) return reward(run);
+    const st = starter(run.f), DB = P().DB;
+    show('<div class="rgbox"><div class="rgtop"><span style="color:' + FC[run.f] + ';font-weight:700">' + FN[run.f] + '</span> · ' + esc(NM(DB[run.deck.hero])) + '<span style="margin-left:auto;font-size:20px;color:#e0546a">' + hearts(run.lives) + '</span></div>' + track(run) +
+      '<p class="note">' + (run.i === FIGHTS - 1 ? L('Dernier combat : le boss, avec un deck très amélioré.', 'Final fight: the boss, with a heavily upgraded deck.') : L('Combat ', 'Fight ') + (run.i + 1) + ' / ' + FIGHTS + ' · ' + L('Ton adversaire a un deck plus fort à chaque combat.', 'Your opponent’s deck gets stronger every fight.')) + '</p>' +
+      '<div class="row" style="gap:8px;flex-wrap:wrap"><button class="pri" data-rg="fight">⚔️ ' + L('Combattre', 'Fight') + '</button><button data-rg="deck">🃏 ' + L('Mon deck', 'My deck') + ' (' + deckCount(run.deck) + ')</button><button data-rg="quit" style="margin-left:auto">' + L('Abandonner la partie', 'Abandon the run') + '</button></div></div>' + (run.showDeck ? deckView(run) : ''));
+  }
+  function deckView(run) {
+    const DB = P().DB, refs = Object.keys(run.deck.cards).sort((a, b) => num(DB[a].c) - num(DB[b].c) || NM(DB[a]).localeCompare(NM(DB[b])));
+    return '<div class="rggrid">' + refs.map(r => '<div class="rgitem">' + img(r) + '<span class="rgq">×' + run.deck.cards[r] + '</span>' + (DB[r].u ? '<span class="rgalt">✦ ' + esc(altLabel(DB[r])) + '</span>' : '') + '</div>').join('') + '</div>';
+  }
+  function choose() {
+    show('<div class="rgbox"><p>' + L('Choisis ta faction. Tu pars avec son deck de départ, tu affrontes 8 adversaires de plus en plus forts et tu améliores ton deck entre chaque combat. Trois défaites et c’est fini.', 'Choose your faction. You start with its starter deck, face 8 increasingly strong opponents and improve your deck between fights. Three losses and it is over.') + '</p><div class="rgfac">' +
+      FAC.map(f => '<button data-rg="start" data-f="' + f + '" style="border-color:' + FC[f] + '"><b style="color:' + FC[f] + '">' + FN[f] + '</b>' + (starter(f) ? '<span class="small">' + esc(NM(P().DB[starter(f).hero])) + '</span>' : '') + '</button>').join('') + '</div></div>');
+  }
+  function start(f) {
+    const st = starter(f); if (!st) return;
+    const run = { v: 1, f, seed: Math.floor(Math.random() * 1e9), i: 0, lives: LIVES, deck: { hero: st.hero, cards: Object.assign({}, st.cards) }, uq: {}, log: [] };
+    save(run); screen();
+  }
+  function fight() {
+    const run = load(); if (!run) return;
+    for (const c of Object.values(run.uq)) P().DB[c.r] = c;
+    const e = enemyDeck(run, run.i);
+    const me = deckObj(run, run.deck, L('Mon deck', 'My deck')), foe = deckObj(run, e.d, e.boss ? 'Boss' : FN[e.f]);
+    save(run);
+    const who = (e.boss ? '👑 ' + L('Boss', 'Boss') + ' ' : '') + FN[e.f];
+    $('rogue').classList.add('hidden');
+    P().start(me, foe, L('Toi', 'You'), who, won => after(won));
+  }
+  function after(won) {
+    const run = load(); if (!run) return home();
+    run.log.push({ i: run.i, won });
+    if (won) { if (run.i === FIGHTS - 1) { run.over = 'win'; } else { run.i++; run.reward = offers(run); } }
+    else { run.lives--; if (run.lives <= 0) run.over = 'lose'; }
+    save(run); screen();
+  }
+  function reward(run) {
+    const DB = P().DB;
+    const tile = (o, k) => {
+      let t, body;
+      if (o.t === 'card') { t = L('Nouvelle carte', 'New card'); body = img(o.ref); }
+      else if (o.t === 'up') { t = L('Amélioration en rare', 'Upgrade to rare'); body = '<div class="rgpair">' + img(o.ref, 'sm') + '<span class="rgarr">→</span>' + img(o.to, 'sm') + '</div>'; }
+      else { const a = ALT.find(x => x.k === o.a); t = L('Altération', 'Alteration') + ' : ' + L(a.fr, a.en); body = img(o.ref) + '<span class="rgalt">✦ ' + L(a.fr, a.en) + '</span>'; }
+      return '<button class="rgoffer" data-rg="take" data-k="' + k + '"><b>' + esc(t) + '</b>' + body + '</button>';
+    };
+    show('<div class="rgbox"><div class="rgtop"><b>' + L('Victoire !', 'Victory!') + '</b><span style="margin-left:auto;font-size:20px;color:#e0546a">' + hearts(run.lives) + '</span></div>' + track(run) + '<p>' + L('Choisis une récompense :', 'Choose a reward:') + '</p><div class="rgoffers">' + run.reward.map(tile).join('') + '</div><div class="row" style="gap:8px;margin-top:10px"><button data-rg="remove">✂️ ' + L('Retirer une carte à la place', 'Remove a card instead') + '</button><button data-rg="skip">' + L('Passer', 'Skip') + '</button></div>' + (run.removing ? '<p class="note">' + L('Clique la carte à retirer de ton deck :', 'Click the card to remove from your deck:') + '</p>' + deckView(run).replace(/<div class="rgitem">/g, (m, i) => m) : '') + '</div>');
+    if (run.removing) document.querySelectorAll('#rogue .rggrid .rgitem').forEach((el, i) => { const refs = Object.keys(run.deck.cards).sort((a, b) => num(DB[a].c) - num(DB[b].c) || NM(DB[a]).localeCompare(NM(DB[b]))); el.dataset.rg = 'rm'; el.dataset.r = refs[i]; el.style.cursor = 'pointer'; });
+  }
+  function end(run) {
+    const won = run.over === 'win', wins = run.log.filter(x => x.won).length;
+    show('<div class="rgbox" style="text-align:center"><h2>' + (won ? '🏆 ' + L('Aventure réussie !', 'Adventure complete!') : '💀 ' + L('Aventure terminée', 'Adventure over')) + '</h2><p>' + L('Combats gagnés : ', 'Fights won: ') + wins + ' / ' + FIGHTS + '</p>' + track(run) + '<div class="row" style="justify-content:center;gap:8px"><button class="pri" data-rg="new">' + L('Nouvelle aventure', 'New adventure') + '</button><button data-rg="deck2">🃏 ' + L('Voir mon deck final', 'See my final deck') + '</button></div>' + (run.showDeck ? deckView(run) : '') + '</div>');
+  }
+
+  document.addEventListener('click', e => {
+    const b = e.target.closest('[data-rg]'); if (!b) return; const k = b.dataset.rg; let run = load();
+    if (k === 'open') return screen();
+    if (k === 'home') return home();
+    if (k === 'start') return start(b.dataset.f);
+    if (k === 'fight') return fight();
+    if (k === 'deck' || k === 'deck2') { run.showDeck = !run.showDeck; save(run); return screen(); }
+    if (k === 'quit') { if (confirm(L('Abandonner cette aventure ?', 'Abandon this adventure?'))) { localStorage.removeItem(KEY); screen(); } return; }
+    if (k === 'new') { localStorage.removeItem(KEY); return screen(); }
+    if (k === 'take') { applyOffer(run, run.reward[+b.dataset.k]); run.reward = null; run.removing = false; save(run); return screen(); }
+    if (k === 'skip') { run.reward = null; run.removing = false; save(run); return screen(); }
+    if (k === 'remove') { run.removing = !run.removing; save(run); return screen(); }
+    if (k === 'rm') { if (deckCount(run.deck) <= 20) { alert(L('Ton deck ne peut pas descendre sous 20 cartes.', 'Your deck cannot go below 20 cards.')); return; } delCard(run.deck, b.dataset.r); run.reward = null; run.removing = false; save(run); return screen(); }
+  });
+  window.AltRogue = { screen, _enemyDeck: enemyDeck, _offers: offers, _after: after };
+})();

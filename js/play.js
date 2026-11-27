@@ -156,6 +156,11 @@
     if (!vsAI) $('bSwitch').classList.remove('hidden'); else $('bSwitch').classList.add('hidden'); setConn(vsAI ? 'Contre l’ordinateur' : 'Partie d’essai');
     showGame(); push();
   }
+  // Accroche pour le mode Aventure (roguelike) : lance une partie contre l'IA avec deux decks donnés
+  let ROGUE = null;
+  window.AltPlay = { get DB() { return DB; }, get STARTERS() { return STARTERS; }, E, get LANG() { return LANG; }, cardImg: ref => imgOld({ ref, id: 'rg' }),
+    start(a, b, na, nb, onEnd) { ROGUE = onEnd; mode = 'ai'; me = 0; decksUsed = [a, b]; names = [na, nb]; for (const d of [a, b]) for (const c of Object.values(d.uq || {})) DB[c.r] = c;
+      S = E.newGame({}); E.addPlayer(S, 0, na, a, DB); E.addPlayer(S, 1, nb, b, DB); E.advance(S, DB); sel = null; hist = []; $('bSwitch').classList.add('hidden'); setConn('Aventure'); showGame(); push(); } };
   function rematch() {
     if (mode === 'guest') { net.send({ type: 'rematch' }); return; }
     if (!decksUsed[1]) return;
@@ -501,7 +506,7 @@
         else h += '<div class="note">Clique une carte en surbrillance.</div>' + (ch.opt ? '<div class="row"><button data-choose="none">Ne rien choisir</button></div>' : '');
       }
     }
-    else if (V.step === 'END') h = '<b>' + esc(V.players[V.winner].name) + ' gagne la partie !</b><div class="row"><button class="pri" data-do="rematch">Revanche</button></div>';
+    else if (V.step === 'END') h = '<b>' + esc(V.players[V.winner].name) + ' gagne la partie !</b><div class="row">' + (ROGUE ? '<button class="pri" data-do="rogueEnd">Continuer l’aventure</button>' : '<button class="pri" data-do="rematch">Revanche</button>') + '</div>';
     else if (V.step === 'SETUP_MANA') { const need = 3 - P.mana.length; h = r ? 'En attente de l’adversaire…' : 'Mise en place : <b>clique ' + need + ' cartes de ta main</b> pour ton mana (' + pick.size + '/' + need + ').<div class="row"><button class="pri" data-do="mana"' + (pick.size !== need ? ' disabled' : '') + '>Valider</button></div>'; }
     else if (V.step === 'EXPAND') h = r ? 'En attente de l’adversaire…' : 'Matin : <b>clique une carte de ta main</b> pour la mettre en mana (facultatif).<div class="row"><button class="pri" data-do="mana">' + (pick.size ? 'Mettre en mana' : 'Ne rien mettre') + '</button></div>';
     else if (V.pending && ['noon', 'dusk', 'night'].includes(V.pending)) h = r ? 'En attente de l’adversaire…' : ({ noon: 'Midi', dusk: 'Crépuscule', night: 'Nuit' })[V.pending] + ' : des effets sont à appliquer à la main.<div class="row"><button class="pri" data-do="ready">Continuer</button></div>';
@@ -657,6 +662,7 @@
         else if (k === 'undo') { if (mode === 'guest') net.send({ type: 'undo' }); else { const e = undo(me); if (e) flash(e); push(); } }
         else if (k === 'mana') { const ids = [...pick]; pick = new Set(); dispatch({ type: 'toManaMany', ids }); }
         else if (k === 'rematch') rematch();
+        else if (k === 'rogueEnd') { const cb = ROGUE, w = V.winner === me; ROGUE = null; mode = null; S = null; V = null; $('game').classList.add('hidden'); if (cb) cb(w); }
         else if (k === 'cleanup') { const P = V.players[me]; dispatch({ type: 'cleanup', keepR: P.reserve.filter(x => !keep.R.has(x)), keepL: P.lm.filter(x => !keep.L.has(x)) }); keep = { R: new Set(), L: new Set() }; }
         else if (k === 'closeSide') { sideView = 'card'; renderSide(); }
         else if (k === 'mkToken') { const pv = $('tkPre').value; if (pv === 'custom') dispatch({ type: 'token', n: $('tkN').value || 'Jeton', f: +$('tkF').value || 0, m: +$('tkM').value || 0, w: +$('tkW').value || 0, e: $('tkE').value }); else { const t = TOKENS[+pv]; if (t) dispatch({ type: 'token', n: t.en, f: t.p[0], m: t.p[1], w: t.p[2], e: $('tkE').value }); } sideView = 'card'; }

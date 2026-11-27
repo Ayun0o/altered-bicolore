@@ -589,6 +589,26 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 #tutBox .anat{position:relative;width:min(240px,62vw);margin:6px auto 26px}
 #tutBox .anat img{width:100%;display:block;border-radius:10px}
 #tutBox .an{position:absolute;font-size:11px;font-weight:700;background:#000d;color:#f5c518;border:1px solid #f5c51888;border-radius:6px;padding:1px 5px;white-space:nowrap}
+
+/* Aventure */
+#rogue{padding:16px max(2vw,12px);max-width:1100px;margin:0 auto}
+.rgbox{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:12px}
+.rgtop{display:flex;align-items:center;gap:8px;font-size:15px}
+.rgtrack{display:flex;gap:6px;margin:12px 0;flex-wrap:wrap}
+.rgn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--line);font-weight:700;font-size:14px;opacity:.6}
+.rgn.done{background:#3c8a4a;border-color:#3c8a4a;color:#fff;opacity:1}.rgn.cur{border-color:#f5c518;color:#f5c518;opacity:1;box-shadow:0 0 10px #f5c51866}.rgn.boss{width:40px;height:40px}
+.rgfac{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
+.rgfac button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border-width:2px}
+.rgoffers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.rgoffer{display:flex;flex-direction:column;gap:8px;align-items:center;padding:10px;border-width:2px;position:relative;min-height:0}
+.rgoffer:hover{border-color:#f5c518}
+.rgc{display:block;width:100%;max-width:200px;position:relative}.rgc img{width:100%;display:block;border-radius:8px}.rgc.sm{max-width:120px}
+.rgpair{display:flex;align-items:center;gap:6px;justify-content:center}.rgarr{font-size:22px;color:#f5c518}
+.rgalt{font-size:12px;font-weight:700;color:#f5c518;background:#000c;border-radius:6px;padding:2px 6px}
+.rggrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:10px}
+.rgitem{position:relative;display:flex;flex-direction:column;align-items:center;gap:3px}
+.rgq{position:absolute;top:4px;right:4px;background:#000c;color:#fff;border-radius:8px;padding:0 6px;font-size:12px;font-weight:700}
+@media(max-width:600px){.rgoffers{grid-template-columns:1fr}.rgoffer .rgc{max-width:160px}}
 </style>
 </head>
 <body>
@@ -610,6 +630,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 </div>
 <button id="bSolo2" style="width:100%;margin-top:-4px">▶ Lancer une partie d'essai</button>
 <button id="bTuto" style="width:100%;margin-top:6px">🎓 Tutoriel : apprendre à jouer</button>
+<button data-rg="open" style="width:100%;margin-top:6px">🗡️ Aventure (roguelike, contre l’ordinateur)</button>
 <p class="note">La plupart des effets des cartes s'appliquent tout seuls ; les rares effets situationnels se règlent avec les boutons de chaque carte.</p>
 </div>
 <div class="lcol">
@@ -635,6 +656,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 </div>
 </section>
 
+<section id="rogue" class="hidden" data-noi18n></section>
 <section id="game" class="hidden">
 <div class="main">
 <div class="bar"><span class="ph" id="phase"></span><span id="turnInfo" class="small"></span><span class="sp"></span><span class="small" id="conn"></span><button id="bSwitch" class="hidden">Changer de côté</button></div>
@@ -661,13 +683,14 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/i18n.js?v=1795733031"></script>
+<script src="js/i18n.js?v=1795739851"></script>
 <script src="js/uniques.js?v=1795716790"></script>
 <script src="js/cloud.js?v=1795716790"></script>
 <script src="js/engine.js?v=1795731536"></script>
 <script src="js/ai.js?v=1795716790"></script>
 <script src="js/net.js?v=1795716790"></script>
-<script src="js/play.js?v=1795731536"></script>
+<script src="js/rogue.js?v=1795739851"></script>
+<script src="js/play.js?v=1795739665"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
  t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');
