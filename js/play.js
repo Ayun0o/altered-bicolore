@@ -640,7 +640,7 @@
   function bindDrag() {
 
     document.addEventListener('dragend', () => { DRAG = null; PREVZ = null; clearPreview(); });
-    document.addEventListener('dragstart', e => { const c = e.target.closest && e.target.closest('.c[draggable]'); if (!c) return; DRAG = c.dataset.id; e.dataTransfer.setData('text/plain', c.dataset.id); e.dataTransfer.effectAllowed = 'move'; hideZoom(); });
+    document.addEventListener('dragstart', e => { const c = e.target.closest && e.target.closest('.c[draggable]'); if (!c) return; DRAG = c.dataset.id; PREVZ = null; clearPreview(); e.dataTransfer.setData('text/plain', c.dataset.id); e.dataTransfer.effectAllowed = 'move'; hideZoom(); });
     document.addEventListener('dragover', e => { const z = e.target.closest && e.target.closest('[data-drop]'); if (!z) return; e.preventDefault(); z.style.outline = '2px dashed var(--acc)'; if (DRAG && PREVZ !== z.dataset.drop) { PREVZ = z.dataset.drop; previewPlay(DRAG, PREVZ); } });
     document.addEventListener('dragleave', e => { const z = e.target.closest && e.target.closest('[data-drop]'); if (!z) return; if (e.relatedTarget && z.contains(e.relatedTarget)) return; z.style.outline = ''; PREVZ = null; clearPreview(); });
     document.addEventListener('drop', e => { const z = e.target.closest && e.target.closest('[data-drop]'); if (!z) return; e.preventDefault(); z.style.outline = ''; const id = e.dataTransfer.getData('text/plain'); if (id) playTo(id, z.dataset.drop); });
