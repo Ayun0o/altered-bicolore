@@ -297,6 +297,11 @@ img[hidden],.heroimg[hidden]{display:none!important}
 .dpkl button:hover{background:var(--soft)}.dpkl button.cur{background:var(--soft);outline:1.5px solid var(--line)}
 .dpkl .dpn{display:flex;flex-direction:column;color:var(--ink)}.dpkl small{color:var(--mute);font-size:12px}
 @media(max-width:600px){.dpkl{position:fixed;left:12px;right:12px;top:70px;min-width:0;max-width:none}}
+
+.fanc{font-size:11.5px;color:var(--mute,#888);text-align:center;padding:18px 12px 26px;opacity:.85}
+.donate{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:16px;background:#ffc439;color:#222!important;font-weight:700;text-decoration:none!important;font-size:14px;margin-right:10px}
+.donate:hover{filter:brightness(1.06)}
+.donate{margin-right:0}
 </style>
 </head>
 <body>
@@ -308,7 +313,7 @@ img[hidden],.heroimg[hidden]{display:none!important}
 <button id="fmtBtn" hidden>Format</button>
 <button id="langBtn" aria-label="Langue des cartes"></button>
 <button id="viewDeck" title="Voir les cartes de ton deck en grand, avec les statistiques">🃏 Voir mon deck</button>
-<span class="sync" id="sync">Chargement…</span>
+<a class="donate" id="donateLink" href="https://www.paypal.com/qrcodes/p2pqrc/6TLGEJPFGP2KY" target="_blank" rel="noopener" title="Soutenir le projet (facultatif)" hidden>☕ Soutenir</a><span class="sync" id="sync">Chargement…</span>
 </header>
 <div class="wrap">
 <dialog id="artDlg"><h3 style="margin:0 0 4px">🎨 <span id="artT"></span></h3><p class="note" style="margin:0 0 10px">Choisis l'illustration utilisée pour cette carte dans ce deck (et sur la table de jeu).</p><div id="artG" class="artg"></div><div class="row" style="margin-top:10px;justify-content:flex-end"><button id="artClose" type="button">Fermer</button></div></dialog>
@@ -699,6 +704,7 @@ $('siteLink').addEventListener('click',()=>{$('siteLink').href=SITEB+'play.html?
 let uList=[],uScan=null;function uRender(){const q=norm($('uQ').value);const seen=new Set();uList=CARDS.filter(c=>c.t==='CHARACTER'&&c.y==='C'&&(!q||norm(c.n+' '+c.en).includes(q))).filter(c=>{const k=c.r.replace(/_C$/,'');if(seen.has(k))return false;seen.add(k);return true}).slice(0,80);$('uPick').innerHTML=uList.map((c,i)=>'<option value="'+i+'">'+esc(NM(c))+' — '+esc(FN[c.h]||'')+' · '+esc(SETN[c.s]||c.s)+'</option>').join('')}
 $('addU').onclick=()=>{const d=D(),P=BY[d.hero]?.f;$('uFac').innerHTML=FAC.map(f=>'<option value="'+f+'"'+(f===P?' selected':'')+'>'+FN[f]+'</option>').join('');$('uQ').value='';$('uRes').innerHTML='';uScan=null;$('uPhoto').value='';uRender();$('uDlg').showModal()};
 {const _uOpen=$('addU').onclick;$('addU').onclick=()=>{if(window.AltUniques){$('uSite').showModal();return}_uOpen()};$('uSiteClose').onclick=()=>$('uSite').close();$('uSiteMan').onclick=()=>{$('uSite').close();_uOpen()}}
+if(window.AltUniques)$('donateLink').hidden=false;
 {const fb=()=>{$('fmtBtn').hidden=location.hash!=='#reglages'};fb();addEventListener('hashchange',fb)}
 $('uQ').oninput=uRender;$('uPick').onchange=()=>{const c=uList[+$('uPick').value];if(c)$('uFac').value=c.h};
 $('uCancel').onclick=()=>$('uDlg').close();
@@ -809,5 +815,6 @@ $('showTxt').addEventListener('change',()=>{try{localStorage.setItem('alt-bi-txt
 start();
 }
 </script>
+<footer class="fanc">Altered Fan Content · projet de fan, gratuit et non officiel, non approuvé par Equinox. Altered et ses illustrations appartiennent à Equinox.</footer>
 </body>
 </html>

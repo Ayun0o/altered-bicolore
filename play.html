@@ -643,11 +643,15 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 .dtile.on{outline:3px solid #fff;outline-offset:-3px;box-shadow:0 0 0 2px var(--c1),0 4px 14px #0006}
 .dtile:hover .dtart{opacity:.7}
 .dtile .pdel{position:absolute;top:6px;right:8px;text-shadow:none;background:#0006;border-radius:8px;padding:1px 5px}
+
+.fanc{font-size:11.5px;color:var(--mute,#888);text-align:center;padding:18px 12px 26px;opacity:.85}
+.donate{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:16px;background:#ffc439;color:#222!important;font-weight:700;text-decoration:none!important;font-size:14px;margin-right:10px}
+.donate:hover{filter:brightness(1.06)}
 </style>
 </head>
 <body>
 <section id="lobby">
-<div class="row lhead"><h1 style="font-size:30px;margin-right:auto">Table de jeu</h1><button id="langLobby" type="button" style="margin-right:10px" data-noi18n>FR / EN</button><a href="index.html">← Deckbuilder</a></div>
+<div class="row lhead"><h1 style="font-size:30px;margin-right:auto">Table de jeu</h1><a class="donate" href="https://www.paypal.com/qrcodes/p2pqrc/6TLGEJPFGP2KY" target="_blank" rel="noopener" title="Soutenir le projet (facultatif)">☕ Soutenir</a><button id="langLobby" type="button" style="margin-right:10px" data-noi18n>FR / EN</button><a href="index.html">← Deckbuilder</a></div>
 <div class="lcols">
 <div class="lcol">
 <div class="box">
@@ -717,14 +721,14 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/i18n.js?v=1795783258"></script>
-<script src="js/uniques.js?v=1795783258"></script>
-<script src="js/cloud.js?v=1795783258"></script>
-<script src="js/engine.js?v=1795783258"></script>
-<script src="js/ai.js?v=1795783258"></script>
-<script src="js/net.js?v=1795783258"></script>
-<script src="js/rogue.js?v=1795783258"></script>
-<script src="js/play.js?v=1795783258"></script>
+<script src="js/i18n.js?v=1795785407"></script>
+<script src="js/uniques.js?v=1795785407"></script>
+<script src="js/cloud.js?v=1795785407"></script>
+<script src="js/engine.js?v=1795785407"></script>
+<script src="js/ai.js?v=1795785407"></script>
+<script src="js/net.js?v=1795785407"></script>
+<script src="js/rogue.js?v=1795785407"></script>
+<script src="js/play.js?v=1795785407"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
  t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');
@@ -785,5 +789,6 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 })();
 </script>
 <script>(function(){const b=document.getElementById('langLobby');const set=()=>{let l='fr';try{l=localStorage.getItem('alt-bi-lang')==='en'?'en':'fr'}catch(e){}b.innerHTML=l==='en'?'<b>EN</b> / fr':'<b>FR</b> / en'};set();b.onclick=()=>{let l='fr';try{l=localStorage.getItem('alt-bi-lang')==='en'?'fr':'en';localStorage.setItem('alt-bi-lang',l)}catch(e){}location.reload()}})();</script>
+<footer class="fanc">Altered Fan Content · projet de fan, gratuit et non officiel, non approuvé par Equinox. Altered et ses illustrations appartiennent à Equinox.</footer>
 </body>
 </html>
