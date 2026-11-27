@@ -647,6 +647,11 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 .fanc{font-size:11.5px;color:var(--mute,#888);text-align:center;padding:18px 12px 26px;opacity:.85}
 .donate{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:16px;background:#ffc439;color:#222!important;font-weight:700;text-decoration:none!important;font-size:14px;margin-right:10px}
 .donate:hover{filter:brightness(1.06)}
+
+.donDlg{max-width:460px;width:calc(100% - 32px);border:0;border-radius:16px;padding:20px 22px;line-height:1.5}
+.donDlg h3{margin:0 0 10px;font-size:20px}.donDlg p{margin:0 0 10px;font-size:15px}
+.donDlg .donb{display:flex;justify-content:flex-end;gap:10px;align-items:center;margin-top:14px;flex-wrap:wrap}.donDlg .donb .donate{margin:0;padding:8px 16px}
+.donDlg::backdrop{background:#0008}
 </style>
 </head>
 <body>
@@ -790,5 +795,6 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 </script>
 <script>(function(){const b=document.getElementById('langLobby');const set=()=>{let l='fr';try{l=localStorage.getItem('alt-bi-lang')==='en'?'en':'fr'}catch(e){}b.innerHTML=l==='en'?'<b>EN</b> / fr':'<b>FR</b> / en'};set();b.onclick=()=>{let l='fr';try{l=localStorage.getItem('alt-bi-lang')==='en'?'fr':'en';localStorage.setItem('alt-bi-lang',l)}catch(e){}location.reload()}})();</script>
 <footer class="fanc">Altered Fan Content · projet de fan, gratuit et non officiel, non approuvé par Equinox. Altered et ses illustrations appartiennent à Equinox.</footer>
+<dialog id="donDlg" class="donDlg"><h3>☕ Soutenir Altered bicolore</h3><p>Altered bicolore est un projet bénévole, que je développe sur mon temps libre pour que les joueurs d’Altered puissent continuer à se retrouver et à jouer en ligne.</p><p>Si le site vous plaît, je reste à l’écoute : j’essaie de le mettre à jour selon vos retours. N’hésitez pas à me dire ce qui marche, ce qui coince ou ce qui manque (un Discord arrive bientôt).</p><p>Et si vous voulez soutenir le projet, tous les dons sont les bienvenus. Merci ! 💛</p><div class="donb"><button type="button" data-donclose>Fermer</button><a class="donate" href="https://www.paypal.com/qrcodes/p2pqrc/6TLGEJPFGP2KY" target="_blank" rel="noopener">Faire un don via PayPal</a></div></dialog><script>(()=>{const d=document.getElementById('donDlg');document.addEventListener('click',e=>{const a=e.target.closest('a.donate');if(a&&!a.closest('#donDlg')){e.preventDefault();d.showModal();return}if(e.target.closest('[data-donclose]')||e.target===d)d.close()})})()</script>
 </body>
 </html>
