@@ -232,7 +232,8 @@
     if (won) { coins = COIN(fi); const m = loadMeta(); m.earned += coins; saveMeta(m); if (mini) run.rr = (run.rr | 0) + T(run, 'mtok'); if (fi === FIGHTS - 1) run.over = 'win'; else run.i++; }
     else { run.lives--; if (run.lives <= 0) run.over = 'lose'; }
     if (run.over) record(run);
-    else run.reward = { step: 'draft', fi, mini, won, coins, picks: won && mini && T(run, 'mini2') ? 2 : 1, cards: draftOffer(run, fi, mini) };
+    // Les récompenses de mini-boss / boss (rares, unique possible) ne s'obtiennent qu'en gagnant : un abandon ou une défaite donne un draft normal
+    else { const big = won && mini; run.reward = { step: 'draft', fi, mini: big, won, coins, picks: big && T(run, 'mini2') ? 2 : 1, cards: draftOffer(run, fi, big) }; }
     save(run); screen();
   }
   function toBoon(run) { const rw = run.reward; if (rw.pre) return nextStep(run); run.reward = { step: 'boon', fi: rw.fi, mini: rw.mini, won: rw.won, coins: rw.coins, upsLeft: rw.won && rw.mini && T(run, 'mini2up') ? 2 : 1, ups: upOffer(run) }; }
