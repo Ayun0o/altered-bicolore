@@ -669,7 +669,7 @@
   const zoomEl = document.createElement('div'); zoomEl.id = 'zoomCard'; document.body.appendChild(zoomEl);
   function zoomHtml(x) { if (x.tok) { const r = tokRef(x.tok.n); return r ? '<img alt="" style="width:100%;display:block;border-radius:14px" src="img/tok/' + r + '_' + LANG + '.webp">' : '<div class="tokz"><b>' + esc(tokName(x.tok.n)) + '</b>' + (x.tok.p ? '<span>' + x.tok.p.join(' / ') + '</span>' : '') + '</div>'; }
     const d = DB[x.ref] || {}; if (!d.u) return '<img alt="" src="' + IMG(x.ref, 1) + '">';
-    return '<span class="uqw"><img alt="" style="width:100%;display:block;border-radius:14px" src="img/' + LANG + '-hd/' + encodeURIComponent(uqBase(AltUniques.familyOf(x.ref), d.f, DB)) + '.webp">' + uqOverlay(d) + '</span><div class="uqz"><b>' + esc(NM(d)) + ' — unique</b><span>Coût ' + esc(d.c) + ' / ' + esc(d.rc) + ' · <i class="F">' + esc(d.p[0]) + '</i> <i class="M">' + esc(d.p[1]) + '</i> <i class="W">' + esc(d.p[2]) + '</i></span><span>' + esc(LANG === 'en' ? d.xe : d.x) + '</span>' + (d.e ? '<span><i>' + esc(LANG === 'en' ? d.ee : d.e) + '</i></span>' : '') + '</div>'; }
+    return '<span class="uqw"><img alt="" style="width:100%;display:block;border-radius:14px" src="img/' + LANG + '-hd/' + encodeURIComponent(uqBase(AltUniques.familyOf(x.ref), d.f, DB)) + '.webp">' + uqOverlay(d) + '</span>'; }
   function hideZoom() { if (zoomEl.classList.contains('selz')) return; zoomEl.style.display = 'none'; }
   const MOB = () => matchMedia('(max-width:900px)').matches;
   // Espace / Entrée = le bouton principal de la boîte d'instructions
