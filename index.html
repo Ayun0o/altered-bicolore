@@ -211,7 +211,8 @@ textarea{width:100%;min-height:140px;font-size:13px}
 .grid.hp{display:block}
 .hpt{margin:2px 0 10px;color:var(--mute)}
 .hpg{margin-bottom:14px}.hpg h3{display:flex;align-items:center;gap:8px;font-size:16px;margin:0 0 8px}.hpg h3 .fd{width:14px;height:14px}
-.hpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:12px}
+.hpgrid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px}
+@media(max-width:1000px){.hpgrid{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:600px){.hpgrid{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.heroimg{width:70px}}
 
 /* Ambiance : illustration du héros en fondu derrière le bloc du deck, couleurs des factions en fond */
@@ -228,13 +229,26 @@ img[hidden],.heroimg[hidden]{display:none!important}
 .herow.empty{width:84px;aspect-ratio:5/7;border:2px dashed var(--line);border-radius:6px;background:color-mix(in srgb,var(--panel) 85%,transparent)}
 @media(max-width:600px){.herow.empty{width:70px}}
 .adduq{min-height:0;padding:4px 12px;background:none;border:1px dashed var(--line);border-radius:16px;color:inherit;font-size:14px}
+
+/* Galerie « Mes decks » : tuiles avec l'illustration du héros */
+.gal{display:none}.galmode>.gal{display:block}.galmode>:not(.gal){display:none!important}
+.galh{display:flex;align-items:center;gap:8px;font-size:22px;margin:4px 0 12px}
+.gtiles{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.gtile{position:relative;overflow:hidden;isolation:isolate;display:flex;flex-direction:column;justify-content:space-between;align-items:stretch;min-height:150px;padding:12px 14px;text-align:left;border:0;border-radius:14px;color:#fff;
+ background:linear-gradient(115deg,color-mix(in srgb,var(--c1) 88%,#000) 0%,color-mix(in srgb,var(--c1) 55%,#000) 45%,color-mix(in srgb,var(--c2) 62%,#000) 100%);box-shadow:0 3px 10px #0003;cursor:pointer}
+.gtile .gtart{position:absolute;inset:0;z-index:-1;background-size:105% auto;background-position:60% 27%;opacity:.6;-webkit-mask-image:linear-gradient(90deg,transparent 12%,#000 65%);mask-image:linear-gradient(90deg,transparent 12%,#000 65%);transition:opacity .2s}
+.gtile:hover .gtart{opacity:.78}
+.gtile.on{outline:3px solid #fff;outline-offset:-3px}
+.gtb{display:flex;gap:6px;flex-wrap:wrap}.gtag{font-size:12px;font-weight:700;padding:2px 9px;border-radius:10px;background:#0007}.gtag.ok{background:#2e8b47}.gtag.bad{background:#c0392b}
+.gtx{display:flex;flex-direction:column;gap:2px;text-shadow:0 1px 3px #000b}.gtx b{font-size:19px;line-height:1.15}.gts{font-size:13px;opacity:.95}.gtn{font-size:12.5px;opacity:.85}
+.gnew{background:none;border:2px dashed var(--line);color:var(--ink);justify-content:center;align-items:center;box-shadow:none}.gnew .gtx{text-shadow:none}
 </style>
 </head>
 <body>
 <header class="top">
 <h1>Altered bicolore</h1>
 <span id="deckDots" style="display:inline-flex;gap:4px"></span><select id="deckSel" aria-label="Deck"></select>
-<button id="newDeck">Nouveau deck</button>
+<button id="myDecks" type="button">📚 Mes decks</button><button id="newDeck">Nouveau deck</button>
 <a id="siteLink" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener"><button tabindex="-1" class="on">▶ Jouer en ligne</button></a><a id="webLink" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener" title="Ouvre ce deck, uniques comprises, dans le deckbuilder en ligne"><button tabindex="-1">🌐 Ouvrir en ligne</button></a>
 <button id="fmtBtn">Format</button>
 <button id="langBtn" aria-label="Langue des cartes"></button>
@@ -242,7 +256,7 @@ img[hidden],.heroimg[hidden]{display:none!important}
 <span class="sync" id="sync">Chargement…</span>
 </header>
 <div class="wrap">
-<main class="lib">
+<main class="lib" id="libMain"><section id="gal" class="gal"></section>
 <section class="setup"><span class="setbg" id="setBg" aria-hidden="true"></span>
 <span class="herow"><img id="heroImg" class="heroimg" alt="" hidden><button id="heroX" type="button" title="Retirer le héros" aria-label="Retirer le héros" hidden>✕</button></span>
 <div class="sgrid">
@@ -508,6 +522,20 @@ function renderDeck(){
 }
 function renderDots(){const d=D();if(!d)return;const P=BY[d.hero]?.f;$('deckDots').innerHTML=[P,d.sec].filter(Boolean).map(f=>'<span class="fd" style="width:16px;height:16px;background:var(--'+f+')" title="'+FN[f]+'"></span>').join('')}
 function renderSel(){const ids=Object.keys(decks).sort((a,b)=>(decks[b].updated||0)-(decks[a].updated||0));$('deckSel').innerHTML=ids.map(id=>'<option value="'+esc(id)+'"'+(id===cur?' selected':'')+'>'+esc(decks[id].name||'Sans nom')+(BY[decks[id].hero]?' · '+FN[BY[decks[id].hero].f]+(decks[id].sec?' + '+FN[decks[id].sec]:''):'')+'</option>').join('')}
+let GAL=false;
+function galOff(){if(!GAL)return;GAL=false;$('libMain').classList.remove('galmode');$('myDecks').classList.remove('on')}
+function renderGal(){const ids=Object.keys(decks).sort((a,b)=>(decks[b].updated||0)-(decks[a].updated||0)),col=f=>f?'var(--'+f+')':'#777';
+ $('gal').innerHTML='<h2 class="galh">'+(EN()?'My decks':'Mes decks')+' <span class="dvn">'+ids.length+'</span></h2><div class="gtiles">'+ids.map(id=>{const d=decks[id],h=BY[d.hero],f=h&&h.f,f2=d.sec||f,A=analyse(d);
+  const n=Object.values(d.cards||{}).reduce((a,b)=>a+(+b||0),0)+(d.uniques||[]).length;
+  return '<button type="button" class="gtile'+(id===cur?' on':'')+'" data-open="'+esc(id)+'" style="--c1:'+col(f)+';--c2:'+col(f2)+'"><span class="gtart" data-gh="'+esc(d.hero||'')+'"></span>'
+   +'<span class="gtb"><span class="gtag '+(A.ok?'ok':'bad')+'">'+(A.ok?(EN()?'✓ Valid':'✓ Valide'):(EN()?'⚠ Not valid':'⚠ Pas valide'))+'</span>'+(d.sec?'<span class="gtag">'+(EN()?'Two-faction':'Bicolore')+'</span>':'')+'</span>'
+   +'<span class="gtx"><b>'+esc(d.name||'Sans nom')+'</b><span class="gts">'+(h?esc(NM(h)):(EN()?'No hero yet':'Pas encore de héros'))+(f?' · '+esc(FN[f])+(d.sec?' + '+esc(FN[d.sec]):''):'')+'</span><span class="gtn">'+n+' '+(EN()?'cards':'cartes')+'</span></span></button>'}).join('')
+  +'<button type="button" class="gtile gnew" data-gnew="1"><span class="gtx"><b>＋ '+(EN()?'New deck':'Nouveau deck')+'</b></span></button></div>';
+ $('gal').querySelectorAll('[data-gh]').forEach(el=>{const r=el.dataset.gh;if(r)imgFor(r).then(u=>{if(u)el.style.backgroundImage='url("'+u+'")'})})}
+$('myDecks').onclick=()=>{if(GAL){galOff();return}GAL=true;$('libMain').classList.add('galmode');$('myDecks').classList.add('on');renderGal();window.scrollTo({top:0})};
+document.addEventListener('click',e=>{const t=e.target.closest('[data-open],[data-gnew]');if(!t||!t.closest('#gal'))return;
+ if(t.dataset.gnew){galOff();$('newDeck').click();return}
+ cur=t.dataset.open;try{localStorage.setItem('alt-bi-cur',cur)}catch(x){}galOff();DECKVIEW=false;shown=60;renderAll();window.scrollTo({top:0})});
 function renderAll(){renderSel();renderDeck();renderGrid();renderDots()}
 
 function touch(){const d=D();d.updated=Date.now();dirty.add(cur);try{localStorage.setItem('alt-bi-decks',JSON.stringify(decks));localStorage.setItem('alt-bi-cur',cur)}catch(e){}
@@ -529,12 +557,12 @@ $('heroX').onclick=e=>{e.stopPropagation();const d=D();if(!d)return;d.hero='';d.
 $('dHero').onchange=e=>{const d=D();d.hero=e.target.value;const P=BY[d.hero]?.f;if(d.sec&&(d.sec===P||(P&&!neighbours(P).includes(d.sec))))d.sec='';touch();renderDeck();renderGrid()};
 $('dSec').onchange=e=>{D().sec=e.target.value;touch();renderDeck();renderGrid();renderDots()};
 $('dName').oninput=e=>{D().name=e.target.value;$('asideTitle').textContent=e.target.value||'Mon deck';touch();renderSel()};
-$('deckSel').onchange=e=>{cur=e.target.value;try{localStorage.setItem('alt-bi-cur',cur)}catch(x){}shown=60;renderAll()};
+$('deckSel').onchange=e=>{galOff();cur=e.target.value;try{localStorage.setItem('alt-bi-cur',cur)}catch(x){}shown=60;renderAll()};
 let STARTERS=[];fetch('starters.json').then(r=>r.ok?r.json():[]).then(x=>{STARTERS=Array.isArray(x)?x:[]}).catch(()=>{});
 function makeDeck(name,base){const id='d'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);const d=newDeckObj(name);if(base){d.hero=BY[base.hero]?base.hero:'';for(const [r,n] of Object.entries(base.cards||{}))if(BY[r])d.cards[r]=n}decks[id]=d;cur=id;touch();renderAll();$('dName').focus();$('dName').select()}
 $('newCancel').onclick=()=>$('newDlg').close();
 $('newList').addEventListener('click',e=>{const b=e.target.closest('[data-start]');if(!b)return;const k=b.dataset.start;$('newDlg').close();if(k==='empty')makeDeck('Nouveau deck');else{const s=STARTERS.find(x=>x.id===k);if(s)makeDeck('Mon deck '+(FN[BY[s.hero]?.f]||'')+' (base départ)',s)}});
-$('viewDeck').onclick=()=>{DECKVIEW=!DECKVIEW;shown=60;renderGrid();window.scrollTo({top:0,behavior:'smooth'})};
+$('viewDeck').onclick=()=>{galOff();DECKVIEW=!DECKVIEW;shown=60;renderGrid();window.scrollTo({top:0,behavior:'smooth'})};
 $('newDeck').onclick=()=>{$('newList').innerHTML='<button data-start="empty" style="text-align:left"><b>Deck vide</b><br><span class="note">Choisis ton héros et tes cartes toi-même</span></button>'+STARTERS.map(s=>{const f=BY[s.hero]?.f;return '<button data-start="'+esc(s.id)+'" style="display:flex;gap:8px;align-items:center;text-align:left"><span class="fd" style="width:14px;height:14px;background:var(--'+f+')"></span><span><b>'+esc(s.name)+'</b><br><span class="note">'+esc(FN[f]||'')+' · '+esc(NM(BY[s.hero]))+' · 39 cartes</span></span></button>'}).join('');$('newDlg').showModal()};
 $('newDeck').dataset.old='1';const _oldNew=()=>{const id='d'+Date.now().toString(36)+Math.random().toString(36).slice(2,6);decks[id]=newDeckObj('Nouveau deck');cur=id;touch();renderAll();$('dName').focus();$('dName').select()};
 let delArm=false;$('del').onclick=()=>{if(!delArm){delArm=true;$('del').textContent='Confirmer la suppression';setTimeout(()=>{delArm=false;$('del').textContent='Supprimer'},4000);return}
