@@ -819,7 +819,7 @@ body[data-foe=mini1] .herocol:not(.mine) .hname::before,body[data-foe=mini2] .he
 body[data-foe=mini1] .herocol:not(.mine) .hname::after,body[data-foe=mini2] .herocol:not(.mine) .hname::after{content:" ★";color:var(--rk)}
 body[data-foe=boss] .herocol:not(.mine) .hname::before{content:"👑 "}body[data-foe=boss] .herocol:not(.mine) .hname::after{content:" 👑"}
 body[data-foe=mini1]{--rk:#d08a4e;--rk2:#7a4a22}body[data-foe=mini2]{--rk:#dfe4ec;--rk2:#8a93a3}body[data-foe=boss]{--rk:#f3d27a;--rk2:#a77d24}
-body[data-foe=mini1] #game .zone.exp,body[data-foe=mini2] #game .zone.exp,body[data-foe=boss] #game .zone.exp{border:2px solid var(--rk);box-shadow:inset 0 0 0 1px var(--rk2),0 0 12px color-mix(in srgb,var(--rk) 35%,transparent)}
+body[data-foe=mini1] #game .zone.exp:not(.mine),body[data-foe=mini2] #game .zone.exp:not(.mine),body[data-foe=boss] #game .zone.exp:not(.mine){border:2px solid var(--rk);box-shadow:inset 0 0 0 1px var(--rk2),0 0 12px color-mix(in srgb,var(--rk) 35%,transparent)}
 /* Glisser à la souris : carte qui suit le curseur, main fermée */
 .c.mdrag{position:fixed!important;left:0;top:0;margin:0!important;z-index:9000;pointer-events:none;box-shadow:0 18px 40px #000b;transition:none!important;animation:none!important}
 .c.mdsrc{opacity:.3}body.mdragging,body.mdragging *{cursor:grabbing!important;user-select:none}body.mdragging #zoomCard{display:none!important}
