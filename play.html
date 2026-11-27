@@ -774,6 +774,38 @@ body.rgon{background:radial-gradient(ellipse at 18% 0%,color-mix(in srgb,var(--r
 #rogue .rgbarr{margin-left:auto;display:flex;gap:8px}
 #rogue .rgbar button{white-space:nowrap}@media(max-width:600px){#rogue .rgbar{gap:6px}#rogue .rgbarr{gap:6px}#rogue .rgbar button{padding:8px 10px;font-size:14px}#rogue .rgvm{display:none}}
 #rogue .rgvs{display:none}@media(max-width:600px){#rogue .rgvs{display:inline}}
+
+/* Aventure : mini-boss et boss, cadre de faction autour du héros adverse */
+body[data-foe] .herocol:not(.mine) .herowrap{isolation:isolate}
+body[data-foe=mini] .herocol:not(.mine) .herowrap::before,body[data-foe=boss] .herocol:not(.mine) .herowrap::before{content:"";position:absolute;inset:-9px;z-index:-1;border-radius:14px;pointer-events:none}
+body[data-foe=mini] .herocol:not(.mine) .herowrap::after,body[data-foe=boss] .herocol:not(.mine) .herowrap::after{content:"★ MINI-BOSS";position:absolute;left:50%;bottom:3px;transform:translateX(-50%);z-index:3;pointer-events:none;white-space:nowrap;font:800 9.5px/1 system-ui,sans-serif;letter-spacing:1.2px;padding:3px 7px;border-radius:9px;color:#fff;background:var(--fb,#333);box-shadow:0 0 10px var(--fg,#000),0 1px 3px #000}
+body[data-foe=boss] .herocol:not(.mine) .herowrap::after{content:"👑 BOSS";font-size:11px;background:linear-gradient(180deg,#f3d27a,#a77d24);color:#2a1a00}
+/* Axiom : éclats de métal */
+body[data-foef=AX] .herocol:not(.mine) .herowrap{--fb:#9a6a3a;--fg:#d79a5a}
+body[data-foef=AX][data-foe] .herocol:not(.mine) .herowrap::before{inset:-13px;border-radius:4px;background:repeating-linear-gradient(45deg,#ffffff22 0 2px,transparent 2px 9px),linear-gradient(135deg,#c7ccd4,#555b66 25%,#c48a4c 50%,#4a505a 75%,#b8bec8);clip-path:polygon(0 6%,5% 0,14% 4%,22% 0,34% 5%,48% 0,60% 4%,72% 0,84% 5%,95% 0,100% 7%,96% 18%,100% 30%,95% 44%,100% 58%,96% 70%,100% 84%,95% 100%,82% 96%,70% 100%,56% 95%,44% 100%,30% 96%,18% 100%,5% 95%,0 88%,4% 74%,0 60%,5% 46%,0 32%,4% 18%);filter:drop-shadow(0 0 6px #d79a5a)}
+/* Bravos : feu */
+body[data-foef=BR] .herocol:not(.mine) .herowrap{--fb:#c2321f;--fg:#ff7a2a}
+body[data-foef=BR][data-foe] .herocol:not(.mine) .herowrap::before{inset:-12px;background:radial-gradient(ellipse 60% 35% at 50% 100%,#ffd36b,#ff7a2a 40%,transparent 75%),radial-gradient(ellipse 30% 60% at 0% 60%,#ff5a1f,transparent 70%),radial-gradient(ellipse 30% 60% at 100% 40%,#ff5a1f,transparent 70%),radial-gradient(ellipse 60% 30% at 50% 0%,#ff9a3a,transparent 75%),#b3240f;filter:blur(4px);animation:rgFire 1.3s ease-in-out infinite alternate}
+@keyframes rgFire{0%{opacity:.8;transform:scale(1,1)}50%{opacity:1;transform:scale(1.03,1.05)}100%{opacity:.85;transform:scale(.99,1.02)}}
+/* Lyra : pétales et étincelles */
+body[data-foef=LY] .herocol:not(.mine) .herowrap{--fb:#c4457e;--fg:#ff8fc4}
+body[data-foef=LY][data-foe] .herocol:not(.mine) .herowrap::before{inset:-11px;border-radius:18px;background:radial-gradient(circle,#fff 0 1.5px,transparent 2.5px) 0 0/14px 14px,radial-gradient(ellipse 5px 3px,#ffb3d6 0 70%,transparent 75%) 7px 5px/18px 16px,linear-gradient(160deg,#ff8fc4,#7b3fa8 50%,#ff8fc4);box-shadow:0 0 16px #ff8fc4aa;animation:rgDrift 6s linear infinite}
+@keyframes rgDrift{to{background-position:14px 28px,25px 37px,0 0}}
+/* Muna : lianes et feuilles */
+body[data-foef=MU] .herocol:not(.mine) .herowrap{--fb:#3f7a32;--fg:#7fd36a}
+body[data-foef=MU][data-foe] .herocol:not(.mine) .herowrap::before{inset:-12px;border-radius:22px 8px 22px 8px;background:radial-gradient(ellipse 7px 4px at 50% 50%,#9be27f 0 60%,transparent 65%) 0 0/16px 15px,radial-gradient(ellipse 4px 7px at 50% 50%,#5fae49 0 60%,transparent 65%) 8px 7px/16px 15px,linear-gradient(200deg,#2e5a22,#4f8d3a 50%,#24461b);box-shadow:0 0 14px #7fd36a88;animation:rgSway 4s ease-in-out infinite alternate}
+@keyframes rgSway{to{transform:rotate(.8deg) scale(1.015)}}
+/* Ordis : bouclier et maillage */
+body[data-foef=OR] .herocol:not(.mine) .herowrap{--fb:#2d5fb0;--fg:#6fa8ff}
+body[data-foef=OR][data-foe] .herocol:not(.mine) .herowrap::before{inset:-10px;border-radius:10px;background:repeating-linear-gradient(60deg,#9cc4ff55 0 1px,transparent 1px 10px),repeating-linear-gradient(-60deg,#9cc4ff55 0 1px,transparent 1px 10px),linear-gradient(180deg,#3a74d4,#163a7a);border:2px solid #b9d4ff;box-shadow:0 0 14px #6fa8ffaa,inset 0 0 10px #fff4;animation:rgPulse 2.4s ease-in-out infinite}
+@keyframes rgPulse{50%{box-shadow:0 0 24px #6fa8ff,inset 0 0 14px #fff6}}
+/* Yzmir : cercle arcanique */
+body[data-foef=YZ] .herocol:not(.mine) .herowrap{--fb:#6a3fc4;--fg:#b48bff}
+body[data-foef=YZ][data-foe] .herocol:not(.mine) .herowrap::before{inset:-12px;border-radius:12px;background:repeating-conic-gradient(from 0deg at 50% 50%,#d6c2ff 0 2deg,transparent 2deg 12deg),radial-gradient(circle,#2a1460,#5b31b0 70%,#b48bff);box-shadow:0 0 18px #b48bffaa;animation:rgSpin 14s linear infinite}
+@keyframes rgSpin{to{filter:hue-rotate(40deg)}}
+/* Boss : halo doré en plus */
+body[data-foe=boss] .herocol:not(.mine) .herowrap::before{outline:2px solid #f3d27a;outline-offset:2px;box-shadow:0 0 22px #f3d27a,0 0 40px var(--fg)}
+@media (prefers-reduced-motion:reduce){body[data-foe] .herocol .herowrap::before{animation:none!important}}
 </style>
 </head>
 <body>
@@ -856,8 +888,8 @@ body.rgon{background:radial-gradient(ellipse at 18% 0%,color-mix(in srgb,var(--r
 <script src="js/engine.js?v=1795798404"></script>
 <script src="js/ai.js?v=1795785407"></script>
 <script src="js/net.js?v=1795785407"></script>
-<script src="js/rogue.js?v=1795804335"></script>
-<script src="js/play.js?v=1795803205"></script>
+<script src="js/rogue.js?v=1795804404"></script>
+<script src="js/play.js?v=1795804404"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
  t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');
