@@ -218,9 +218,9 @@
     const run = load(); if (!run) return;
     for (const c of Object.values(run.uq)) P().DB[c.r] = c;
     const e = enemyDeck(run, run.i);
-    const me = deckObj(run, run.deck, L('Mon deck', 'My deck')), foe = deckObj(run, e.d, e.boss ? 'Boss' : e.mini ? L('Mini-boss', 'Mini-boss') : FN[e.f]);
+    const me = deckObj(run, run.deck, L('Mon deck', 'My deck')), foe = deckObj(run, e.d, FN[e.f]);
     save(run);
-    const who = (e.boss ? L('Boss', 'Boss') + ' ' : e.mini ? L('Mini-boss', 'Mini-boss') + ' ' : '') + FN[e.f];
+    const who = FN[e.f]; // les étoiles (mini-boss) ou la couronne (boss) s'affichent autour du nom
     $('rogue').classList.add('hidden'); document.body.dataset.foe = e.boss ? 'boss' : e.mini ? (run.i === MINI[0] ? 'mini1' : 'mini2') : ''; document.body.dataset.foef = e.f;
     P().start(me, foe, L('Toi', 'You'), who, won => after(won), e.bonus);
   }

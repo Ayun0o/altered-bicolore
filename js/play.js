@@ -660,8 +660,20 @@
   }
   function bindDrag() {
 
+    // Glisser à la souris fait maison : la carte suit le curseur, qui reste une main qui attrape (le glisser natif impose sa flèche)
+    let MD = null, SUPCLICK = 0;
+    document.addEventListener('pointerdown', e => { if (e.pointerType !== 'mouse' || e.button !== 0) return; const c = e.target.closest && e.target.closest('#game .c[draggable]'); if (!c) return; e.preventDefault(); MD = { id: c.dataset.id, x: e.clientX, y: e.clientY, c, on: false, z: null }; });
+    document.addEventListener('pointermove', e => { if (!MD) return;
+      if (!MD.on) { if (Math.hypot(e.clientX - MD.x, e.clientY - MD.y) < 6) return; MD.on = true; DRAG = MD.id; PREVZ = null; clearPreview(); hideZoom();
+        const r = MD.c.getBoundingClientRect(), g = MD.c.cloneNode(true); g.classList.add('mdrag'); g.classList.remove('sel'); g.removeAttribute('draggable'); g.style.width = r.width + 'px'; g.style.height = r.height + 'px'; MD.ox = e.clientX - r.left; MD.oy = e.clientY - r.top; document.body.appendChild(g); MD.g = g; MD.c.classList.add('mdsrc'); document.body.classList.add('mdragging'); }
+      MD.g.style.transform = 'translate(' + (e.clientX - MD.ox) + 'px,' + (e.clientY - MD.oy) + 'px) rotate(-4deg) scale(1.05)';
+      const t = document.elementFromPoint(e.clientX, e.clientY), z = t && t.closest ? t.closest('[data-drop]') : null;
+      if (z !== MD.z) { if (MD.z) MD.z.style.outline = ''; MD.z = z; if (z) { z.style.outline = '2px dashed var(--acc)'; if (PREVZ !== z.dataset.drop) { PREVZ = z.dataset.drop; previewPlay(DRAG, PREVZ); } } else { PREVZ = null; clearPreview(); } } });
+    const mdEnd = drop => { if (!MD) return; const m = MD; MD = null; if (!m.on) return; if (m.g) m.g.remove(); m.c.classList.remove('mdsrc'); document.body.classList.remove('mdragging'); if (m.z) m.z.style.outline = ''; DRAG = null; PREVZ = null; clearPreview(); SUPCLICK = Date.now(); if (drop && m.z) playTo(m.id, m.z.dataset.drop); };
+    document.addEventListener('pointerup', () => mdEnd(true)); window.addEventListener('blur', () => mdEnd(false)); document.addEventListener('keydown', e => { if (e.key === 'Escape') mdEnd(false); });
+    document.addEventListener('click', e => { if (Date.now() - SUPCLICK < 300) { e.stopPropagation(); e.preventDefault(); } }, true);
     document.addEventListener('dragend', () => { DRAG = null; PREVZ = null; clearPreview(); });
-    document.addEventListener('dragstart', e => { const c = e.target.closest && e.target.closest('.c[draggable]'); if (!c) return; DRAG = c.dataset.id; PREVZ = null; clearPreview(); e.dataTransfer.setData('text/plain', c.dataset.id); e.dataTransfer.effectAllowed = 'move'; hideZoom();
+    document.addEventListener('dragstart', e => { if (MD) { e.preventDefault(); return; } const c = e.target.closest && e.target.closest('.c[draggable]'); if (!c) return; DRAG = c.dataset.id; PREVZ = null; clearPreview(); e.dataTransfer.setData('text/plain', c.dataset.id); e.dataTransfer.effectAllowed = 'move'; hideZoom();
       // Image de glisser propre (juste la carte), préparée dès l'appui pour qu'elle soit déjà dessinée au début du glisser
       // On donne directement l'image de la carte : le navigateur l'utilise telle quelle (un élément hors écran peut sortir vide sous Windows)
       try { const im = c.querySelector('img'); if (im && im.complete && im.naturalWidth) { const r = im.getBoundingClientRect(); e.dataTransfer.setDragImage(im, r.width / 2, r.height / 2); } } catch (_) {} });
