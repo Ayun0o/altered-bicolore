@@ -697,7 +697,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 <div class="box"><h2 class="lh2">Mes statistiques</h2><div id="statsBox"></div></div>
 </div>
 </div>
-</section>
+<footer class="fanc">Altered Fan Content · projet de fan, gratuit et non officiel, non approuvé par Equinox. Altered et ses illustrations appartiennent à Equinox.</footer></section>
 
 <section id="rogue" class="hidden" data-noi18n></section>
 <section id="game" class="hidden">
@@ -794,7 +794,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 })();
 </script>
 <script>(function(){const b=document.getElementById('langLobby');const set=()=>{let l='fr';try{l=localStorage.getItem('alt-bi-lang')==='en'?'en':'fr'}catch(e){}b.innerHTML=l==='en'?'<b>EN</b> / fr':'<b>FR</b> / en'};set();b.onclick=()=>{let l='fr';try{l=localStorage.getItem('alt-bi-lang')==='en'?'fr':'en';localStorage.setItem('alt-bi-lang',l)}catch(e){}location.reload()}})();</script>
-<footer class="fanc">Altered Fan Content · projet de fan, gratuit et non officiel, non approuvé par Equinox. Altered et ses illustrations appartiennent à Equinox.</footer>
+
 <dialog id="donDlg" class="donDlg"><h3>☕ Soutenir Altered bicolore</h3><p>Altered bicolore est un projet bénévole, que je développe sur mon temps libre pour que les joueurs d’Altered puissent continuer à se retrouver et à jouer en ligne.</p><p>Si le site vous plaît, je reste à l’écoute : j’essaie de le mettre à jour selon vos retours. N’hésitez pas à me dire ce qui marche, ce qui coince ou ce qui manque (un Discord arrive bientôt).</p><p>Et si vous voulez soutenir le projet, tous les dons sont les bienvenus. Merci ! 💛</p><div class="donb"><button type="button" data-donclose>Fermer</button><a class="donate" href="https://www.paypal.com/qrcodes/p2pqrc/6TLGEJPFGP2KY" target="_blank" rel="noopener">Faire un don via PayPal</a></div></dialog><script>(()=>{const d=document.getElementById('donDlg');document.addEventListener('click',e=>{const a=e.target.closest('a.donate');if(a&&!a.closest('#donDlg')){e.preventDefault();d.showModal();return}if(e.target.closest('[data-donclose]')||e.target===d)d.close()})})()</script>
 </body>
 </html>
