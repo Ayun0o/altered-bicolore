@@ -648,6 +648,8 @@
     bindDrag(); if (window.matchMedia && matchMedia('(hover: hover)').matches) bindZoom();
     document.addEventListener('click', e => {
       const t = e.target;
+      // Téléphone : toucher ailleurs que la carte agrandie (choix du mana / défausse) referme l'aperçu
+      if (PEEK) { const c = t.closest && t.closest('.c[data-id]'); if (!c || c.dataset.id !== PEEK) { PEEK = null; selPreview(); } }
       const actB = t.closest('[data-act]');
       if (actB) { let a; try { a = JSON.parse(actB.dataset.act); } catch (x) { return; } if (a.type === 'play') { const v = parseInt(($('costIn') || {}).value, 10); if (Number.isFinite(v)) a.cost = v; } dispatch(a); if (a.type === 'play' || a.type === 'toMana' || (a.type === 'move')) sel = null; return; }
       const dsc = t.closest('[data-disc]');
