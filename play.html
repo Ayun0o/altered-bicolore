@@ -597,6 +597,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 .rgtrack{display:flex;gap:6px;margin:12px 0;flex-wrap:wrap}
 .rgn{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;border:2px solid var(--line);font-weight:700;font-size:14px;opacity:.6}
 .rgn.done{background:#3c8a4a;border-color:#3c8a4a;color:#fff;opacity:1}.rgn.cur{border-color:#f5c518;color:#f5c518;opacity:1;box-shadow:0 0 10px #f5c51866}.rgn.boss{width:40px;height:40px}
+.rgstats{width:100%;border-collapse:collapse;font-size:13px}.rgstats th,.rgstats td{padding:4px 6px;text-align:center;border-bottom:1px solid var(--line)}.rgstats td:first-child,.rgstats th:first-child{text-align:left}
 .rgfac{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin-top:10px}
 .rgfac button{display:flex;flex-direction:column;align-items:flex-start;gap:2px;padding:10px 12px;border-width:2px}
 .rgoffers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
@@ -741,7 +742,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 <script src="js/engine.js?v=1795785407"></script>
 <script src="js/ai.js?v=1795785407"></script>
 <script src="js/net.js?v=1795785407"></script>
-<script src="js/rogue.js?v=1795785407"></script>
+<script src="js/rogue.js?v=1795794418"></script>
 <script src="js/play.js?v=1795785407"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
@@ -813,9 +814,9 @@ function html(){return '<h2 style="margin:0 0 8px">🗡️ '+L('Aventure : les r
  '<li>'+L('<b>Choisis ta faction</b> : tu pars avec son deck de départ officiel.','<b>Choose your faction</b>: you start with its official starter deck.')+'</li>'+
  '<li>'+L('<b>8 combats</b> d’affilée, contre des decks de départ d’autres factions, de plus en plus améliorés (rares, altérations). Le 8e est le <b>boss</b> 👑.','<b>8 fights</b> in a row, against other factions’ starter decks, upgraded more and more (rares, alterations). The 8th is the <b>boss</b> 👑.')+'</li>'+
  '<li>'+L('Après chaque victoire :','After each win:')+'<ul>'+
- '<li>'+L('<b>Draft</b> : choisis 1 carte parmi 3 de ta faction (communes ou rares) et ajoute-la au deck, sans limite d’exemplaires. Tu peux aussi passer.','<b>Draft</b>: pick 1 card out of 3 from your faction (commons or rares) and add it to your deck, with no copy limit. You can also skip.')+'</li>'+
+ '<li>'+L('<b>Draft</b> : choisis 1 carte parmi 3 de ta faction (de plus en plus de rares au fil des combats) et ajoute-la au deck, sans limite d’exemplaires. Tu peux aussi passer.','<b>Draft</b>: pick 1 card out of 3 from your faction (more and more rares as you go) and add it to your deck, with no copy limit. You can also skip.')+'</li>'+
  '<li>'+L('<b>Amélioration</b> : passe une commune de ton deck en rare (1 choix parmi 3)…','<b>Upgrade</b>: turn one of your commons into its rare (1 choice out of 3)…')+'</li>'+
- '<li>'+L('…ou tente une <b>mutation</b> 🎲 sur une rare : un bonus garanti, ou elle devient une vraie unique au hasard (meilleure ou pire).','…or try a <b>mutation</b> 🎲 on a rare: a guaranteed bonus, or it becomes a random real unique (better or worse).')+'</li></ul></li>'+
+ '<li>'+L('…ou tente une <b>mutation</b> 🎲 sur une rare : elle devient une vraie unique au hasard, meilleure ou pire.','…or try a <b>mutation</b> 🎲 on a rare: it becomes a random real unique, better or worse.')+'</li></ul></li>'+
  '<li>'+L('Une défaite coûte une vie ♥ et tu rejoues le même combat. <b>3 défaites</b> et la course s’arrête.','A loss costs a life ♥ and you replay the same fight. <b>3 losses</b> and the run is over.')+'</li></ol>'+
  '<p class="note">'+L('La course est enregistrée dans ce navigateur : tu peux t’arrêter et reprendre plus tard.','The run is saved in this browser: you can stop and resume later.')+'</p>'}
 $('rgHelp').onclick=()=>{$('rgHelpBody').innerHTML=html();$('rgHelpDlg').showModal()};

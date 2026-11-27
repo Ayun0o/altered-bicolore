@@ -12,6 +12,14 @@
   const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
   const load = () => { try { return JSON.parse(localStorage.getItem(KEY) || 'null'); } catch (e) { return null; } };
   const save = r => { try { localStorage.setItem(KEY, JSON.stringify(r)); } catch (e) { } };
+  // Stats d'aventure par faction : courses, aventures réussies, meilleur résultat, combats gagnés
+  const SKEY = 'alt-bi-rogue-stats';
+  const loadStats = () => { try { return JSON.parse(localStorage.getItem(SKEY) || '{}') || {}; } catch (e) { return {}; } };
+  function record(run) { if (!run || run.counted) return; const S = loadStats(), w = run.log.filter(x => x.won).length, o = S[run.f] || { runs: 0, wins: 0, best: 0, fights: 0 };
+    o.runs++; if (run.over === 'win') o.wins++; o.best = Math.max(o.best, w); o.fights += w; S[run.f] = o; try { localStorage.setItem(SKEY, JSON.stringify(S)); } catch (e) { } run.counted = true; }
+  function statsView() { const S = loadStats(), fs = FAC.filter(f => S[f] && S[f].runs); if (!fs.length) return '';
+    return '<div class="rgbox"><h3 style="margin:0 0 6px">📊 ' + L('Mes stats d’aventure', 'My adventure stats') + '</h3><table class="rgstats"><tr><th></th><th>' + L('Courses', 'Runs') + '</th><th>' + L('Réussies', 'Cleared') + '</th><th>' + L('Record', 'Best') + '</th><th>' + L('Combats gagnés', 'Fights won') + '</th></tr>' +
+      fs.map(f => { const o = S[f]; return '<tr><td style="color:' + FC[f] + ';font-weight:700">' + FN[f] + '</td><td>' + o.runs + '</td><td>' + o.wins + '</td><td>' + (o.best >= FIGHTS ? '👑' : o.best + ' / ' + FIGHTS) + '</td><td>' + o.fights + '</td></tr>'; }).join('') + '</table></div>'; }
   // Hasard reproductible (graine de la partie)
   function rng(seed) { let a = seed >>> 0; return () => { a |= 0; a = a + 0x6D2B79F5 | 0; let t = Math.imul(a ^ a >>> 15, 1 | a); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
   const pick = (R, a) => a[Math.floor(R() * a.length)];
@@ -74,13 +82,16 @@
   function cardPool(f) { const DB = P().DB; return Object.values(DB).filter(c => !c.u && c.t !== 'HERO' && !/TOKEN|FOILER/.test(c.t) && (c.f === f || c.h === f) && (c.y === 'C' || (c.y === 'R' && c.f === f))); }
   const sameRare = r => { const DB = P().DB, b = fam(r), f = DB[r] && DB[r].f; return ['_R1', '_R2'].map(x => b + x).find(x => DB[x] && DB[x].f === f) || null; };
   // Étape 1 : drafter une carte parmi 3 ; étape 2 : améliorer une carte en rare (parmi 3) ou tenter une mutation
-  function draftOffer(run) { const R = rng(run.seed * 7 + run.i * 131), pool = shuffle(R, cardPool(run.f)); const out = []; for (const c of pool) { if (out.length >= 3) break; if (!out.includes(c.r)) out.push(c.r); } return out; }
+  // Chaque carte proposée a une chance d'être une rare, de plus en plus forte au fil des combats (≈15 % au début, ≈75 % avant le boss)
+  const rareChance = i => .15 + .6 * Math.min(1, Math.max(0, (i - 1) / (FIGHTS - 2)));
+  function draftOffer(run) { const R = rng(run.seed * 7 + run.i * 131), all = cardPool(run.f), C = shuffle(R, all.filter(c => c.y === 'C')), Rr = shuffle(R, all.filter(c => c.y === 'R')), out = [], p = rareChance(run.i);
+    for (let k = 0; k < 3; k++) { const src = (R() < p && Rr.length) ? Rr : C.length ? C : Rr; while (src.length && out.includes(src[0].r)) src.shift(); if (src.length) out.push(src.shift().r); } return out; }
   function upOffer(run) { const R = rng(run.seed * 11 + run.i * 197), DB = P().DB; const cs = shuffle(R, Object.keys(run.deck.cards).filter(r => /_C$/.test(r) && DB[r] && sameRare(r))); return cs.slice(0, 3).map(r => ({ ref: r, to: sameRare(r) })); }
-  // Mutation : la carte devient une vraie unique tirée de la base communautaire (sinon, une altération de stats au hasard)
+  // Mutation : la carte devient toujours une vraie unique tirée de la base communautaire (meilleure ou pire : c'est le pari)
   async function mutate(run, ref) {
     const DB = P().DB, b = DB[ref]; if (!b) return null;
     const m = fam(ref).match(/^ALT_([A-Z0-9]+)_B_([A-Z]{2})_(\d+)$/);
-    if (m && window.AltUniques && Math.random() < .5) { // une chance sur deux : une vraie unique (meilleure ou pire, c'est le pari)
+    if (m && window.AltUniques) {
       for (const set of m[1] === 'CORE' ? ['CORE', 'COREKS'] : [m[1]]) {
         try {
           const res = await fetch('https://api.github.com/repos/Altered-Community/databases/contents/' + set + '/' + m[2] + '/' + m[3]);
@@ -93,7 +104,7 @@
         } catch (e) { }
       }
     }
-    const ok = ALT.filter(a => a.ok(b) && (!a.rare || Math.random() < .6)); return ok.length ? alterCard(run, ref, wpick(Math.random, ok)) : null;
+    return null; // échec (réseau) : la carte n'est pas touchée, on peut réessayer
   }
   // ---- Écrans ----
   function img(ref, cls) { return '<span class="rgc' + (cls ? ' ' + cls : '') + '">' + P().cardImg(ref) + '</span>'; }
@@ -121,7 +132,7 @@
   }
   function choose() {
     show('<div class="rgbox"><p>' + L('Choisis ta faction. Tu pars avec son deck de départ, tu affrontes 8 adversaires de plus en plus forts et tu améliores ton deck entre chaque combat. Trois défaites et c’est fini.', 'Choose your faction. You start with its starter deck, face 8 increasingly strong opponents and improve your deck between fights. Three losses and it is over.') + '</p><div class="rgfac">' +
-      FAC.map(f => '<button data-rg="start" data-f="' + f + '" style="border-color:' + FC[f] + '"><b style="color:' + FC[f] + '">' + FN[f] + '</b>' + (starter(f) ? '<span class="small">' + esc(NM(P().DB[starter(f).hero])) + '</span>' : '') + '</button>').join('') + '</div></div>');
+      FAC.map(f => '<button data-rg="start" data-f="' + f + '" style="border-color:' + FC[f] + '"><b style="color:' + FC[f] + '">' + FN[f] + '</b>' + (starter(f) ? '<span class="small">' + esc(NM(P().DB[starter(f).hero])) + '</span>' : '') + '</button>').join('') + '</div></div>' + statsView());
   }
   function start(f) {
     const st = starter(f); if (!st) return;
@@ -143,6 +154,7 @@
     run.log.push({ i: run.i, won });
     if (won) { if (run.i === FIGHTS - 1) { run.over = 'win'; } else { run.i++; run.reward = { step: 'draft', cards: draftOffer(run) }; } }
     else { run.lives--; if (run.lives <= 0) run.over = 'lose'; }
+    if (run.over) record(run);
     save(run); screen();
   }
   function reward(run) {
@@ -153,8 +165,8 @@
     } else if (rw.step === 'boon') {
       const ups = rw.ups || [];
       show('<div class="rgbox">' + top + '<p><b>2/2</b> · ' + L('Améliore une carte en rare…', 'Upgrade a card to rare…') + '</p>' + (ups.length ? '<div class="rgoffers">' + ups.map((o, k) => '<button class="rgoffer" data-rg="up" data-k="' + k + '"><div class="rgpair">' + img(o.ref, 'sm') + '<span class="rgarr">→</span>' + img(o.to, 'sm') + '</div></button>').join('') + '</div>' : '<p class="note">' + L('Aucune commune améliorable dans ton deck.', 'No upgradable common in your deck.') + '</p>') +
-        '<p style="margin-top:14px">' + L('…ou tente une <b>mutation</b> 🎲 : choisis une <b>rare</b> de ton deck. Une chance sur deux, elle reçoit un bonus garanti (effet, boosts ou coût réduit) ; sinon elle devient une <b>vraie unique</b> tirée au hasard : parfois bien meilleure, parfois pire. C’est le pari !', '…or try a <b>mutation</b> 🎲: pick a <b>rare</b> from your deck. Half the time it gets a guaranteed bonus (effect, boosts or reduced cost); otherwise it becomes a random <b>real unique</b>: sometimes much better, sometimes worse. That’s the gamble!') + '</p><div class="row"><button data-rg="mutpick">🎲 ' + L('Mutation', 'Mutation') + '</button><button data-rg="boonskip">' + L('Passer', 'Skip') + '</button></div>' +
-        (rw.picking ? (rareRefs(run).length ? '<p class="note">' + L('Clique la rare à faire muter :', 'Click the rare to mutate:') + '</p>' + deckView(run, 'mut', r => P().DB[r].y === 'R') : '<p class="note">' + L('Il te faut d’abord une rare : améliore une commune, puis fais-la muter à un prochain combat.', 'You need a rare first: upgrade a common, then mutate it after a later fight.') + '</p>') : '') + (rw.busy ? '<p class="note">⏳ ' + L('Mutation en cours…', 'Mutating…') + '</p>' : '') + (rw.result ? '<div class="rgbox" style="text-align:center"><p><b>' + L('Résultat :', 'Result:') + '</b></p>' + (rw.from ? '<div class="rgpair">' + img(rw.from, 'sm') + '<span class="rgarr">→</span>' + img(rw.result) + '</div>' : img(rw.result)) + '<p class="rgalt" style="display:inline-block;margin-top:6px">✦ ' + esc(altLabel(P().DB[rw.result])) + '</p><div class="row" style="justify-content:center;margin-top:8px"><button class="pri" data-rg="boonok">' + L('Continuer', 'Continue') + '</button></div></div>' : '') + '</div>');
+        '<p style="margin-top:14px">' + L('…ou tente une <b>mutation</b> 🎲 : choisis une <b>rare</b> de ton deck, elle devient une <b>vraie unique</b> tirée au hasard. Parfois bien meilleure, parfois pire : c’est le pari !', '…or try a <b>mutation</b> 🎲: pick a <b>rare</b> from your deck and it becomes a random <b>real unique</b>. Sometimes much better, sometimes worse: that’s the gamble!') + '</p><div class="row"><button data-rg="mutpick">🎲 ' + L('Mutation', 'Mutation') + '</button><button data-rg="boonskip">' + L('Passer', 'Skip') + '</button></div>' +
+        (rw.picking ? (rareRefs(run).length ? '<p class="note">' + L('Clique la rare à faire muter :', 'Click the rare to mutate:') + '</p>' + deckView(run, 'mut', r => P().DB[r].y === 'R') : '<p class="note">' + L('Il te faut d’abord une rare : améliore une commune, puis fais-la muter à un prochain combat.', 'You need a rare first: upgrade a common, then mutate it after a later fight.') + '</p>') : '') + (rw.fail ? '<p class="note">' + L('La mutation n’a pas pu se faire (connexion ?) : ta carte n’a pas changé, réessaie.', 'The mutation failed (connection?): your card is unchanged, try again.') + '</p>' : '') + (rw.busy ? '<p class="note">⏳ ' + L('Mutation en cours…', 'Mutating…') + '</p>' : '') + (rw.result ? '<div class="rgbox" style="text-align:center"><p><b>' + L('Résultat :', 'Result:') + '</b></p>' + (rw.from ? '<div class="rgpair">' + img(rw.from, 'sm') + '<span class="rgarr">→</span>' + img(rw.result) + '</div>' : img(rw.result)) + '<p class="rgalt" style="display:inline-block;margin-top:6px">✦ ' + esc(altLabel(P().DB[rw.result])) + '</p><div class="row" style="justify-content:center;margin-top:8px"><button class="pri" data-rg="boonok">' + L('Continuer', 'Continue') + '</button></div></div>' : '') + '</div>');
     }
   }
   // Organiser son deck : retirer des cartes vers la réserve d'aventure (banc) ou les remettre, minimum 39 cartes
@@ -166,7 +178,7 @@
   function benchView(run) { const b = run.bench || {}, DB = P().DB, refs = sorted(b); return refs.length ? '<div class="rggrid">' + refs.map(r => '<div class="rgitem" data-rg="in" data-r="' + r + '" style="cursor:pointer">' + img(r) + '<span class="rgq">×' + b[r] + '</span>' + (DB[r].u ? '<span class="rgalt">✦ ' + esc(altLabel(DB[r])) + '</span>' : '') + '</div>').join('') + '</div>' : '<p class="note">—</p>'; }
   function end(run) {
     const won = run.over === 'win', wins = run.log.filter(x => x.won).length;
-    show('<div class="rgbox" style="text-align:center"><h2>' + (won ? '🏆 ' + L('Aventure réussie !', 'Adventure complete!') : '💀 ' + L('Aventure terminée', 'Adventure over')) + '</h2><p>' + L('Combats gagnés : ', 'Fights won: ') + wins + ' / ' + FIGHTS + '</p>' + track(run) + '<div class="row" style="justify-content:center;gap:8px"><button class="pri" data-rg="new">' + L('Nouvelle aventure', 'New adventure') + '</button><button data-rg="deck2">🃏 ' + L('Voir mon deck final', 'See my final deck') + '</button></div>' + (run.showDeck ? deckView(run) : '') + '</div>');
+    show('<div class="rgbox" style="text-align:center"><h2>' + (won ? '🏆 ' + L('Aventure réussie !', 'Adventure complete!') : '💀 ' + L('Aventure terminée', 'Adventure over')) + '</h2><p>' + L('Combats gagnés : ', 'Fights won: ') + wins + ' / ' + FIGHTS + '</p>' + track(run) + '<div class="row" style="justify-content:center;gap:8px"><button class="pri" data-rg="new">' + L('Nouvelle aventure', 'New adventure') + '</button><button data-rg="deck2">🃏 ' + L('Voir mon deck final', 'See my final deck') + '</button></div>' + (run.showDeck ? deckView(run) : '') + '</div>' + statsView());
   }
 
   document.addEventListener('click', e => {
@@ -176,7 +188,7 @@
     if (k === 'start') return start(b.dataset.f);
     if (k === 'fight') return fight();
     if (k === 'deck' || k === 'deck2') { run.showDeck = !run.showDeck; save(run); return screen(); }
-    if (k === 'quit') { if (confirm(L('Abandonner cette aventure ?', 'Abandon this adventure?'))) { localStorage.removeItem(KEY); screen(); } return; }
+    if (k === 'quit') { if (confirm(L('Abandonner cette aventure ?', 'Abandon this adventure?'))) { if (run && run.log && run.log.length) record(run); localStorage.removeItem(KEY); screen(); } return; }
     if (k === 'new') { localStorage.removeItem(KEY); return screen(); }
     if (k === 'draft') { addCard(run.deck, run.reward.cards[+b.dataset.k]); run.reward = { step: 'boon', ups: upOffer(run) }; save(run); return screen(); }
     if (k === 'draftskip') { run.reward = { step: 'boon', ups: upOffer(run) }; save(run); return screen(); }
@@ -184,7 +196,7 @@
     if (k === 'boonskip' || k === 'boonok') { run.reward = null; save(run); return screen(); }
     if (k === 'mutpick') { run.reward.picking = !run.reward.picking; save(run); return screen(); }
     if (k === 'mut') { if (run.reward.busy || run.reward.result) return; const r = b.dataset.r; run.reward.busy = true; run.reward.picking = false; save(run); screen();
-      mutate(run, r).then(nr => { const rr = load(); if (!rr || !rr.reward) return; rr.uq = run.uq; rr.uqSeq = run.uqSeq; rr.reward.busy = false; if (nr) { delCard(rr.deck, r); addCard(rr.deck, nr); rr.reward.result = nr; rr.reward.from = r; } save(rr); screen(); }); return; }
+      mutate(run, r).then(nr => { const rr = load(); if (!rr || !rr.reward) return; rr.uq = run.uq; rr.uqSeq = run.uqSeq; rr.reward.busy = false; rr.reward.fail = !nr; if (nr) { delCard(rr.deck, r); addCard(rr.deck, nr); rr.reward.result = nr; rr.reward.from = r; } save(rr); screen(); }); return; }
     if (k === 'org') { run.org = true; save(run); return screen(); }
     if (k === 'orgdone') { run.org = false; save(run); return screen(); }
     if (k === 'out') { delCard(run.deck, b.dataset.r); run.bench = run.bench || {}; addCard({ cards: run.bench }, b.dataset.r); save(run); return screen(); }
