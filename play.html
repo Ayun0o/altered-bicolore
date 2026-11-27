@@ -823,6 +823,11 @@ body[data-foe=mini1] #game .zone.exp:not(.mine),body[data-foe=mini2] #game .zone
 /* Glisser à la souris : carte qui suit le curseur, main fermée */
 .c.mdrag{position:fixed!important;left:0;top:0;margin:0!important;z-index:9000;pointer-events:none;box-shadow:0 18px 40px #000b;transition:none!important;animation:none!important}
 .c.mdsrc{opacity:.3}body.mdragging,body.mdragging *{cursor:grabbing!important;user-select:none}body.mdragging #zoomCard{display:none!important}
+/* En-tête de l'Aventure : « Table » toujours tout en haut à droite, petit ; les actions passent dessous sur téléphone */
+#rogue .lhead{flex-wrap:wrap;align-items:center}#rogue .lhead h1{white-space:nowrap}
+#rogue .lhome{order:2}#rogue .lact{order:1;display:flex;gap:8px}
+@media(max-width:600px){#rogue .lhead h1{font-size:22px!important}#rogue .lhome{min-height:30px;padding:3px 10px;font-size:13px;opacity:.85}
+#rogue .lact{order:3;flex-basis:100%;justify-content:flex-end}}
 </style>
 </head>
 <body>
@@ -905,7 +910,7 @@ body[data-foe=mini1] #game .zone.exp:not(.mine),body[data-foe=mini2] #game .zone
 <script src="js/engine.js?v=1795806219"></script>
 <script src="js/ai.js?v=1795806638"></script>
 <script src="js/net.js?v=1795785407"></script>
-<script src="js/rogue.js?v=1795807323"></script>
+<script src="js/rogue.js?v=1795807459"></script>
 <script src="js/play.js?v=1795806768"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
