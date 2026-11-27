@@ -36,18 +36,22 @@
       const f = DB[d.hero] ? DB[d.hero].f : null, f2 = d.sec && FC[d.sec] ? d.sec : f; const head = d.g !== g ? '<span class="lbl dtl">' + esc(d.g) + '</span>' : ''; g = d.g;
       const on = d.id === cur, c1 = FC[f] || '#666', c2 = FC[f2] || c1;
       return head + '<button type="button" class="dtile' + (on ? ' on' : '') + '" data-pick="' + esc(selId) + '" data-val="' + esc(d.id) + '" style="--c1:' + c1 + ';--c2:' + c2 + '">' +
-        (d.hero ? '<span class="dtart" style="background-image:url(\'img/' + LANG + '/' + esc(d.hero) + '.webp\')"></span>' : '') +
+        (d.hero ? '<span class="dtart" style="background-image:url(\'' + esc(IMG(d.hero)) + '\')"></span>' : '') +
         '<span class="dttx"><b>' + esc(d.name) + '</b><span class="dtsub">' + (f ? dot(f) : '') + (d.sec && FC[d.sec] ? dot(d.sec) : '') + ' ' + esc(NM(DB[d.hero])) + '</span><span class="dtn">' + d.n + ' cartes</span></span>' +
         (d.g === 'Mes decks' ? '<span class="pdel" data-del="' + esc(d.id) + '" title="Supprimer ce deck" role="button">🗑</span>' : '') + '</button>';
     }).join('') + '</div>';
   }
   function renderPickers() { for (const id of ['pdeck', 'sdeck']) { const box = $(id + 'Pick'); if (box) box.innerHTML = picker(id, $(id).value); } }
+  // Illustrations alternatives choisies dans le deckbuilder (réf. de base → réf. alternative)
+  const ART = {}, ARTRX = /^ALT_[A-Z0-9]+_[A-Z]_[A-Z]{2}_\d+_(C|R1|R2)(_[A-Z0-9]{3})?$/;
+  function addArt(a) { if (a && typeof a === 'object') for (const [k, v] of Object.entries(a).slice(0, 80)) if (DB[k] && ARTRX.test(String(v))) ART[k] = String(v); }
+  function IMG(ref, hd) { const a = ART[ref]; return a ? 'https://cdn.alteredcore.org/cards/' + (LANG === 'en' ? 'en' : 'fr') + '/' + a.split('_')[1] + '/' + a + '.webp' : 'img/' + LANG + (hd ? '-hd' : '') + '/' + encodeURIComponent(ref) + '.webp'; }
   function getDeck(id) {
     const s = STARTERS.find(x => x.id === id); if (s) return { hero: s.hero, cards: s.cards, name: s.name };
     const d = store.get('alt-bi-decks', {})[id]; if (!d || !d.hero) return null;
     const cards = Object.assign({}, d.cards || {}), uq = {};
     for (const u of d.uniques || []) { const c = window.AltUniques ? AltUniques.sanitize(u.card || uqStub(u)) : null; if (c) { DB[c.r] = c; uq[c.r] = c; cards[c.r] = 1; } }
-    return { hero: d.hero, cards, name: d.name, uq };
+    return { hero: d.hero, cards, name: d.name, uq, art: d.art || {} };
   }
 
   // Unique importée sans données (liste altered.re) : stats de la version commune en attendant
@@ -122,7 +126,7 @@
   function startHost() {
     const d = needDeck(); if (!d) return;
     if (typeof Peer === 'undefined') { $('lobbyMsg').innerHTML = '<span class="err">Le module réseau n’a pas pu se charger.</span>'; return; }
-    mode = 'host'; me = 0; decksUsed[0] = d; names[0] = myName('Joueur 1');
+    mode = 'host'; me = 0; decksUsed[0] = d; addArt(d.art); names[0] = myName('Joueur 1');
     S = E.newGame({}); E.addPlayer(S, 0, names[0], d, DB);
     $('lobbyMsg').textContent = 'Création de la partie…';
     net = NET.host(onHostMsg, (st, x) => {
@@ -135,7 +139,7 @@
   function onHostMsg(m) {
     if (!m || typeof m !== 'object') return;
     if (m.type === 'hello') {
-      if (!S.players[1]) { const deck = sanitizeDeck(m.deck); if (!deck) { net.send({ type: 'err', m: 'Deck invalide.' }); return; } decksUsed[1] = deck; names[1] = String(m.name || 'Joueur 2').slice(0, 24); if (names[1] === names[0]) names[1] += ' (2)'; E.addPlayer(S, 1, names[1], deck, DB); E.advance(S, DB); }
+      if (!S.players[1]) { const deck = sanitizeDeck(m.deck); if (deck) addArt(m.deck.art); if (!deck) { net.send({ type: 'err', m: 'Deck invalide.' }); return; } decksUsed[1] = deck; names[1] = String(m.name || 'Joueur 2').slice(0, 24); if (names[1] === names[0]) names[1] += ' (2)'; E.addPlayer(S, 1, names[1], deck, DB); E.advance(S, DB); }
       push();
     } else if (m.type === 'act' && m.a && typeof m.a === 'object') {
       const err = applyAct(1, m.a); if (err) net.send({ type: 'err', m: err }); push();
@@ -151,11 +155,11 @@
     mode = 'guest'; me = 1; $('lobbyMsg').textContent = 'Connexion…';
     net = NET.join(code, m => {
       if (!m) return;
-      if (m.type === 'state') { if (m.uq && window.AltUniques) for (const v of Object.values(m.uq)) { const c = AltUniques.sanitize(v); if (c) DB[c.r] = c; } V = m.v; showGame(); render(); }
+      if (m.type === 'state') { addArt(m.art); if (m.uq && window.AltUniques) for (const v of Object.values(m.uq)) { const c = AltUniques.sanitize(v); if (c) DB[c.r] = c; } V = m.v; showGame(); render(); }
       else if (m.type === 'err') flash(m.m);
       else if (m.type === 'full') { $('lobbyMsg').innerHTML = '<span class="err">Cette partie a déjà deux joueurs.</span>'; }
     }, (st, x) => {
-      if (st === 'connected') { net.send({ type: 'hello', name: myName('Joueur 2'), deck: { hero: d.hero, cards: d.cards, uq: d.uq } }); setConn('Connecté'); }
+      if (st === 'connected') { net.send({ type: 'hello', name: myName('Joueur 2'), deck: { hero: d.hero, cards: d.cards, uq: d.uq, art: d.art } }); setConn('Connecté'); }
       else if (st === 'left') setConn('Connexion perdue avec l’hôte.');
       else if (st === 'error') { $('lobbyMsg').innerHTML = '<span class="err">' + esc(x) + '</span>'; setConn('Erreur : ' + x); }
     });
@@ -164,7 +168,7 @@
   function startSolo() {
     const a = needDeck(); if (!a) return; const b = getDeck($('sdeck').value) || a;
     const vsAI = !$('soloAI') || $('soloAI').checked;
-    mode = vsAI ? 'ai' : 'solo'; me = 0; decksUsed = [a, b]; names = [myName('Joueur 1'), vsAI ? 'Ordinateur' : 'Joueur 2'];
+    mode = vsAI ? 'ai' : 'solo'; me = 0; decksUsed = [a, b]; addArt(a.art); addArt(b.art); names = [myName('Joueur 1'), vsAI ? 'Ordinateur' : 'Joueur 2'];
     S = E.newGame({}); E.addPlayer(S, 0, names[0], a, DB); E.addPlayer(S, 1, names[1], b, DB); E.advance(S, DB);
     if (!vsAI) $('bSwitch').classList.remove('hidden'); else $('bSwitch').classList.add('hidden'); setConn(vsAI ? 'Contre l’ordinateur' : 'Partie d’essai');
     showGame(); push();
@@ -172,7 +176,7 @@
   // Accroche pour le mode Aventure (roguelike) : lance une partie contre l'IA avec deux decks donnés
   let ROGUE = null;
   window.AltPlay = { get DB() { return DB; }, get STARTERS() { return STARTERS; }, E, get LANG() { return LANG; }, cardImg: ref => imgOld({ ref, id: 'rg' }),
-    start(a, b, na, nb, onEnd) { ROGUE = onEnd; mode = 'ai'; me = 0; decksUsed = [a, b]; names = [na, nb]; for (const d of [a, b]) for (const c of Object.values(d.uq || {})) DB[c.r] = c;
+    start(a, b, na, nb, onEnd) { ROGUE = onEnd; mode = 'ai'; me = 0; decksUsed = [a, b]; addArt(a.art); addArt(b.art); names = [na, nb]; for (const d of [a, b]) for (const c of Object.values(d.uq || {})) DB[c.r] = c;
       S = E.newGame({}); E.addPlayer(S, 0, na, a, DB); E.addPlayer(S, 1, nb, b, DB); E.advance(S, DB); sel = null; hist = []; $('bSwitch').classList.add('hidden'); setConn('Aventure'); showGame(); push(); } };
   function rematch() {
     if (mode === 'guest') { net.send({ type: 'rematch' }); return; }
@@ -193,7 +197,7 @@
     const err = applyAct(me, a); if (err) flash(err); push();
   }
   function push() {
-    if (mode === 'host' && net && S.players[1]) { const uq = {}; for (const k in DB) if (DB[k].u) uq[k] = DB[k]; net.send({ type: 'state', v: E.view(S, 1), uq }); }
+    if (mode === 'host' && net && S.players[1]) { const uq = {}; for (const k in DB) if (DB[k].u) uq[k] = DB[k]; net.send({ type: 'state', v: E.view(S, 1), uq, art: ART }); }
     V = E.view(S, me); render();
     if (mode === 'ai') aiTick();
   }
@@ -230,7 +234,7 @@
  const panel=(tx||ec||gold)?'<span class="uqt"><span class="uqm">'+F(tx)+gold+'</span>'+(ec?'<span class="uqs">'+F(ec)+'</span>':'')+'</span>':'';
  return '<span class="uqo">'+art+'<span class="ub"></span><span class="ue"></span><span class="uc uc1">'+n(c.c)+'</span><span class="uc uc2">'+n(c.rc)+'</span><span class="us s0">'+n(p[0])+'</span><span class="us s1">'+n(p[1])+'</span><span class="us s2">'+n(p[2])+'</span>'+panel+(panel?'':legacy)+'<span class="uf"></span></span>'}
   function uqBase(fam,f,MAP){const r1=fam+'_R1',r2=fam+'_R2';if(MAP[r2]&&MAP[r2].f===f)return r2;if(MAP[r1])return r1;return fam+'_C'}
-    function imgOld(c) { return c.tok ? '<div class="tok"><b>' + esc(tokName(c.tok.n)) + '</b><span>' + c.tok.p.join(' / ') + '</span><span class="note">jeton</span></div>' : ((DB[c.ref] && DB[c.ref].u) ? '<span class="uqw"><img loading="lazy" draggable="false" alt="' + esc(NM(DB[c.ref])) + '" src="img/' + LANG + '/' + encodeURIComponent(uqBase(AltUniques.familyOf(c.ref), DB[c.ref].f, DB)) + '.webp">' + uqOverlay(DB[c.ref]) + '</span><span class="uqtag">U</span>' : '<img loading="lazy" draggable="false" alt="' + esc(NM(DB[c.ref])) + '" src="img/' + LANG + '/' + encodeURIComponent(c.ref) + '.webp">'); }
+    function imgOld(c) { return c.tok ? '<div class="tok"><b>' + esc(tokName(c.tok.n)) + '</b><span>' + c.tok.p.join(' / ') + '</span><span class="note">jeton</span></div>' : ((DB[c.ref] && DB[c.ref].u) ? '<span class="uqw"><img loading="lazy" draggable="false" alt="' + esc(NM(DB[c.ref])) + '" src="img/' + LANG + '/' + encodeURIComponent(uqBase(AltUniques.familyOf(c.ref), DB[c.ref].f, DB)) + '.webp">' + uqOverlay(DB[c.ref]) + '</span><span class="uqtag">U</span>' : '<img loading="lazy" draggable="false" alt="' + esc(NM(DB[c.ref])) + '" src="' + IMG(c.ref) + '">'); }
   const CH = () => V && V.choices && V.choices[0];
   function isTarget(id) {
     const ch = CH(); if (!ch || ch.p !== me) return false;
@@ -437,7 +441,7 @@
     $('hand').innerHTML = P ? cardsEl(HV === 'R' && MOB() ? P.reserve : P.hand) : '';
     const RV = HV === 'R' && MOB(); $('hand').classList.toggle('rsv', RV); document.body.classList.toggle('rsvview', RV);
     { let mini = $('handMini'); if (!mini) { mini = document.createElement('button'); mini.id = 'handMini'; mini.type = 'button'; $('hand').parentNode.insertBefore(mini, $('prompt')); }
-      mini.style.display = RV ? '' : 'none'; if (RV && P) mini.innerHTML = '<span class="hm">' + P.hand.slice(0, 5).map(id => { const c = card(id); return '<i style="background-image:url(img/' + LANG + '/' + encodeURIComponent(c.ref) + '.webp)"></i>'; }).join('') + '</span><b>✋ ' + P.hand.length + '</b>'; }
+      mini.style.display = RV ? '' : 'none'; if (RV && P) mini.innerHTML = '<span class="hm">' + P.hand.slice(0, 5).map(id => { const c = card(id); return '<i style="background-image:url(' + IMG(c.ref) + ')"></i>'; }).join('') + '</span><b>✋ ' + P.hand.length + '</b>'; }
     if (LASTHV !== HV) { if (LASTHV !== null && MOB()) document.querySelectorAll('#hand .c').forEach((el, i) => { el.style.animationDelay = (i * 60) + 'ms'; el.classList.add('swapin'); }); LASTHV = HV; }
     $('log').innerHTML = V.log.slice().reverse().slice(0, 80).map(l => logLine(l.m)).join('');
     const fm = P && (DB[(card(P.hero) || {}).ref] || {}).f, fo = O && (DB[(card(O.hero) || {}).ref] || {}).f;
@@ -605,7 +609,7 @@
     if (L.z === 'discard') { b('Vers la main', { type: 'move', id: sel, to: 'hand' }); b('Vers la réserve', { type: 'move', id: sel, to: 'reserve' }); b('Sur le deck', { type: 'move', id: sel, to: 'deck', top: true }); }
     if (L.z === 'hero' && mine) b('Épuiser / redresser', { type: 'flag', id: sel, f: 'ex' });
     const info = d ? '<p class="small" style="margin:6px 0"><b>' + esc(NM(d)) + '</b> · coût ' + esc(String(d.c ?? '').replace(/#/g, '')) + ' / ' + esc(String(d.rc ?? '').replace(/#/g, '')) + (mine ? '' : ' · <i>carte adverse</i>') + '</p>' : '<p class="small"><b>Jeton ' + esc(tokName(c.tok.n)) + '</b></p>';
-    D.innerHTML = '<div class="detimg">' + (c.tok ? img(c) : '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(c.ref) + '.webp">') + '</div>' + (A.length ? '<div class="acts" style="margin-top:6px">' + A.join('') + '</div>' : '');
+    D.innerHTML = '<div class="detimg">' + (c.tok ? img(c) : '<img alt="" src="' + IMG(c.ref, 1) + '">') + '</div>' + (A.length ? '<div class="acts" style="margin-top:6px">' + A.join('') + '</div>' : '');
     $('cardActs').innerHTML = A2.join(''); $('costSlot').innerHTML = costBox;
   }
 
@@ -629,7 +633,7 @@
   }
   const zoomEl = document.createElement('div'); zoomEl.id = 'zoomCard'; document.body.appendChild(zoomEl);
   function zoomHtml(x) { if (x.tok) { const r = tokRef(x.tok.n); return r ? '<img alt="" style="width:100%;display:block;border-radius:14px" src="img/tok/' + r + '_' + LANG + '.webp">' : '<div class="tokz"><b>' + esc(tokName(x.tok.n)) + '</b>' + (x.tok.p ? '<span>' + x.tok.p.join(' / ') + '</span>' : '') + '</div>'; }
-    const d = DB[x.ref] || {}; if (!d.u) return '<img alt="" src="img/' + LANG + '-hd/' + encodeURIComponent(x.ref) + '.webp">';
+    const d = DB[x.ref] || {}; if (!d.u) return '<img alt="" src="' + IMG(x.ref, 1) + '">';
     return '<span class="uqw"><img alt="" style="width:100%;display:block;border-radius:14px" src="img/' + LANG + '-hd/' + encodeURIComponent(uqBase(AltUniques.familyOf(x.ref), d.f, DB)) + '.webp">' + uqOverlay(d) + '</span><div class="uqz"><b>' + esc(NM(d)) + ' — unique</b><span>Coût ' + esc(d.c) + ' / ' + esc(d.rc) + ' · <i class="F">' + esc(d.p[0]) + '</i> <i class="M">' + esc(d.p[1]) + '</i> <i class="W">' + esc(d.p[2]) + '</i></span><span>' + esc(LANG === 'en' ? d.xe : d.x) + '</span>' + (d.e ? '<span><i>' + esc(LANG === 'en' ? d.ee : d.e) + '</i></span>' : '') + '</div>'; }
   function hideZoom() { if (zoomEl.classList.contains('selz')) return; zoomEl.style.display = 'none'; }
   const MOB = () => matchMedia('(max-width:900px)').matches;

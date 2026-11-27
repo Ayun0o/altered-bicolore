@@ -249,6 +249,14 @@ img[hidden],.heroimg[hidden]{display:none!important}
 .herow.empty{width:150px}
 @media(max-width:600px){.setup{min-height:0;padding:10px;gap:12px}.heroimg,.herow.empty{width:96px}}
 .act .n{font-weight:800;color:#ffd76a;min-width:1.2em;text-align:center}
+
+/* Illustrations alternatives */
+.artb{min-height:0!important;padding:0 6px!important;font-size:14px;background:#ffffff22;border:0;border-radius:12px}
+.artg{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px;max-height:70vh;overflow:auto}
+.artopt{display:flex;flex-direction:column;gap:4px;padding:4px;border:2px solid transparent;border-radius:12px;background:var(--soft);font-size:12px;min-height:0}
+.artopt img{width:100%;aspect-ratio:5/7;object-fit:cover;border-radius:8px;background:#0002}
+.artopt.on{border-color:var(--ok)}
+#artDlg{max-width:760px}
 </style>
 </head>
 <body>
@@ -256,13 +264,14 @@ img[hidden],.heroimg[hidden]{display:none!important}
 <h1>Altered bicolore</h1>
 <span id="deckDots" style="display:inline-flex;gap:4px"></span><select id="deckSel" aria-label="Deck"></select>
 <button id="myDecks" type="button">📚 Mes decks</button><button id="newDeck">Nouveau deck</button>
-<a id="siteLink" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener"><button tabindex="-1" class="on">▶ Jouer en ligne</button></a><a id="webLink" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener" title="Ouvre ce deck, uniques comprises, dans le deckbuilder en ligne"><button tabindex="-1">🌐 Ouvrir en ligne</button></a>
+<a id="siteLink" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener"><button tabindex="-1" class="on">▶ Jouer en ligne</button></a><a id="webLink" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener" title="Ouvre ce deck dans le deckbuilder en ligne et y copie toutes tes uniques scannées"><button tabindex="-1">🌐 Ouvrir en ligne</button></a>
 <button id="fmtBtn">Format</button>
 <button id="langBtn" aria-label="Langue des cartes"></button>
 <button id="viewDeck" title="Voir les cartes de ton deck en grand, avec les statistiques">🃏 Voir mon deck</button>
 <span class="sync" id="sync">Chargement…</span>
 </header>
 <div class="wrap">
+<dialog id="artDlg"><h3 style="margin:0 0 4px">🎨 <span id="artT"></span></h3><p class="note" style="margin:0 0 10px">Choisis l'illustration utilisée pour cette carte dans ce deck (et sur la table de jeu).</p><div id="artG" class="artg"></div><div class="row" style="margin-top:10px;justify-content:flex-end"><button id="artClose" type="button">Fermer</button></div></dialog>
 <main class="lib" id="libMain"><section id="gal" class="gal"></section>
 <section class="setup"><span class="setbg" id="setBg" aria-hidden="true"></span>
 <span class="herow"><img id="heroImg" class="heroimg" alt="" hidden><button id="heroX" type="button" title="Retirer le héros" aria-label="Retirer le héros" hidden>✕</button></span>
@@ -358,7 +367,9 @@ const TYE={HERO:'Hero',CHARACTER:'Character',SPELL:'Spell',LANDMARK_PERMANENT:'L
 const SETE={CORE:'Beyond the Gates',ALIZE:'Trial by Frost',BISE:'Whispers from the Maze',CYCLONE:'Skybound Odyssey',DUSTER:'Seeds of Unity',EOLE:'Roots of Corruption'};
 const EN=()=>LANG==='en';const NM=c=>EN()?c.en:c.n;const TX=c=>EN()?c.xe:c.x;const EC=c=>EN()?c.ee:c.e;const ST=c=>EN()?c.ste:c.st;const TYL=t=>(EN()?TYE:TYN)[t];const SETL=s=>(EN()?SETE:SETN)[s];
 const SITEB=window.AltUniques?'':'https://ayun0o.github.io/altered-bicolore/';
-const deckCode=d=>{const o={n:d.name,h:d.hero,s:d.sec,c:d.cards,u:d.uniques};return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
+const uqCode=()=>{const L=Object.values(MYU).map(c=>{const x={...c};delete x._s;delete x.base;return x});return L.length?btoa(unescape(encodeURIComponent(JSON.stringify(L)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''):''};
+const webHref=d=>SITEB+'index.html?deck='+deckCode(d)+(window.AltUniques?'':(uqCode()?'&uq='+uqCode():''));
+const deckCode=d=>{const o={n:d.name,h:d.hero,s:d.sec,c:d.cards,u:d.uniques};if(d.art&&Object.keys(d.art).length)o.a=d.art;return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
 const deckFromCode=s=>{try{s=String(s).replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const o=JSON.parse(decodeURIComponent(escape(atob(s))));return{name:String(o.n||'Deck importé').slice(0,80),hero:o.h,sec:o.s||'',cards:o.c||{},uniques:Array.isArray(o.u)?o.u:[],updated:Date.now()}}catch(e){return null}};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
@@ -429,7 +440,7 @@ function cardHtml(c){
  const cost=c.t==='HERO'?'':'<div class="cost" title="Coût de main / coût de réserve">'+'<span>'+cst(c.c)+'</span><span>'+cst(c.rc)+'</span></div>';
  const rb=c.t==='HERO'?'<span class="badge">Héros</span>':c.u?'<span class="badge U">Unique</span>':c.y==='R'?'<span class="badge R">Rare</span>':'<span class="badge">Commune</span>';
  const ob=oof?'<span class="badge oof">hors faction · origine '+esc(FN[c.h])+'</span>':'';
- const inD=c.u&&d&&d.uniques.some(u=>u.r===c.r);const btn=c.u?(inD?'<button data-urmr="'+esc(c.r)+'">Retirer du deck</button>':'<button data-uadd="'+esc(c.r)+'">Ajouter au deck</button><button data-udel="'+esc(c.r)+'" title="Retirer de ma collection" style="margin-left:auto">🗑</button>'):c.t==='HERO'?'<button data-hero="'+esc(c.r)+'">'+(n?'Héros choisi':'Choisir ce héros')+'</button>':(n?'<button data-rm="'+esc(c.r)+'" aria-label="Retirer">−</button><span class="n">'+n+'</span>':'')+'<button data-add="'+esc(c.r)+'" aria-label="Ajouter">+</button>';
+ const inD=c.u&&d&&d.uniques.some(u=>u.r===c.r);const btn=c.u?(inD?'<button data-urmr="'+esc(c.r)+'">Retirer du deck</button>':'<button data-uadd="'+esc(c.r)+'">Ajouter au deck</button><button data-udel="'+esc(c.r)+'" title="Retirer de ma collection" style="margin-left:auto">🗑</button>'):c.t==='HERO'?'<button data-hero="'+esc(c.r)+'">'+(n?'Héros choisi':'Choisir ce héros')+'</button>'+artBtn(c):(n?'<button data-rm="'+esc(c.r)+'" aria-label="Retirer">−</button><span class="n">'+n+'</span>':'')+'<button data-add="'+esc(c.r)+'" aria-label="Ajouter">+</button>'+artBtn(c);
  const inDk=c.u?inD:n>0,ok=canAdd(c),mx=!DECKVIEW&&!ok&&c.t!=='HERO'&&!(c.u&&inD);
  const btn2=(!c.u&&c.t!=='HERO'&&!ok)?btn.replace('data-add=','disabled data-add='):btn;
  const img='<span class="cw">'+(c.u?'<span class="uqw">':'')+'<img class="art" decoding="async" data-r="'+esc(c.r)+'" alt="'+esc(NM(c))+'" width="360" height="502">'+(c.u?uqOverlay(c)+'</span>':'')+'<span class="hz" data-hz="'+esc(c.r)+'"></span></span>';
@@ -441,7 +452,10 @@ function cardHtml(c){
 
 const BUN=new Map();
 function bundle(r){const p=r.split('_'),k0=p[1]+'_'+p[3],k=LANG+':'+k0;if(!BUN.has(k))BUN.set(k,fetch((EN()?'imgb_en/':'imgb/')+k0+'.json').then(x=>x.ok?x.json():{}).catch(()=>({})));return BUN.get(k)}
-function imgFor(r){if(BY[r]&&BY[r].u)r=uqBase(r.replace(/_U_\d+$/,''),BY[r].f,BY);return bundle(r).then(b=>typeof b[r]==='string'&&/^[A-Za-z0-9+/=]+$/.test(b[r])?'data:image/webp;base64,'+b[r]:(window.AltUniques?'img/'+(EN()?'en':'fr')+'/'+r+'.webp':''))}
+const ARTRX=/^ALT_[A-Z0-9]+_[A-Z]_[A-Z]{2}_\d+_(C|R1|R2)(_[A-Z0-9]{3})?$/;
+function artUrl(a){return 'https://cdn.alteredcore.org/cards/'+(EN()?'en':'fr')+'/'+a.split('_')[1]+'/'+a+'.webp'}
+function cleanArt(a){const o={};if(a&&typeof a==='object')for(const [k,v] of Object.entries(a))if(ARTRX.test(String(v))&&/^ALT_/.test(k))o[k]=String(v);return o}
+function imgFor(r,dk){const dd=dk||D();if(window.AltUniques&&dd&&dd.art&&dd.art[r])return Promise.resolve(artUrl(dd.art[r]));if(BY[r]&&BY[r].u)r=uqBase(r.replace(/_U_\d+$/,''),BY[r].f,BY);return bundle(r).then(b=>typeof b[r]==='string'&&/^[A-Za-z0-9+/=]+$/.test(b[r])?'data:image/webp;base64,'+b[r]:(window.AltUniques?'img/'+(EN()?'en':'fr')+'/'+r+'.webp':''))}
 function fillImgs(){document.querySelectorAll('img.art[data-r]:not([src])').forEach(im=>{const r=im.dataset.r;imgFor(r).then(u=>{if(u&&im.dataset.r===r)im.src=u})})}
 let DECKVIEW=false;
 function deckCards(){const d=D();if(!d)return[];const L=[];if(BY[d.hero])L.push(BY[d.hero]);for(const r of Object.keys(d.cards))if(BY[r]&&d.cards[r]>0)L.push(BY[r]);for(const u of d.uniques)if(u.r&&BY[u.r])L.push(BY[u.r]);return L}
@@ -488,7 +502,7 @@ function deckStats(){const d=D();if(!d)return'';const L=deckCards().filter(c=>c.
  const mx=Math.max(1,...curve);const bars=curve.map((n,i)=>'<div class="dsb"><span class="dsn">'+(n||'')+'</span><div class="dsbar" style="height:'+Math.round(70*n/mx)+'px"></div><span class="dsl">'+(i===7?'7+':i)+'</span></div>').join('');
  return '<div class="dstats"><div><b>'+tot+'</b> cartes + héros'+extra+(d.sec?' · '+src.P+' '+FN[hf]+' / '+src.S+' '+FN[d.sec]:'')+'</div><div class="dsrow"><div><span class="lbl">Courbe de mana · '+(CURVE==='rc'?'coût depuis la réserve':'coût de main')+'<button class="curvetog" data-curve="1">'+(CURVE==='rc'?'Voir coût de main':'Voir coût de réserve')+'</button></span><div class="dscurve">'+bars+'</div></div><div class="dstypes"><div><b>'+ty.CHARACTER+'</b> personnages</div><div><b>'+ty.SPELL+'</b> sorts</div><div><b>'+ty.PERM+'</b> permanents / repères</div><div><b>'+d.uniques.length+'</b> unique'+(d.uniques.length>1?'s':'')+'</div></div></div></div>'}
 function dvCard(c){const d=D(),n=c.t==='HERO'?1:c.u?1:(d.cards[c.r]||0);
- return '<article class="dvc" style="--fc:var(--'+c.f+')"><span class="cw">'+(c.u?'<span class="uqw">':'')+'<img class="art" decoding="async" data-r="'+esc(c.r)+'" alt="'+esc(NM(c))+'" width="360" height="502">'+(c.u?uqOverlay(c)+'</span>':'')+'<span class="hz" data-hz="'+esc(c.r)+'"></span></span>'+(c.t==='HERO'?'':'<span class="dvb">'+(c.u?'<button data-urmr="'+esc(c.r)+'" aria-label="Retirer">−</button><b>×1</b>':'<button data-rm="'+esc(c.r)+'" aria-label="Retirer">−</button><b>×'+n+'</b><button data-add="'+esc(c.r)+'" aria-label="Ajouter"'+(canAdd(c)?'':' disabled')+'>+</button>')+'</span>')+'</article>'}
+ return '<article class="dvc" style="--fc:var(--'+c.f+')"><span class="cw">'+(c.u?'<span class="uqw">':'')+'<img class="art" decoding="async" data-r="'+esc(c.r)+'" alt="'+esc(NM(c))+'" width="360" height="502">'+(c.u?uqOverlay(c)+'</span>':'')+'<span class="hz" data-hz="'+esc(c.r)+'"></span></span>'+(c.t==='HERO'?'':'<span class="dvb">'+(c.u?'<button data-urmr="'+esc(c.r)+'" aria-label="Retirer">−</button><b>×1</b>':'<button data-rm="'+esc(c.r)+'" aria-label="Retirer">−</button><b>×'+n+'</b><button data-add="'+esc(c.r)+'" aria-label="Ajouter"'+(canAdd(c)?'':' disabled')+'>+</button>'+artBtn(c))+'</span>')+(c.t==='HERO'&&artBtn(c)?'<span class="dvb">'+artBtn(c)+'</span>':'')+'</article>'}
 function heroGroups(L){const col=new Intl.Collator(EN()?'en':'fr');
  return FAC.map(f=>{const X=L.filter(c=>c.t==='HERO'&&c.f===f).sort((a,b)=>col.compare(NM(a),NM(b)));if(!X.length)return'';
   return '<section class="hpg"><h3><span class="fd" style="background:var(--'+f+')"></span>'+esc(FN[f])+'<span class="dvn">'+X.length+'</span></h3><div class="hpgrid">'+X.map(cardHtml).join('')+'</div></section>'}).join('')}
@@ -522,12 +536,16 @@ function renderDeck(){
  let h='';for(const t of ['CHARACTER','SPELL','LANDMARK_PERMANENT','EXPEDITION_PERMANENT','PERMANENT']){const g=groups[t];if(!g)continue;const cv=x=>parseInt(String(x.c).replace(/#/g,''),10)||0;g.sort((a,b)=>cv(a[0])-cv(b[0])||a[0].n.localeCompare(b[0].n));
   h+='<h3>'+TYL(t)+' ('+g.reduce((s,x)=>s+x[1],0)+')</h3>'+g.map(([c,n])=>'<div class="li"><span class="fd" style="background:var(--'+c.f+')" title="'+esc(FN[c.f])+'"></span><span data-pv="'+esc(c.r)+'" style="cursor:zoom-in">'+cst(c.c)+' · '+esc(NM(c))+' <span class="x">'+(c.y==='R'?'R':'C')+(A.overNames.has(norm(c.n))?' · trop d\'exemplaires':'')+'</span></span><span>×'+n+'</span><span><button data-rm="'+esc(c.r)+'">−</button><button data-add="'+esc(c.r)+'">+</button></span></div>').join('')}
  if(d.uniques.length)h+='<h3>Uniques ('+d.uniques.length+')</h3>'+d.uniques.map((u,i)=>'<div class="li"><span class="fd" style="background:var(--'+esc(u.f)+')"></span><span>'+esc(u.n)+' <span class="x">unique</span></span><span>×1</span><span><button data-urm="'+i+'">−</button></span></div>').join('');
- $('siteLink').href=SITEB+'play.html?deck='+deckCode(d);$('webLink').href=SITEB+'index.html?deck='+deckCode(d);
+ $('siteLink').href=SITEB+'play.html?deck='+deckCode(d);$('webLink').href=webHref(d);
  $('dlist').innerHTML=h||'<p class="note">Choisis un héros, puis ajoute des cartes avec le bouton +.</p>';$('dlist').classList.toggle('dvhide',DECKVIEW);
 }
 function renderDots(){const d=D();if(!d)return;const P=BY[d.hero]?.f;$('deckDots').innerHTML=[P,d.sec].filter(Boolean).map(f=>'<span class="fd" style="width:16px;height:16px;background:var(--'+f+')" title="'+FN[f]+'"></span>').join('')}
 function renderSel(){const ids=Object.keys(decks).sort((a,b)=>(decks[b].updated||0)-(decks[a].updated||0));$('deckSel').innerHTML=ids.map(id=>'<option value="'+esc(id)+'"'+(id===cur?' selected':'')+'>'+esc(decks[id].name||'Sans nom')+(BY[decks[id].hero]?' · '+FN[BY[decks[id].hero].f]+(decks[id].sec?' + '+FN[decks[id].sec]:''):'')+'</option>').join('')}
-let GAL=false;
+let GAL=false,ALTS={};const ALTSET={DUSTERCB:'Collector · Graines d\'unité',EOLECB:'Collector · Racines de la corruption',DUSTEROP:'Promo Organized Play',DUSTERTOP:'Promo tournoi',MUSUBI:'Musubi',WCS25:'Promo World Championship 2025',WCS26:'Promo World Championship 2026',WCF25:'Promo Finale 2025',WCQ25:'Promo Qualif. 2025',TCS3:'Promo',JUDGE:'Promo juge'};
+function artBtn(c){return window.AltUniques&&ALTS[c.r]?'<button class="artb" data-art="'+esc(c.r)+'" title="'+(EN()?'Alternative artworks':'Illustrations alternatives')+'">🎨</button>':''}
+function openArt(r){const d=D(),c=BY[r];if(!d||!c)return;const L=[''].concat(ALTS[r]||[]),curA=(d.art||{})[r]||'';
+ $('artT').textContent=NM(c);$('artG').innerHTML=L.map(a=>'<button type="button" class="artopt'+(a===curA?' on':'')+'" data-artpick="'+esc(a)+'"><img alt="" data-ar="'+esc(a)+'"><span>'+(a?esc(ALTSET[a.split('_')[1]]||a.split('_')[1]):(EN()?'Original':'Originale'))+'</span></button>').join('');
+ $('artG').dataset.r=r;$('artG').querySelectorAll('img[data-ar]').forEach(im=>{const a=im.dataset.ar;if(a)im.src=artUrl(a);else{const dd={...d,art:{}};imgFor(r,dd).then(u=>{if(u)im.src=u})}});$('artDlg').showModal()}
 function galOff(){if(!GAL)return;GAL=false;$('libMain').classList.remove('galmode');$('myDecks').classList.remove('on')}
 function renderGal(){const ids=Object.keys(decks).sort((a,b)=>(decks[b].updated||0)-(decks[a].updated||0)),col=f=>f?'var(--'+f+')':'#777';
  $('gal').innerHTML='<h2 class="galh">'+(EN()?'My decks':'Mes decks')+' <span class="dvn">'+ids.length+'</span></h2><div class="gtiles">'+ids.map(id=>{const d=decks[id],h=BY[d.hero],f=h&&h.f,f2=d.sec||f,A=analyse(d);
@@ -536,7 +554,9 @@ function renderGal(){const ids=Object.keys(decks).sort((a,b)=>(decks[b].updated|
    +'<span class="gtb"><span class="gtag '+(A.ok?'ok':'bad')+'">'+(A.ok?(EN()?'✓ Valid':'✓ Valide'):(EN()?'⚠ Not valid':'⚠ Pas valide'))+'</span>'+(d.sec?'<span class="gtag">'+(EN()?'Two-faction':'Bicolore')+'</span>':'')+'</span>'
    +'<span class="gtx"><b>'+esc(d.name||'Sans nom')+'</b><span class="gts">'+(h?esc(NM(h)):(EN()?'No hero yet':'Pas encore de héros'))+(f?' · '+esc(FN[f])+(d.sec?' + '+esc(FN[d.sec]):''):'')+'</span><span class="gtn">'+n+' '+(EN()?'cards':'cartes')+'</span></span></button>'}).join('')
   +'<button type="button" class="gtile gnew" data-gnew="1"><span class="gtx"><b>＋ '+(EN()?'New deck':'Nouveau deck')+'</b></span></button></div>';
- $('gal').querySelectorAll('[data-gh]').forEach(el=>{const r=el.dataset.gh;if(r)imgFor(r).then(u=>{if(u)el.style.backgroundImage='url("'+u+'")'})})}
+ $('gal').querySelectorAll('[data-gh]').forEach(el=>{const r=el.dataset.gh,dk=decks[el.closest('[data-open]').dataset.open];if(r)imgFor(r,dk).then(u=>{if(u)el.style.backgroundImage='url("'+u+'")'})})}
+$('artClose').onclick=()=>$('artDlg').close();
+$('artG').addEventListener('click',e=>{const b=e.target.closest('[data-artpick]');if(!b)return;const d=D(),r=$('artG').dataset.r,a=b.dataset.artpick;d.art=d.art||{};if(a)d.art[r]=a;else delete d.art[r];touch();$('artDlg').close();document.querySelectorAll('img.art[data-r="'+r+'"]').forEach(im=>im.removeAttribute('src'));renderAll()});
 $('myDecks').onclick=()=>{if(GAL){galOff();return}GAL=true;$('libMain').classList.add('galmode');$('myDecks').classList.add('on');renderGal();window.scrollTo({top:0})};
 document.addEventListener('click',e=>{const t=e.target.closest('[data-open],[data-gnew]');if(!t||!t.closest('#gal'))return;
  if(t.dataset.gnew){galOff();$('newDeck').click();return}
@@ -549,7 +569,7 @@ async function flush(){if(!db){$('saveNote').textContent='Enregistré dans ce na
  try{for(const id of [...dirty]){dirty.delete(id);if(decks[id])await myDecks().doc(id).set(decks[id]);else await myDecks().doc(id).delete()}$('saveNote').textContent='Enregistré et partagé.'}
  catch(e){$('saveNote').textContent=e&&e.code==='invalid_argument'?'Lecture seule : tu n\'as pas le droit de modifier ces decks.':'Échec de l\'enregistrement, nouvel essai à la prochaine modification.'}saving=false}
 
-document.addEventListener('click',e=>{const hz=e.target.closest('.hz');const im=hz?hz.parentNode.querySelector('img.art'):e.target.closest('img.art');if(im){$('zoomImg').src=im.src;$('zoomImg').alt=im.alt;$('zoom').showModal();return}if(e.target.closest('#zoom')){$('zoom').close();return}const pv=e.target.closest('[data-pv]');if(pv&&!e.target.closest('button')){$('zoomImg').removeAttribute('src');imgFor(pv.dataset.pv).then(u=>{if(u)$('zoomImg').src=u});$('zoomImg').alt='';$('zoom').showModal();return}const b=e.target.closest('button');if(!b)return;const d=D();if(b.dataset.curve){CURVE=CURVE==='rc'?'c':'rc';renderDeck();return}
+document.addEventListener('click',e=>{const hz=e.target.closest('.hz');const im=hz?hz.parentNode.querySelector('img.art'):e.target.closest('img.art');if(im){$('zoomImg').src=im.src;$('zoomImg').alt=im.alt;$('zoom').showModal();return}if(e.target.closest('#zoom')){$('zoom').close();return}const pv=e.target.closest('[data-pv]');if(pv&&!e.target.closest('button')){$('zoomImg').removeAttribute('src');imgFor(pv.dataset.pv).then(u=>{if(u)$('zoomImg').src=u});$('zoomImg').alt='';$('zoom').showModal();return}const b=e.target.closest('button');if(!b)return;const d=D();if(b.dataset.art){openArt(b.dataset.art);return}if(b.dataset.curve){CURVE=CURVE==='rc'?'c':'rc';renderDeck();return}
  if(b.dataset.uadd){const c=BY[b.dataset.uadd];if(c&&!d.uniques.some(u=>u.r===c.r)){{const x={...c};delete x._s;d.uniques.push({n:c.n,f:c.f,r:c.r,card:x})};touch();renderDeck();renderGrid()}return}
  if(b.dataset.udel){const r=b.dataset.udel;if(Object.values(decks).some(k=>(k.uniques||[]).some(u=>u.r===r))){alert('Cet unique est encore dans un deck : retire-le du deck d\'abord.');return}if(confirm('Retirer cet unique de ta collection ?')){delete MYU[r];saveU();renderGrid()}return}
  if(b.dataset.urmr){const i=d.uniques.findIndex(u=>u.r===b.dataset.urmr);if(i>=0){d.uniques.splice(i,1);touch();renderDeck();renderGrid()}return}
@@ -594,7 +614,7 @@ $('imp').onclick=()=>{$('ioT').textContent='Importer une liste';$('ioTx').value=
   touch();renderAll();{const hf0=(BY[d.hero]||{}).f;for(const u of d.uniques){if(u.card||!u.r)continue;const fam=u.r.replace(/_U_\d+$/,'');if([fam+'_C',fam+'_R1',fam+'_R2'].some(x=>BY[x]&&BY[x].f===hf0))u.f=hf0}}const autoS=!d.sec;autoSec(d);touch();renderAll();
   $('ioNote').textContent=(miss?miss+' ligne(s) non reconnue(s). ':'Importé. ')+(uq?uq+' unique(s) ajoutée(s) avec les stats de la version commune ici. Sur la table de jeu (lien « Jouer »), leurs vraies stats et illustrations sont récupérées automatiquement, comme dans le deckbuilder en ligne (ayun0o.github.io/altered-bicolore).':'');if(uq&&window.AltUniques){$('ioNote').textContent+=' '+(EN()?'Fetching the uniques…':'Récupération des uniques…');fillUq().then(k=>{if(autoS){d.sec='';autoSec(d);touch();renderAll()}$('ioNote').textContent=(EN()?'Imported. ':'Importé. ')+(miss?miss+(EN()?' unknown line(s). ':' ligne(s) non reconnue(s). '):'')+(EN()?k+' of '+uq+' unique(s) found with their real stats and artwork.':k+' unique(s) sur '+uq+' retrouvée(s) avec leurs vraies stats et illustrations.')})}};$('ioDlg').showModal()};
 $('ioClose').onclick=()=>$('ioDlg').close();
-$('siteLink').addEventListener('click',()=>{$('siteLink').href=SITEB+'play.html?deck='+deckCode(D())});$('webLink').addEventListener('click',()=>{$('webLink').href=SITEB+'index.html?deck='+deckCode(D())});
+$('siteLink').addEventListener('click',()=>{$('siteLink').href=SITEB+'play.html?deck='+deckCode(D())});$('webLink').addEventListener('click',()=>{$('webLink').href=webHref(D())});
 
 let uList=[],uScan=null;function uRender(){const q=norm($('uQ').value);const seen=new Set();uList=CARDS.filter(c=>c.t==='CHARACTER'&&c.y==='C'&&(!q||norm(c.n+' '+c.en).includes(q))).filter(c=>{const k=c.r.replace(/_C$/,'');if(seen.has(k))return false;seen.add(k);return true}).slice(0,80);$('uPick').innerHTML=uList.map((c,i)=>'<option value="'+i+'">'+esc(NM(c))+' — '+esc(FN[c.h]||'')+' · '+esc(SETN[c.s]||c.s)+'</option>').join('')}
 $('addU').onclick=()=>{const d=D(),P=BY[d.hero]?.f;$('uFac').innerHTML=FAC.map(f=>'<option value="'+f+'"'+(f===P?' selected':'')+'>'+FN[f]+'</option>').join('');$('uQ').value='';$('uRes').innerHTML='';uScan=null;$('uPhoto').value='';uRender();$('uDlg').showModal()};
@@ -639,7 +659,7 @@ $('fmtSave').onclick=async()=>{const n={};for(const [k] of FIELDS){const v=parse
 
 function validFmt(o){if(!o||!Array.isArray(o.wheel)||o.wheel.length!==6||!FAC.every(f=>o.wheel.includes(f)))return null;const n={wheel:o.wheel.slice()};for(const [k] of FIELDS){const v=+o[k];n[k]=Number.isFinite(v)&&v>=0?Math.round(v):DEF[k]}return n}
 function cleanDeck(o){if(!o||typeof o!=='object')return null;const c={};if(o.cards&&typeof o.cards==='object')for(const [r,n] of Object.entries(o.cards))if(BY[r]&&+n>0)c[r]=Math.min(9,Math.round(+n));
- return{name:String(o.name||'Sans nom').slice(0,80),hero:BY[o.hero]?o.hero:'',sec:FAC.includes(o.sec)?o.sec:'',cards:c,uniques:Array.isArray(o.uniques)?o.uniques.filter(u=>u&&FAC.includes(u.f)).map(u=>{const k=u.card&&u.r?regU({...u.card,r:String(u.r).slice(0,60)}):null;return k?{n:String(u.n).slice(0,80),f:u.f,r:k.r,card:u.card}:Object.assign({n:String(u.n).slice(0,80),f:u.f},/^ALT_[A-Z0-9]+_B_[A-Z]{2}_\d+_U_\d+$/.test(String(u.r||''))?{r:String(u.r)}:{})}):[],updated:+o.updated||0}}
+ return{name:String(o.name||'Sans nom').slice(0,80),hero:BY[o.hero]?o.hero:'',sec:FAC.includes(o.sec)?o.sec:'',cards:c,uniques:Array.isArray(o.uniques)?o.uniques.filter(u=>u&&FAC.includes(u.f)).map(u=>{const k=u.card&&u.r?regU({...u.card,r:String(u.r).slice(0,60)}):null;return k?{n:String(u.n).slice(0,80),f:u.f,r:k.r,card:u.card}:Object.assign({n:String(u.n).slice(0,80),f:u.f},/^ALT_[A-Z0-9]+_B_[A-Z]{2}_\d+_U_\d+$/.test(String(u.r||''))?{r:String(u.r)}:{})}):[],updated:+o.updated||0,art:cleanArt(o.art)}}
 
 function mselBuild(id){const sel=$(id),opts=[...sel.options],all=opts[0].text,items=opts.slice(1).map(o=>[o.value,o.text]);
  const w=document.createElement('div');w.className='ms';w.innerHTML='<button type="button" aria-haspopup="true"><span></span>▾</button><div class="msp">'+items.map(([v,t])=>'<label><input type="checkbox" value="'+esc(v)+'"> '+esc(t)+'</label>').join('')+'<button type="button" class="msclr">Tout effacer</button></div>';
@@ -652,6 +672,7 @@ function mselBuild(id){const sel=$(id),opts=[...sel.options],all=opts[0].text,it
 document.addEventListener('click',()=>document.querySelectorAll('.ms.open').forEach(x=>x.classList.remove('open')));
 async function start(){
  try{const r=await fetch('cards.json');CARDS=await r.json()}catch(e){$('sync').textContent='Impossible de charger les cartes.';return}
+ if(window.AltUniques){try{const ra=await fetch('alts.json');if(ra.ok)ALTS=await ra.json()}catch(e){}}
  for(const c of CARDS){BY[c.r]=c;c._s=norm(c.n+' '+c.en+' '+c.x+' '+c.e+' '+c.xe+' '+c.ee+' '+c.st.join(' ')+' '+c.ste.join(' '))}
  $('fSet').innerHTML+=Object.entries(SETN).map(([k,v])=>'<option value="'+k+'">'+v+'</option>').join('');
  $('fCost').innerHTML+=[0,1,2,3,4,5,6].map(v=>'<option value="'+v+'">Coût '+v+'</option>').join('')+'<option value="7">Coût 7+</option>';
@@ -662,8 +683,9 @@ async function start(){
  try{const f=validFmt(JSON.parse(localStorage.getItem('alt-bi-fmt')||'null'));if(f)fmt=f;const ds=JSON.parse(localStorage.getItem('alt-bi-decks')||'null');if(ds)for(const [k,v] of Object.entries(ds)){const c=cleanDeck(v);if(c)decks[k]=c}cur=localStorage.getItem('alt-bi-cur')}catch(e){}
  if(Object.keys(MYU).length)saveU();
  if(window.AltUniques){const w=$('webLink');if(w)w.style.display='none';$('siteLink').removeAttribute('target');
+  const qu=new URLSearchParams(location.search).get('uq');if(qu){try{let b=qu.replace(/-/g,'+').replace(/_/g,'/');while(b.length%4)b+='=';const L=JSON.parse(decodeURIComponent(escape(atob(b))));let k=0;if(Array.isArray(L))for(const c of L.slice(0,500)){if(c&&!MYU[c.r]&&regU(c))k++}if(k){saveU();setTimeout(()=>{$('sync').textContent=k+(EN()?' unique(s) imported from the artifact':' unique(s) importée(s) depuis l’artifact')},1500)}}catch(e){}if(!new URLSearchParams(location.search).get('deck'))history.replaceState(null,'',location.pathname)}
   const qd=new URLSearchParams(location.search).get('deck');if(qd){try{let b=qd.replace(/-/g,'+').replace(/_/g,'/');while(b.length%4)b+='=';const o=JSON.parse(decodeURIComponent(escape(atob(b))));
-   const nd=cleanDeck({name:o.n,hero:o.h,sec:o.s,cards:o.c,uniques:o.u,updated:Date.now()});if(nd&&BY[nd.hero]){let id=Object.keys(decks).find(k=>decks[k]&&decks[k].name===nd.name&&decks[k].hero===nd.hero)||('d'+Date.now().toString(36));decks[id]=nd;cur=id;
+   const nd=cleanDeck({name:o.n,hero:o.h,sec:o.s,cards:o.c,uniques:o.u,art:o.a,updated:Date.now()});if(nd&&BY[nd.hero]){let id=Object.keys(decks).find(k=>decks[k]&&decks[k].name===nd.name&&decks[k].hero===nd.hero)||('d'+Date.now().toString(36));decks[id]=nd;cur=id;
     for(const u of nd.uniques)if(u.card&&BY[u.r])MYU[u.r]=BY[u.r];saveU();try{localStorage.setItem('alt-bi-decks',JSON.stringify(decks));localStorage.setItem('alt-bi-cur',cur)}catch(e){}}}catch(e){}history.replaceState(null,'',location.pathname)}}
  if(!Object.keys(decks).length){decks.d0=newDeckObj('Mon premier deck')}
  if(!decks[cur])cur=Object.keys(decks)[0];
