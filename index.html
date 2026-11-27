@@ -320,6 +320,11 @@ img[hidden],.heroimg[hidden]{display:none!important}
 #helpDlg .hwheel svg{width:210px;max-width:100%;height:auto;flex:none}
 #helpDlg .hwheel p{flex:1;min-width:180px;margin:0}
 #helpDlg .hx{position:sticky;top:0;float:right;min-height:0;padding:2px 9px}
+
+.playcta{display:inline-flex;align-items:center;gap:6px;padding:8px 20px;border-radius:22px;background:linear-gradient(135deg,#e8532b,#c4302b 55%,#8e1f3a);color:#fff!important;font-weight:800;font-size:16px;letter-spacing:.3px;text-decoration:none!important;box-shadow:0 2px 10px #c4302b66,inset 0 1px 0 #fff4;transition:transform .12s,box-shadow .12s;white-space:nowrap}
+.playcta:hover{transform:translateY(-1px) scale(1.03);box-shadow:0 4px 16px #c4302b99,inset 0 1px 0 #fff4}
+@media(max-width:600px){.playcta{padding:6px 14px;font-size:15px;margin-left:auto}}
+.top .sync{order:99;flex-basis:100%;text-align:right;margin-top:-6px}
 </style>
 </head>
 <body>
@@ -327,11 +332,12 @@ img[hidden],.heroimg[hidden]{display:none!important}
 <h1>Altered bicolore</h1>
 <span id="deckDots" style="display:none"></span><select id="deckSel" aria-label="Deck" hidden></select><span class="dpk"><button type="button" id="dpkBtn" aria-haspopup="listbox"></button><div class="dpkl" id="dpkList" role="listbox" hidden></div></span>
 <button id="myDecks" type="button">📚 Mes decks</button><button id="newDeck">Nouveau deck</button>
-<a id="siteLink" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener"><button tabindex="-1" class="on">▶ Jouer en ligne</button></a><a id="webLink" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener" title="Ouvre ce deck dans le deckbuilder en ligne et y copie toutes tes uniques scannées"><button tabindex="-1">🌐 Ouvrir en ligne</button></a>
+<a id="webLink" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener" title="Ouvre ce deck dans le deckbuilder en ligne et y copie toutes tes uniques scannées"><button tabindex="-1">🌐 Ouvrir en ligne</button></a>
 <button id="fmtBtn" hidden>Format</button>
 <button id="langBtn" aria-label="Langue des cartes"></button><button id="helpBtn" class="helpq" type="button" title="Aide : formats, construction, import" aria-label="Aide">?</button>
 <button id="viewDeck" title="Voir les cartes de ton deck en grand, avec les statistiques">🃏 Voir mon deck</button>
 <a class="dcbtn" href="https://discord.gg/bcCPUVX22s" target="_blank" rel="noopener" title="Rejoindre le Discord">💬 Discord</a><a class="donate" id="donateLink" href="https://www.paypal.com/qrcodes/p2pqrc/6TLGEJPFGP2KY" target="_blank" rel="noopener" title="Soutenir le projet (facultatif)" hidden>☕ Soutenir</a><span class="sync" id="sync">Chargement…</span>
+<a id="siteLink" class="playcta" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener" title="Aller sur la table de jeu avec ce deck">⚔️ Jouer</a>
 </header>
 <div class="wrap">
 <dialog id="artDlg"><h3 style="margin:0 0 4px">🎨 <span id="artT"></span></h3><p class="note" style="margin:0 0 10px">Choisis l'illustration utilisée pour cette carte dans ce deck (et sur la table de jeu).</p><div id="artG" class="artg"></div><div class="row" style="margin-top:10px;justify-content:flex-end"><button id="artClose" type="button">Fermer</button></div></dialog>
