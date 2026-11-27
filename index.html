@@ -284,12 +284,25 @@ img[hidden],.heroimg[hidden]{display:none!important}
 .gdel:hover{background:#000b}.gdel.arm{background:#c0392b;font-weight:700;font-size:13px}
 .gdots{position:absolute;right:12px;bottom:12px;z-index:2;display:flex;gap:5px}
 .gdots i{width:18px;height:18px;border-radius:50%;border:2px solid #fff;box-shadow:0 1px 4px #0008}
+
+/* Sélecteur de deck avec pastilles de factions */
+.dpk{position:relative;display:inline-block;max-width:100%}
+#dpkBtn{display:flex;align-items:center;gap:8px;max-width:min(360px,70vw);padding:5px 10px}
+.dpn{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;min-width:0}
+.dpc{opacity:.6;font-size:12px}
+.dpd{display:inline-flex;gap:3px;flex:none}.dpd i{width:14px;height:14px;border-radius:50%;box-shadow:0 0 0 1.5px var(--panel),0 0 0 2.5px #0002}.dpd i.no{background:none;border:1.5px dashed var(--line);box-shadow:none}
+.dpkl{position:absolute;top:calc(100% + 6px);left:0;z-index:30;min-width:280px;max-width:min(420px,92vw);max-height:60vh;overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px;box-shadow:0 10px 30px #0003;padding:6px;display:grid;gap:2px}
+.dpkl[hidden]{display:none}
+.dpkl button{display:flex;align-items:center;gap:10px;border:0;background:none;text-align:left;padding:8px 10px;border-radius:8px;min-height:0;width:100%}
+.dpkl button:hover{background:var(--soft)}.dpkl button.cur{background:var(--soft);outline:1.5px solid var(--line)}
+.dpkl .dpn{display:flex;flex-direction:column;color:var(--ink)}.dpkl small{color:var(--mute);font-size:12px}
+@media(max-width:600px){.dpkl{position:fixed;left:12px;right:12px;top:70px;min-width:0;max-width:none}}
 </style>
 </head>
 <body>
 <header class="top">
 <h1>Altered bicolore</h1>
-<span id="deckDots" style="display:inline-flex;gap:4px"></span><select id="deckSel" aria-label="Deck"></select>
+<span id="deckDots" style="display:none"></span><select id="deckSel" aria-label="Deck" hidden></select><span class="dpk"><button type="button" id="dpkBtn" aria-haspopup="listbox"></button><div class="dpkl" id="dpkList" role="listbox" hidden></div></span>
 <button id="myDecks" type="button">📚 Mes decks</button><button id="newDeck">Nouveau deck</button>
 <a id="siteLink" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener"><button tabindex="-1" class="on">▶ Jouer en ligne</button></a><a id="webLink" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener" title="Ouvre ce deck dans le deckbuilder en ligne et y copie toutes tes uniques scannées"><button tabindex="-1">🌐 Ouvrir en ligne</button></a>
 <button id="fmtBtn" hidden>Format</button>
@@ -597,8 +610,14 @@ function renderDeck(){
  $('siteLink').href=SITEB+'play.html?deck='+deckCode(d);$('webLink').href=webHref(d);
  $('dlist').innerHTML=h||'<p class="note">Choisis un héros, puis ajoute des cartes avec le bouton +.</p>';$('dlist').classList.toggle('dvhide',DECKVIEW);
 }
-function renderDots(){const d=D();if(!d)return;const P=BY[d.hero]?.f;$('deckDots').innerHTML=[P,d.sec].filter(Boolean).map(f=>'<span class="fd" style="width:16px;height:16px;background:var(--'+f+')" title="'+FN[f]+'"></span>').join('')}
-function renderSel(){const ids=Object.keys(decks).sort((a,b)=>(decks[b].updated||0)-(decks[a].updated||0));$('deckSel').innerHTML=ids.map(id=>'<option value="'+esc(id)+'"'+(id===cur?' selected':'')+'>'+esc(decks[id].name||'Sans nom')+(BY[decks[id].hero]?' · '+FN[BY[decks[id].hero].f]+(decks[id].sec?' + '+FN[decks[id].sec]:''):'')+'</option>').join('')}
+function dots(d){const P=BY[d.hero]?.f;return '<span class="dpd">'+([P,d.sec].filter(Boolean).map(f=>'<i style="background:var(--'+f+')" title="'+esc(FN[f])+'"></i>').join('')||'<i class="no"></i>')+'</span>'}
+function renderPick(){const d=D();if(!d)return;$('dpkBtn').innerHTML=dots(d)+'<span class="dpn">'+esc(d.name||'Sans nom')+'</span><span class="dpc">▾</span>';
+ const ids=Object.keys(decks).sort((a,b)=>(decks[b].updated||0)-(decks[a].updated||0));
+ $('dpkList').innerHTML=ids.map(id=>{const x=decks[id],h=BY[x.hero];return '<button type="button" role="option" data-dpk="'+esc(id)+'" class="'+(id===cur?'cur':'')+'">'+dots(x)+'<span class="dpn"><b>'+esc(x.name||'Sans nom')+'</b><small>'+(h?esc(NM(h))+' · '+esc(FN[h.f])+(x.sec?' + '+esc(FN[x.sec]):''):(EN()?'No hero yet':'Pas encore de héros'))+'</small></span></button>'}).join('')}
+$('dpkBtn').onclick=e=>{e.stopPropagation();const L=$('dpkList');L.hidden=!L.hidden};
+document.addEventListener('click',e=>{const b=e.target.closest('[data-dpk]');const L=$('dpkList');if(b){L.hidden=true;$('deckSel').value=b.dataset.dpk;$('deckSel').dispatchEvent(new Event('change'));return}if(!e.target.closest('.dpk'))L.hidden=true});
+function renderDots(){renderPick();const d=D();if(!d)return;const P=BY[d.hero]?.f;$('deckDots').innerHTML=[P,d.sec].filter(Boolean).map(f=>'<span class="fd" style="width:16px;height:16px;background:var(--'+f+')" title="'+FN[f]+'"></span>').join('')}
+function renderSel(){try{renderPick()}catch(e){}const ids=Object.keys(decks).sort((a,b)=>(decks[b].updated||0)-(decks[a].updated||0));$('deckSel').innerHTML=ids.map(id=>'<option value="'+esc(id)+'"'+(id===cur?' selected':'')+'>'+esc(decks[id].name||'Sans nom')+(BY[decks[id].hero]?' · '+FN[BY[decks[id].hero].f]+(decks[id].sec?' + '+FN[decks[id].sec]:''):'')+'</option>').join('')}
 let GAL=false,ALTS={};const ALTSET={DUSTERCB:'Collector · Graines d\'unité',EOLECB:'Collector · Racines de la corruption',DUSTEROP:'Promo Organized Play',DUSTERTOP:'Promo tournoi',MUSUBI:'Musubi',WCS25:'Promo World Championship 2025',WCS26:'Promo World Championship 2026',WCF25:'Promo Finale 2025',WCQ25:'Promo Qualif. 2025',TCS3:'Promo',JUDGE:'Promo juge'};
 function artBtn(c){return window.AltUniques&&ALTS[c.r]?'<button class="artb" data-art="'+esc(c.r)+'" title="'+(EN()?'Alternative artworks':'Illustrations alternatives')+'">🎨</button>':''}
 function openArt(r){const d=D(),c=BY[r];if(!d||!c)return;const L=[''].concat(ALTS[r]||[]),curA=(d.art||{})[r]||'';
