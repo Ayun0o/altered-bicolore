@@ -672,6 +672,8 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 #rgHelpDlg::backdrop{background:rgba(0,0,0,.45)}
 #rgHelpDlg ul,#rgHelpDlg ol{margin:4px 0;padding-left:20px}#rgHelpDlg li{margin:4px 0}
 .beta{display:inline-block;font-size:11px;font-weight:700;padding:1px 6px;border-radius:8px;background:#f5c518;color:#222;vertical-align:middle;margin-left:4px;text-transform:uppercase;letter-spacing:.4px}
+.dtfm{display:flex;flex-wrap:wrap;gap:3px;margin-top:3px}.dtfm i{font-style:normal;font-size:10.5px;padding:0 5px;border-radius:6px;background:#3c8a4a33;color:#9fdcaa;white-space:nowrap}.dtfm i.no{background:#ff8a8022;color:#ff8a80}
+.hfmt{display:flex;gap:8px;align-items:center;margin:4px 0 8px;font-size:13px}.hfmt select{flex:1;min-width:0}
 </style>
 </head>
 <body>
@@ -687,6 +689,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 <span class="lbl">Rejoindre avec le code reçu</span>
 <div class="row"><input id="jcode" placeholder="Ex. K7P2QX" maxlength="6" style="text-transform:uppercase;flex:1;min-width:0"><button class="pri" id="bJoin">Rejoindre</button></div>
 <span class="lbl" style="margin-top:14px">Ou créer une partie</span>
+<label class="hfmt"><span>Format imposé</span><select id="hostFmt"><option value="">Libre (aucune restriction)</option><option value="std">Standard</option><option value="bi">Bicolore</option><option value="nuc">Sans unique</option><option value="sgl">Singleton</option></select></label>
 <button class="pri" id="bHost" style="width:100%">Créer une partie</button>
 <p class="note">Tu obtiens un code à envoyer à ton adversaire. La partie utilise le deck choisi au centre.</p>
 <p id="lobbyMsg" class="note"></p>
@@ -746,14 +749,15 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 
 <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/i18n.js?v=1795800854"></script>
+<script src="js/i18n.js?v=1795801233"></script>
 <script src="js/uniques.js?v=1795785407"></script>
 <script src="js/cloud.js?v=1795785407"></script>
+<script src="js/formats.js?v=1795801233"></script>
 <script src="js/engine.js?v=1795798404"></script>
 <script src="js/ai.js?v=1795785407"></script>
 <script src="js/net.js?v=1795785407"></script>
 <script src="js/rogue.js?v=1795800854"></script>
-<script src="js/play.js?v=1795795086"></script>
+<script src="js/play.js?v=1795801233"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
  t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');

@@ -25,7 +25,7 @@
   const DELETED = new Set();
   function deckList() {
     const all = store.get('alt-bi-decks', {});
-    const mine = decks().map(([k, v]) => ({ id: k, name: v.name || 'Sans nom', hero: v.hero, sec: v.sec || '', n: Object.values(v.cards || {}).reduce((a, b) => a + b, 0), g: 'Mes decks' }));
+    const mine = decks().map(([k, v]) => ({ id: k, name: v.name || 'Sans nom', hero: v.hero, sec: v.sec || '', n: Object.values(v.cards || {}).reduce((a, b) => a + b, 0) + (v.uniques || []).length, g: 'Mes decks' }));
     const st = STARTERS.map(s => ({ id: s.id, name: s.name, hero: s.hero, sec: '', n: 39, g: 'Decks de départ officiels' }));
     return mine.concat(st);
   }
@@ -37,10 +37,14 @@
       const on = d.id === cur, c1 = FC[f] || '#666', c2 = FC[f2] || c1;
       return head + '<button type="button" class="dtile' + (on ? ' on' : '') + '" data-pick="' + esc(selId) + '" data-val="' + esc(d.id) + '" style="--c1:' + c1 + ';--c2:' + c2 + '">' +
         (d.hero ? '<span class="dtart" style="background-image:url(\'' + esc(IMG(d.hero)) + '\')"></span>' : '') +
-        '<span class="dttx"><b>' + esc(d.name) + '</b><span class="dtsub">' + (f ? dot(f) : '') + (d.sec && FC[d.sec] ? dot(d.sec) : '') + ' ' + esc(NM(DB[d.hero])) + '</span><span class="dtn">' + d.n + ' cartes</span></span>' +
+        '<span class="dttx"><b>' + esc(d.name) + '</b><span class="dtsub">' + (f ? dot(f) : '') + (d.sec && FC[d.sec] ? dot(d.sec) : '') + ' ' + esc(NM(DB[d.hero])) + '</span><span class="dtn">' + d.n + ' cartes</span>' + fmtChips(d.id) + '</span>' +
         (d.g === 'Mes decks' ? '<span class="pdel" data-del="' + esc(d.id) + '" title="Supprimer ce deck" role="button">🗑</span>' : '') + '</button>';
     }).join('') + '</div>';
   }
+  // Formats dans lesquels le deck est valide (petites pastilles sous le deck)
+  function fmtChips(id) { if (!window.AltFormats) return ''; const g = getDeck(id); if (!g) return ''; const v = AltFormats.valid(g, DB), en = LANG === 'en';
+    return '<span class="dtfm" title="' + esc(en ? 'Formats where this deck is valid' : 'Formats où ce deck est valide') + '">' + (v.length ? v.map(f => '<i>✓ ' + esc(AltFormats.name(f, en)) + '</i>').join('') : '<i class="no">' + (en ? 'No valid format' : 'Aucun format valide') + '</i>') + '</span>'; }
+  const hostFmt = () => { const x = $('hostFmt'); return x && x.value ? x.value : ''; };
   function renderPickers() { for (const id of ['pdeck', 'sdeck']) { const box = $(id + 'Pick'); if (box) box.innerHTML = picker(id, $(id).value); } }
   // Illustrations alternatives choisies dans le deckbuilder (réf. de base → réf. alternative)
   const ART = {}, ARTRX = /^ALT_[A-Z0-9]+_[A-Z]_[A-Z]{2}_\d+_(C|R1|R2)(_[A-Z0-9]{3})?$/;
@@ -51,7 +55,7 @@
     const d = store.get('alt-bi-decks', {})[id]; if (!d || !d.hero) return null;
     const cards = Object.assign({}, d.cards || {}), uq = {};
     for (const u of d.uniques || []) { const c = window.AltUniques ? AltUniques.sanitize(u.card || uqStub(u)) : null; if (c) { DB[c.r] = c; uq[c.r] = c; cards[c.r] = 1; } }
-    return { hero: d.hero, cards, name: d.name, uq, art: d.art || {} };
+    return { hero: d.hero, cards, name: d.name, uq, art: d.art || {}, sec: d.sec || '', fm: d.fm || '' };
   }
 
   // Unique importée sans données (liste altered.re) : stats de la version commune en attendant
@@ -125,12 +129,14 @@
 
   function startHost() {
     const d = needDeck(); if (!d) return;
+    const HF = hostFmt(); if (HF && window.AltFormats) { const r = AltFormats.check(d, DB, HF, LANG === 'en'); if (!r.ok) { $('lobbyMsg').innerHTML = '<span class="err">' + esc((LANG === 'en' ? 'Your deck is not valid in ' : 'Ton deck n’est pas valide en ') + AltFormats.name(HF, LANG === 'en') + ' : ' + r.errs.join(' ')) + '</span>'; return; } }
+    HOSTF = HF;
     if (typeof Peer === 'undefined') { $('lobbyMsg').innerHTML = '<span class="err">Le module réseau n’a pas pu se charger.</span>'; return; }
     mode = 'host'; me = 0; decksUsed[0] = d; addArt(d.art); names[0] = myName('Joueur 1');
     S = E.newGame({}); E.addPlayer(S, 0, names[0], d, DB);
     $('lobbyMsg').textContent = 'Création de la partie…';
     net = NET.host(onHostMsg, (st, x) => {
-      if (st === 'open') { const link = location.origin + location.pathname + '?join=' + x; $('lobbyMsg').innerHTML = 'Code de la partie : <b style="font-size:20px">' + esc(x) + '</b><br>Envoie ce code (ou ce lien : <a href="' + esc(link) + '">' + esc(link) + '</a>) à ton adversaire. La partie commence dès qu’il rejoint. Garde cette page ouverte.'; showGame(); setConn('En attente de l’adversaire · code ' + x); }
+      if (st === 'open') { const link = location.origin + location.pathname + '?join=' + x; $('lobbyMsg').innerHTML = 'Code de la partie : <b style="font-size:20px">' + esc(x) + '</b><br>Envoie ce code (ou ce lien : <a href="' + esc(link) + '">' + esc(link) + '</a>) à ton adversaire. La partie commence dès qu’il rejoint. Garde cette page ouverte.' + (HOSTF && window.AltFormats ? '<br><b>Format ' + esc(AltFormats.name(HOSTF)) + '</b> : son deck doit être valide dans ce format.' : ''); showGame(); setConn('En attente de l’adversaire · code ' + x); }
       else if (st === 'peer') setConn('Adversaire connecté');
       else if (st === 'left') setConn('Adversaire déconnecté : il peut revenir avec le même code.');
       else if (st === 'error') { $('lobbyMsg').innerHTML = '<span class="err">' + esc(x) + '</span>'; setConn('Erreur réseau : ' + x); }
@@ -139,7 +145,8 @@
   function onHostMsg(m) {
     if (!m || typeof m !== 'object') return;
     if (m.type === 'hello') {
-      if (!S.players[1]) { const deck = sanitizeDeck(m.deck); if (deck) addArt(m.deck.art); if (!deck) { net.send({ type: 'err', m: 'Deck invalide.' }); return; } decksUsed[1] = deck; names[1] = String(m.name || 'Joueur 2').slice(0, 24); if (names[1] === names[0]) names[1] += ' (2)'; E.addPlayer(S, 1, names[1], deck, DB); E.advance(S, DB); }
+      if (!S.players[1]) { const deck = sanitizeDeck(m.deck); if (deck) addArt(m.deck.art); if (!deck) { net.send({ type: 'err', m: 'Deck invalide.' }); return; }
+        if (HOSTF && window.AltFormats) { const r = AltFormats.check({ hero: deck.hero, sec: String(m.deck.sec || ''), cards: deck.cards }, DB, HOSTF); if (!r.ok) { net.send({ type: 'err', m: 'Cette partie est en format ' + AltFormats.name(HOSTF) + ' : ton deck n’est pas valide (' + r.errs.join(' ') + '). Choisis un autre deck et rejoins de nouveau.' }); setConn('Deck de l’adversaire refusé (format ' + AltFormats.name(HOSTF) + ')'); return; } } decksUsed[1] = deck; names[1] = String(m.name || 'Joueur 2').slice(0, 24); if (names[1] === names[0]) names[1] += ' (2)'; E.addPlayer(S, 1, names[1], deck, DB); E.advance(S, DB); }
       push();
     } else if (m.type === 'act' && m.a && typeof m.a === 'object') {
       const err = applyAct(1, m.a); if (err) net.send({ type: 'err', m: err }); push();
@@ -159,7 +166,7 @@
       else if (m.type === 'err') flash(m.m);
       else if (m.type === 'full') { $('lobbyMsg').innerHTML = '<span class="err">Cette partie a déjà deux joueurs.</span>'; }
     }, (st, x) => {
-      if (st === 'connected') { net.send({ type: 'hello', name: myName('Joueur 2'), deck: { hero: d.hero, cards: d.cards, uq: d.uq, art: d.art } }); setConn('Connecté'); }
+      if (st === 'connected') { net.send({ type: 'hello', name: myName('Joueur 2'), deck: { hero: d.hero, cards: d.cards, uq: d.uq, art: d.art, sec: d.sec || '' } }); setConn('Connecté'); }
       else if (st === 'left') setConn('Connexion perdue avec l’hôte.');
       else if (st === 'error') { $('lobbyMsg').innerHTML = '<span class="err">' + esc(x) + '</span>'; setConn('Erreur : ' + x); }
     });
@@ -174,7 +181,7 @@
     showGame(); push();
   }
   // Accroche pour le mode Aventure (roguelike) : lance une partie contre l'IA avec deux decks donnés
-  let ROGUE = null, FOEB = null;
+  let ROGUE = null, FOEB = null, HOSTF = '';
   // Aventure : avantage de départ de l'adversaire (mini-boss, boss…), appliqué une fois la mise en place terminée
   function foeBonus() { if (!FOEB || FOEB.done || !ROGUE || !S || S.phase === 'SETUP') return; FOEB.done = true; const F = S.players[1]; if (!F) return;
     for (let k = 0; k < FOEB.mana && F.deck.length; k++) F.mana.push({ id: F.deck.shift(), ex: false });

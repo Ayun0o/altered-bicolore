@@ -325,6 +325,7 @@ img[hidden],.heroimg[hidden]{display:none!important}
 .playcta:hover{transform:translateY(-1px) scale(1.03);box-shadow:0 4px 16px #c4302b99,inset 0 1px 0 #fff4}
 @media(max-width:600px){.playcta{padding:6px 14px;font-size:15px;margin-left:auto}}
 .top .sync{order:99;flex-basis:100%;text-align:right;margin-top:-6px}
+.gtag.gok{background:#2e8b4788;font-weight:600}
 </style>
 </head>
 <body>
@@ -347,7 +348,8 @@ img[hidden],.heroimg[hidden]{display:none!important}
 <div class="sgrid">
 <label><span class="lbl">Nom du deck</span><input id="dName" style="width:100%;font-family:Spectral,serif;font-weight:600"></label>
 <label><span class="lbl">Héros (faction principale)</span><select id="dHero" style="width:100%"></select></label>
-<label><span class="lbl">Faction secondaire</span><select id="dSec" style="width:100%"></select></label>
+<label><span class="lbl">Format</span><select id="dFmt" style="width:100%"></select></label>
+<label id="dSecL"><span class="lbl">Faction secondaire</span><select id="dSec" style="width:100%"></select></label>
 <div><span class="lbl">État du deck</span><a href="#deckpanel" id="miniStat" class="ministat"></a></div>
 
 </div>
@@ -440,8 +442,8 @@ const EN=()=>LANG==='en';const NM=c=>EN()?c.en:c.n;const TX=c=>EN()?c.xe:c.x;con
 const SITEB=window.AltUniques?'':'https://ayun0o.github.io/altered-bicolore/';
 const uqCode=()=>{const L=Object.values(MYU).map(c=>{const x={...c};delete x._s;delete x.base;return x});return L.length?btoa(unescape(encodeURIComponent(JSON.stringify(L)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,''):''};
 const webHref=d=>SITEB+'index.html?deck='+deckCode(d)+(window.AltUniques?'':(uqCode()?'&uq='+uqCode():''));
-const deckCode=d=>{const o={n:d.name,h:d.hero,s:d.sec,c:d.cards,u:d.uniques};if(d.art&&Object.keys(d.art).length)o.a=d.art;return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
-const deckFromCode=s=>{try{s=String(s).replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const o=JSON.parse(decodeURIComponent(escape(atob(s))));return{name:String(o.n||'Deck importé').slice(0,80),hero:o.h,sec:o.s||'',cards:o.c||{},uniques:Array.isArray(o.u)?o.u:[],updated:Date.now()}}catch(e){return null}};
+const deckCode=d=>{const o={n:d.name,h:d.hero,s:d.sec,c:d.cards,u:d.uniques};if(d.fm)o.f=d.fm;if(d.art&&Object.keys(d.art).length)o.a=d.art;return btoa(unescape(encodeURIComponent(JSON.stringify(o)))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'')};
+const deckFromCode=s=>{try{s=String(s).replace(/-/g,'+').replace(/_/g,'/');while(s.length%4)s+='=';const o=JSON.parse(decodeURIComponent(escape(atob(s))));return{fm:o.f,name:String(o.n||'Deck importé').slice(0,80),hero:o.h,sec:o.s||'',cards:o.c||{},uniques:Array.isArray(o.u)?o.u:[],updated:Date.now()}}catch(e){return null}};
 const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const norm=s=>String(s).normalize('NFD').replace(/[̀-ͯ]/g,'').toLowerCase();
 const $=id=>document.getElementById(id);
@@ -460,7 +462,13 @@ const D=()=>decks[cur];
 
 function newDeckObj(name){return{name,hero:'',sec:'',cards:{},uniques:[],updated:Date.now()}}
 
+// Formats de construction (règles d'Altered Re:Union pour Sans unique et Singleton)
+const FMTS=[['std','Standard','Standard'],['bi','Bicolore','Bicolore'],['nuc','Sans unique (NUC)','No Unique (NUC)'],['sgl','Singleton','Singleton']];
+const FM=d=>d&&['std','bi','nuc','sgl'].includes(d.fm)?d.fm:(d&&d.sec?'bi':'std');
+const fmName=k=>{const f=FMTS.find(x=>x[0]===k)||FMTS[0];return EN()?f[2]:f[1]};
+const rcls=(r,c)=>/_E$/.test(r)?'E':c.u?'U':c.y;
 function analyse(d){
+ const fm=FM(d);if(fm!=='bi')return analyseF(d,fm);
  const hero=BY[d.hero],P=hero?hero.f:'',S=d.sec||'',bi=!!S;
  let total=0,rares=0,sec=0,secR=0,bad=0,ex=0;const names={},types={},curve=[0,0,0,0,0,0,0,0];
  for(const [r,n] of Object.entries(d.cards)){const c=BY[r];if(!c||!n)continue;total+=n;
@@ -472,7 +480,8 @@ function analyse(d){
  const over=Object.entries(names).filter(([k,v])=>v>fmt.copies);
  const R=[];const add=(label,val,max,okc)=>R.push({label,val,max,ok:okc});
  R.push({label:'Héros choisi',val:hero?NM(hero):'aucun',ok:!!hero});
- add('Cartes (hors héros)',total,fmt.deck,total===fmt.deck);
+ add('Cartes (hors héros)',total,fmt.deck,total>=fmt.deck);
+ if(!S)R.push({label:'Faction secondaire voisine sur la roue',val:'à choisir',ok:false});
  if(bi){R.push({label:'Faction secondaire voisine sur la roue',val:FN[S],ok:!P||neighbours(P).includes(S)});
   add('Rares au total',rares,fmt.biR,rares<=fmt.biR);add('Cartes secondaires',sec,fmt.secMax,sec<=fmt.secMax);add('Rares secondaires',secR,fmt.secR,secR<=fmt.secR);
   add('Uniques au total',uP+uS,fmt.uP+fmt.uS,uP+uS<=fmt.uP+fmt.uS);add('Uniques faction secondaire',uS,fmt.uS,uS<=fmt.uS)}
@@ -481,7 +490,31 @@ function analyse(d){
  R.push({label:'Exemplaires max par nom ('+fmt.copies+')',val:over.length?over.length+' nom(s) en trop':'ok',ok:!over.length});
  R.push({label:'Chaque unique en un seul exemplaire',val:udup?udup+' en double':'ok',ok:!udup});
  R.push({label:'Cartes hors des factions du deck',val:bad,ok:!bad});
- return{R,ok:R.every(x=>x.ok),P,S,total,types,curve,overNames:new Set(over.map(o=>o[0]))};
+ return{R,ok:R.every(x=>x.ok),P,S,total,types,curve,overNames:new Set(over.map(o=>o[0])),need:fmt.deck};
+}
+// Standard, Sans unique et Singleton : une seule faction (celle du héros)
+// Formats dans lesquels le deck est valide
+function validFor(d){return FMTS.map(f=>f[0]).filter(k=>k==='bi'?(!!d.sec&&analyse(Object.assign({},d,{fm:'bi'})).ok):analyseF(d,k).ok)}
+function analyseF(d,fm){
+ const hero=BY[d.hero],P=hero?hero.f:'',sgl=fm==='sgl';
+ let total=0,rares=0,bad=0,ex=0;const names={},per={},types={},curve=[0,0,0,0,0,0,0,0];
+ for(const [r,n] of Object.entries(d.cards)){const c=BY[r];if(!c||!n)continue;total+=n;
+  if(/_E$/.test(r))ex+=n;else if(c.y==='R')rares+=n;if(c.f!==P)bad+=n;
+  const k0=norm(c.n);names[k0]=(names[k0]||0)+n;const kr=k0+'|'+rcls(r,c);per[kr]=(per[kr]||0)+n;types[c.t]=(types[c.t]||0)+n;
+  curve[Math.min(7,parseInt(String(c.c).replace(/#/g,''),10)||0)]+=n}
+ let uq=0;for(const u of d.uniques){total++;uq++;const k0=norm(u.n);names[k0]=(names[k0]||0)+1;per[k0+'|U']=(per[k0+'|U']||0)+1;if(u.f!==P)bad++}
+ const over=Object.entries(names).filter(([k,v])=>v>fmt.copies),overR=sgl?Object.entries(per).filter(([k,v])=>v>1):[];
+ const R=[];const add=(label,val,max,okc)=>R.push({label,val,max,ok:okc});
+ R.push({label:'Héros choisi',val:hero?NM(hero):'aucun',ok:!!hero});
+ const need=sgl?59:fmt.deck;
+ if(sgl)add('Cartes (hors héros) : 59 à 79',total,79,total>=59&&total<=79);else add('Cartes (hors héros)',total,fmt.deck,total>=fmt.deck);
+ if(!sgl)add('Rares',rares,fmt.monoR,rares<=fmt.monoR);
+ if(fm==='std')add('Uniques',uq,fmt.monoU,uq<=fmt.monoU);else add('Uniques interdites',uq,0,!uq);
+ add('Exaltées',ex,3,ex<=3);
+ R.push({label:'Exemplaires max par nom ('+fmt.copies+')',val:over.length?over.length+' nom(s) en trop':'ok',ok:!over.length});
+ if(sgl)R.push({label:'Singleton : 1 exemplaire par nom et par rareté',val:overR.length?overR.length+' en double':'ok',ok:!overR.length});
+ R.push({label:'Cartes hors de la faction du héros',val:bad,ok:!bad});
+ return{R,ok:R.every(x=>x.ok),P,S:'',total,types,curve,overNames:new Set(over.map(o=>o[0]).concat(overR.map(o=>o[0].split('|')[0]))),need};
 }
 
 function legal(c){const d=D();if(!d)return true;const h=BY[d.hero];if(!h)return true;if(c.t==='HERO')return true;return c.f===h.f||(d.sec&&c.f===d.sec)}
@@ -503,7 +536,8 @@ function lims(){const d=D(),o={names:{},rares:0,sec:0,secR:0};if(!d)return o;con
 let LIM=null;
 function canAdd(c){const d=D();if(!d||c.t==='HERO')return true;const L=LIM||lims(),bi=!!d.sec;
  if((L.names[norm(c.n)]||0)>=fmt.copies)return false;
- if(c.u)return true;
+ const fm=FM(d);if(c.u)return fm!=='nuc'&&fm!=='sgl';
+ if(fm==='sgl'){const k=rcls(c.r,c);for(const [r,n] of Object.entries(d.cards)){const x=BY[r];if(x&&n&&norm(x.n)===norm(c.n)&&rcls(r,x)===k)return false}}
  return true} // quotas de rares / secondaires : pas bloquants, les règles passent en rouge
 const KWX=[['Fugace','Fleeting','Envoyez-moi à la Défausse plutôt qu’en Réserve. Un personnage joué depuis la Réserve devient Fugace.','Sent to the Discard instead of the Reserve. A character played from Reserve becomes Fleeting.'],
  ['Ancré','Anchored','Au Repos, il ne va pas en Réserve et perd Ancré.','During Rest, it doesn’t go to Reserve and loses Anchored.'],
@@ -563,7 +597,7 @@ function deckCards(){const d=D();if(!d)return[];const L=[];if(BY[d.hero])L.push(
 function regU(card){if(!card||typeof card!=='object'||!/_U_\d+$/.test(String(card.r||''))||!FAC.includes(card.f))return null;const c={...card,u:true,y:'U',v:'U',st:Array.isArray(card.st)?card.st:[],ste:Array.isArray(card.ste)?card.ste:[],p:Array.isArray(card.p)?card.p:['','','']};delete c._s;c._s=norm([c.n,c.en,c.x,c.e,c.xe,c.ee].join(' '));BY[c.r]=c;MYU[c.r]=c;return c}
 function saveU(){const o={};for(const [r,c] of Object.entries(MYU)){const x={...c};delete x._s;o[r]=x}try{localStorage.setItem('alt-bi-uniques',JSON.stringify(o))}catch(e){}if(db&&UID)myDecks().doc('_uniques').set({cards:o}).catch(()=>{})}
 function myUniques(){return Object.values(MYU)}
-function autoSec(d){const hf=BY[d.hero]&&BY[d.hero].f;if(hf&&!d.sec){const o={};for(const r in d.cards){const c=BY[r];if(c&&c.f!==hf&&c.t!=='HERO')o[c.f]=(o[c.f]||0)+d.cards[r]}for(const u of d.uniques)if(u.f&&u.f!==hf)o[u.f]=(o[u.f]||0)+1;const k=Object.keys(o).sort((a,b)=>o[b]-o[a])[0];if(k)d.sec=k}}
+function autoSec(d){if(d.fm&&d.fm!=='bi')return;const hf=BY[d.hero]&&BY[d.hero].f;if(hf&&!d.sec){const o={};for(const r in d.cards){const c=BY[r];if(c&&c.f!==hf&&c.t!=='HERO')o[c.f]=(o[c.f]||0)+d.cards[r]}for(const u of d.uniques)if(u.f&&u.f!==hf)o[u.f]=(o[u.f]||0)+1;const k=Object.keys(o).sort((a,b)=>o[b]-o[a])[0];if(k)d.sec=k}}
 // Site en ligne : complète les uniques importées (réf. connue, sans données) depuis la base communautaire
 async function fillUq(){if(!window.AltUniques)return 0;let k=0,ch=false;for(const d of Object.values(decks||{}))for(const u of (d&&d.uniques)||[]){if(u.card||!u.r)continue;
  let c=null;try{c=await AltUniques.fetchRef(u.r)}catch(e){}c=c&&regU(c);if(c){u.card=c;u.n=c.n;u.f=c.f;k++;ch=true}}
@@ -623,10 +657,11 @@ function renderDeck(){
  const heroes=CARDS.filter(c=>c.t==='HERO');
  $('dHero').innerHTML='<option value="">Choisir un héros…</option>'+FAC.map(f=>'<optgroup label="'+FN[f]+'">'+heroes.filter(h=>h.f===f).map(h=>'<option value="'+esc(h.r)+'"'+(h.r===d.hero?' selected':'')+'>'+esc(NM(h))+'</option>').join('')+'</optgroup>').join('');
  const P=BY[d.hero]?.f,nb=P?neighbours(P):FAC;
- $('dSec').innerHTML='<option value="">Aucune (mono)</option>'+FAC.filter(f=>f!==P).map(f=>'<option value="'+f+'"'+(f===d.sec?' selected':'')+(nb.includes(f)?'':' disabled')+'>'+FN[f]+(nb.includes(f)?'':' (pas voisine)')+'</option>').join('');
+ const fm=FM(d);$('dFmt').innerHTML=FMTS.map(f=>'<option value="'+f[0]+'"'+(f[0]===fm?' selected':'')+'>'+(EN()?f[2]:f[1])+'</option>').join('');$('dSecL').hidden=fm!=='bi';
+ $('dSec').innerHTML='<option value="">'+(fm==='bi'?'Choisir…':'Aucune (mono)')+'</option>'+FAC.filter(f=>f!==P).map(f=>'<option value="'+f+'"'+(f===d.sec?' selected':'')+(nb.includes(f)?'':' disabled')+'>'+FN[f]+(nb.includes(f)?'':' (pas voisine)')+'</option>').join('');
  const A=analyse(d);
  $('status').innerHTML='<div class="status '+(A.ok?'ok':'bad')+'">'+(A.ok?'Deck valide':'Deck pas encore valide')+'</div>';
- const nbad=A.R.filter(x=>!x.ok).length;const ms=$('miniStat');ms.className='ministat '+(A.ok?'ok':'bad');ms.textContent=(A.ok?'Valide':nbad+' règle'+(nbad>1?'s':'')+' à revoir')+' · '+A.total+'/'+fmt.deck+' cartes';
+ const nbad=A.R.filter(x=>!x.ok).length;const ms=$('miniStat');ms.className='ministat '+(A.ok?'ok':'bad');ms.textContent=fmName(FM(d))+' · '+(A.ok?'Valide':nbad+' règle'+(nbad>1?'s':'')+' à revoir')+' · '+A.total+'/'+(A.need||fmt.deck)+' cartes';
  $('asideTitle').textContent=d.name||'Mon deck';
  {const P0=BY[d.hero]?.f,S0=d.sec||P0,R=document.documentElement;if(P0){R.style.setProperty('--pc','var(--'+P0+')');R.style.setProperty('--sc','var(--'+S0+')');R.classList.add('themed')}else R.classList.remove('themed');
   const sb=$('setBg');if(sb.dataset.r!==(d.hero||'')){sb.dataset.r=d.hero||'';sb.style.backgroundImage='';if(d.hero)imgFor(d.hero).then(u=>{if(u&&sb.dataset.r===d.hero)sb.style.backgroundImage='url("'+u+'")'})}}
@@ -658,7 +693,7 @@ function renderGal(){const ids=Object.keys(decks).sort((a,b)=>(decks[b].updated|
  $('gal').innerHTML='<h2 class="galh">'+(EN()?'My decks':'Mes decks')+' <span class="dvn">'+ids.length+'</span></h2><div class="gtiles">'+ids.map(id=>{const d=decks[id],h=BY[d.hero],f=h&&h.f,f2=d.sec||f,A=analyse(d);
   const n=Object.values(d.cards||{}).reduce((a,b)=>a+(+b||0),0)+(d.uniques||[]).length;
   return '<button type="button" class="gtile'+(id===cur?' on':'')+'" data-open="'+esc(id)+'" style="--c1:'+col(f)+';--c2:'+col(f2)+'"><span class="gtart" data-gh="'+esc(d.hero||'')+'"></span>'
-   +'<span class="gtb"><span class="gtag '+(A.ok?'ok':'bad')+'">'+(A.ok?(EN()?'✓ Valid':'✓ Valide'):(EN()?'⚠ Not valid':'⚠ Pas valide'))+'</span>'+(d.sec?'<span class="gtag">'+(EN()?'Two-faction':'Bicolore')+'</span>':'')+'</span>'
+   +'<span class="gtb"><span class="gtag '+(A.ok?'ok':'bad')+'">'+(A.ok?(EN()?'✓ Valid':'✓ Valide'):(EN()?'⚠ Not valid':'⚠ Pas valide'))+'</span>'+'<span class="gtag">'+esc(fmName(FM(d)))+'</span>'+validFor(d).filter(k=>k!==FM(d)).map(k=>'<span class="gtag gok" title="'+(EN()?'Also valid in this format':'Valide aussi dans ce format')+'">✓ '+esc(fmName(k))+'</span>').join('')+'</span>'
    +'<span class="gdel" role="button" data-gdel="'+esc(id)+'" title="'+(EN()?'Delete this deck':'Supprimer ce deck')+'">🗑</span>'+(f?'<span class="gdots"><i style="background:var(--'+f+')"></i>'+(d.sec?'<i style="background:var(--'+d.sec+')"></i>':'')+'</span>':'')+'<span class="gtx"><b>'+esc(d.name||'Sans nom')+'</b><span class="gts">'+(h?esc(NM(h)):(EN()?'No hero yet':'Pas encore de héros'))+(f?' · '+esc(FN[f])+(d.sec?' + '+esc(FN[d.sec]):''):'')+'</span><span class="gtn">'+n+' '+(EN()?'cards':'cartes')+'</span></span></button>'}).join('')
   +'<button type="button" class="gtile gnew" data-gnew="1"><span class="gtx"><b>＋ '+(EN()?'New deck':'Nouveau deck')+'</b></span></button></div>';
  $('gal').querySelectorAll('[data-gh]').forEach(el=>{const r=el.dataset.gh,dk=decks[el.closest('[data-open]').dataset.open];if(r)imgFor(r,dk).then(u=>{if(u)el.style.backgroundImage='url("'+u+'")'})})}
@@ -690,7 +725,8 @@ document.addEventListener('click',e=>{const hz=e.target.closest('.hz');const im=
 $('dHero').addEventListener('change',()=>setTimeout(renderDots,0));
 $('heroX').onclick=e=>{e.stopPropagation();const d=D();if(!d)return;d.hero='';d.sec='';shown=60;touch();renderAll();window.scrollTo({top:0})};
 $('dHero').onchange=e=>{const d=D();d.hero=e.target.value;const P=BY[d.hero]?.f;if(d.sec&&(d.sec===P||(P&&!neighbours(P).includes(d.sec))))d.sec='';touch();renderDeck();renderGrid()};
-$('dSec').onchange=e=>{D().sec=e.target.value;touch();renderDeck();renderGrid();renderDots()};
+$('dSec').onchange=e=>{const d=D();d.sec=e.target.value;if(d.sec)d.fm='bi';touch();renderDeck();renderGrid();renderDots()};
+$('dFmt').onchange=e=>{const d=D();d.fm=e.target.value;if(d.fm!=='bi')d.sec='';touch();renderAll()};
 $('dName').oninput=e=>{D().name=e.target.value;$('asideTitle').textContent=e.target.value||'Mon deck';touch();renderSel()};
 $('deckSel').onchange=e=>{galOff();cur=e.target.value;try{localStorage.setItem('alt-bi-cur',cur)}catch(x){}shown=60;renderAll()};
 let STARTERS=[];fetch('starters.json').then(r=>r.ok?r.json():[]).then(x=>{STARTERS=Array.isArray(x)?x:[]}).catch(()=>{});
@@ -705,12 +741,13 @@ let delArm=false;$('del').onclick=()=>{if(!delArm){delArm=true;$('del').textCont
 ['q','fSort','onlyLegal','showTxt'].forEach(id=>$(id).addEventListener('input',()=>{shown=60;renderGrid()}));
 $('more').onclick=()=>{shown+=60;renderGrid()};
 
-$('exp').onclick=()=>{const d=D(),h=BY[d.hero];let t='Deck : '+d.name+'\nHéros : '+(h?NM(h)+' ['+h.r+']':'aucun')+'\nSecondaire : '+(d.sec?FN[d.sec]:'aucune')+'\n\n';
+$('exp').onclick=()=>{const d=D(),h=BY[d.hero];let t='Deck : '+d.name+'\nHéros : '+(h?NM(h)+' ['+h.r+']':'aucun')+'\nFormat : '+fmName(FM(d))+'\nSecondaire : '+(d.sec?FN[d.sec]:'aucune')+'\n\n';
  for(const [r,n] of Object.entries(d.cards)){const c=BY[r];if(c)t+=n+' '+NM(c)+' ['+r+']\n'}for(const u of d.uniques)t+='1 '+u.n+' [UNIQUE:'+u.f+']\n';
  $('ioT').textContent='Copier la liste';$('ioTx').value=t;$('ioOk').textContent='Copier';$('ioNote').textContent='';$('ioOk').onclick=async()=>{try{await navigator.clipboard.writeText(t);$('ioNote').textContent='Copié.'}catch(e){$('ioTx').select();$('ioNote').textContent='Copie bloquée : sélectionne le texte et copie-le à la main.'}};$('ioDlg').showModal()};
 $('imp').onclick=()=>{$('ioT').textContent='Importer une liste';$('ioTx').value='';$('ioOk').textContent='Remplacer le deck';$('ioNote').textContent='Colle une liste copiée depuis cette page, ou depuis altered.re / altered.gg (« 3 ALT_… » par ligne). Elle remplace le contenu du deck actuel.';
  $('ioOk').onclick=()=>{const d=D(),tx=$('ioTx').value;d.cards={};d.uniques=[];let miss=0,uq=0;
   for(const line of tx.split('\n')){const hm=line.match(/H[ée]ros.*\[(ALT_[^\]]+)\]/);if(hm&&BY[hm[1]]){d.hero=hm[1];continue}
+   const fmm=line.match(/^Format : (.+)$/);if(fmm){const f=FMTS.find(x=>x[1]===fmm[1].trim()||x[2]===fmm[1].trim());if(f)d.fm=f[0];continue}
    const sm=line.match(/^Secondaire : (.+)$/);if(sm){const f=FAC.find(k=>FN[k]===sm[1].trim());d.sec=f||'';continue}
    const rm=line.trim().match(/^(\d+)\s*x?\s+(ALT_[A-Z0-9_]+)\s*$/i);
    if(rm){const n=+rm[1],ref=rm[2].toUpperCase();
@@ -772,7 +809,7 @@ $('fmtSave').onclick=async()=>{const n={};for(const [k] of FIELDS){const v=parse
 
 function validFmt(o){if(!o||!Array.isArray(o.wheel)||o.wheel.length!==6||!FAC.every(f=>o.wheel.includes(f)))return null;const n={wheel:o.wheel.slice()};for(const [k] of FIELDS){const v=+o[k];n[k]=Number.isFinite(v)&&v>=0?Math.round(v):DEF[k]}return n}
 function cleanDeck(o){if(!o||typeof o!=='object')return null;const c={};if(o.cards&&typeof o.cards==='object')for(const [r,n] of Object.entries(o.cards))if(BY[r]&&+n>0)c[r]=Math.min(9,Math.round(+n));
- return{name:String(o.name||'Sans nom').slice(0,80),hero:BY[o.hero]?o.hero:'',sec:FAC.includes(o.sec)?o.sec:'',cards:c,uniques:Array.isArray(o.uniques)?o.uniques.filter(u=>u&&FAC.includes(u.f)).map(u=>{const k=u.card&&u.r?regU({...u.card,r:String(u.r).slice(0,60)}):null;return k?{n:String(u.n).slice(0,80),f:u.f,r:k.r,card:u.card}:Object.assign({n:String(u.n).slice(0,80),f:u.f},/^ALT_[A-Z0-9]+_B_[A-Z]{2}_\d+_U_\d+$/.test(String(u.r||''))?{r:String(u.r)}:{})}):[],updated:+o.updated||0,art:cleanArt(o.art)}}
+ return{fm:['std','bi','nuc','sgl'].includes(o.fm)?o.fm:undefined,name:String(o.name||'Sans nom').slice(0,80),hero:BY[o.hero]?o.hero:'',sec:FAC.includes(o.sec)?o.sec:'',cards:c,uniques:Array.isArray(o.uniques)?o.uniques.filter(u=>u&&FAC.includes(u.f)).map(u=>{const k=u.card&&u.r?regU({...u.card,r:String(u.r).slice(0,60)}):null;return k?{n:String(u.n).slice(0,80),f:u.f,r:k.r,card:u.card}:Object.assign({n:String(u.n).slice(0,80),f:u.f},/^ALT_[A-Z0-9]+_B_[A-Z]{2}_\d+_U_\d+$/.test(String(u.r||''))?{r:String(u.r)}:{})}):[],updated:+o.updated||0,art:cleanArt(o.art)}}
 
 function mselBuild(id){const sel=$(id),opts=[...sel.options],all=opts[0].text,items=opts.slice(1).map(o=>[o.value,o.text]);
  const w=document.createElement('div');w.className='ms';w.innerHTML='<button type="button" aria-haspopup="true"><span></span>▾</button><div class="msp">'+items.map(([v,t])=>'<label><input type="checkbox" value="'+esc(v)+'"> '+esc(t)+'</label>').join('')+'<button type="button" class="msclr">Tout effacer</button></div>';
@@ -798,7 +835,7 @@ async function start(){
  if(window.AltUniques){const w=$('webLink');if(w)w.style.display='none';$('siteLink').removeAttribute('target');
   const qu=new URLSearchParams(location.search).get('uq');if(qu){try{let b=qu.replace(/-/g,'+').replace(/_/g,'/');while(b.length%4)b+='=';const L=JSON.parse(decodeURIComponent(escape(atob(b))));let k=0;if(Array.isArray(L))for(const c of L.slice(0,500)){if(c&&!MYU[c.r]&&regU(c))k++}if(k){saveU();setTimeout(()=>{$('sync').textContent=k+(EN()?' unique(s) imported from the artifact':' unique(s) importée(s) depuis l’artifact')},1500)}}catch(e){}if(!new URLSearchParams(location.search).get('deck'))history.replaceState(null,'',location.pathname)}
   const qd=new URLSearchParams(location.search).get('deck');if(qd){try{let b=qd.replace(/-/g,'+').replace(/_/g,'/');while(b.length%4)b+='=';const o=JSON.parse(decodeURIComponent(escape(atob(b))));
-   const nd=cleanDeck({name:o.n,hero:o.h,sec:o.s,cards:o.c,uniques:o.u,art:o.a,updated:Date.now()});if(nd&&BY[nd.hero]){let id=Object.keys(decks).find(k=>decks[k]&&decks[k].name===nd.name&&decks[k].hero===nd.hero)||('d'+Date.now().toString(36));decks[id]=nd;cur=id;
+   const nd=cleanDeck({fm:o.f,name:o.n,hero:o.h,sec:o.s,cards:o.c,uniques:o.u,art:o.a,updated:Date.now()});if(nd&&BY[nd.hero]){let id=Object.keys(decks).find(k=>decks[k]&&decks[k].name===nd.name&&decks[k].hero===nd.hero)||('d'+Date.now().toString(36));decks[id]=nd;cur=id;
     for(const u of nd.uniques)if(u.card&&BY[u.r])MYU[u.r]=BY[u.r];saveU();try{localStorage.setItem('alt-bi-decks',JSON.stringify(decks));localStorage.setItem('alt-bi-cur',cur)}catch(e){}}}catch(e){}history.replaceState(null,'',location.pathname)}}
  if(!Object.keys(decks).length){decks.d0=newDeckObj('Mon premier deck')}
  if(!decks[cur])cur=Object.keys(decks)[0];
@@ -848,7 +885,11 @@ function helpHtml(){const hf=(BY[(D()||{}).hero]||{}).f||'',nb=hf?neighbours(hf)
  '<li>'+L('<b>'+tot+' uniques max</b> au lieu de '+fmt.monoU+' : '+fmt.uP+' de chaque faction, ou '+tot+' de la faction principale ('+fmt.uS+' secondaire max).','<b>'+tot+' uniques max</b> instead of '+fmt.monoU+': '+fmt.uP+' from each faction, or '+tot+' from the main faction ('+fmt.uS+' secondary max).')+'</li>'+
  '<li>'+L('Le reste ne change pas : '+fmt.deck+' cartes, '+fmt.copies+' exemplaires max par nom.','Everything else is unchanged: '+fmt.deck+' cards, '+fmt.copies+' copies max per name.')+'</li></ul>'+
  '<p class="note">'+L('Le panneau du deck vérifie toutes ces règles en direct. La faction secondaire se choisit dans le deck (ou se déduit toute seule des cartes ajoutées).','The deck panel checks all these rules live. The secondary faction is picked in the deck (or deduced from the cards you add).')+'</p>'+
- '<h3>'+L('Importer un deck','Importing a deck')+'</h3><ul>'+
+ '<h3>'+L('Autres formats','Other formats')+'</h3><p class="note" style="margin:0 0 4px">'+L('Choisis le format dans « Format », sous le héros. Règles d’Altered Re:Union.','Pick the format under “Format”, below the hero. Altered Re:Union rules.')+'</p><ul>'+
+ '<li>'+L('<b>Sans unique (NUC)</b> : comme le Standard ('+fmt.monoR+' rares max, '+fmt.copies+' exemplaires par nom, 3 Exaltées max), mais <b>aucune unique</b>.','<b>No Unique (NUC)</b>: like Standard ('+fmt.monoR+' rares max, '+fmt.copies+' copies per name, 3 Exalted max), but <b>no uniques</b>.')+'</li>'+
+ '<li>'+L('<b>Singleton</b> : <b>59 à 79 cartes</b>, 1 seul exemplaire par nom <b>et par rareté</b> (une commune et une rare du même nom, c’est permis), aucune unique, pas de limite de rares, 3 Exaltées max.','<b>Singleton</b>: <b>59 to 79 cards</b>, 1 copy per name <b>and rarity</b> (a common and a rare of the same name are allowed), no uniques, no rare limit, 3 Exalted max.')+'</li>'+
+ '<li>'+L('« Mes decks » et la table de jeu indiquent dans quels formats chaque deck est valide. En créant une partie, tu peux imposer un format à ton adversaire.','“My decks” and the game table show which formats each deck is valid in. When creating a game, you can require a format from your opponent.')+'</li></ul>'+
+'<h3>'+L('Importer un deck','Importing a deck')+'</h3><ul>'+
  '<li>'+L('Sur <b>altered.re</b> (ou altered.gg), exporte ou copie la liste du deck (« 3 ALT_… » par ligne).','On <b>altered.re</b> (or altered.gg), export or copy the deck list (“3 ALT_…” per line).')+'</li>'+
  '<li>'+L('Ici : <b>Nouveau deck → Importer une liste</b>, ou le bouton <b>Importer</b> du deck en cours (remplace son contenu), puis colle.','Here: <b>New deck → Import a list</b>, or the deck’s <b>Import</b> button (replaces its contents), then paste.')+'</li>'+
  '<li>'+L('Les uniques de la liste sont récupérées avec leurs vraies stats et illustrations.','Uniques in the list are fetched with their real stats and artwork.')+'</li>'+
