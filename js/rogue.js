@@ -21,14 +21,24 @@
   const NM = c => (EN() ? c.en : c.n) || c.n;
 
   // ---- Cartes altérées : une « unique » fabriquée à partir d'une carte, avec ses stats modifiées ----
+  const CH = c => c.t === 'CHARACTER';
+  const fx = (fr, en, xe, x) => c => { c.xe = (c.xe ? c.xe + '  ' : '') + xe; c.x = (c.x ? c.x + '  ' : '') + x; c.add = (c.add || []).concat([{ fr, en }]); };
   const ALT = [
-    { k: 'F', fr: '+1 Forêt', en: '+1 Forest', ok: c => c.t === 'CHARACTER', ap: c => { c.p[0] = String(num(c.p[0]) + 1); } },
-    { k: 'M', fr: '+1 Montagne', en: '+1 Mountain', ok: c => c.t === 'CHARACTER', ap: c => { c.p[1] = String(num(c.p[1]) + 1); } },
-    { k: 'O', fr: '+1 Océan', en: '+1 Ocean', ok: c => c.t === 'CHARACTER', ap: c => { c.p[2] = String(num(c.p[2]) + 1); } },
-    { k: 'A', fr: '+1 partout', en: '+1 to all stats', ok: c => c.t === 'CHARACTER', rare: 1, ap: c => { c.p = c.p.map(v => String(num(v) + 1)); } },
-    { k: 'H', fr: '−1 coût de main', en: '−1 hand cost', ok: c => num(c.c) >= 2, ap: c => { c.c = String(num(c.c) - 1); } },
-    { k: 'R', fr: '−1 coût de Réserve', en: '−1 Reserve cost', ok: c => num(c.rc) >= 2, ap: c => { c.rc = String(num(c.rc) - 1); } },
+    // Effets ajoutés (tous automatisés par le moteur)
+    { k: 'd', w: 3, fr: 'Main : piochez une carte', en: 'Hand: draw a card', ok: c => true, ap: fx('Main : piochez une carte', 'Hand: draw a card', '{H} Draw a card.', '{H} Piochez une carte.') },
+    { k: 'b', w: 3, fr: 'Joué : je gagne 1 boost', en: 'Played: I gain 1 boost', ok: CH, ap: fx('Joué : je gagne 1 boost', 'Played: I gain 1 boost', '{J} I gain 1 boost.', '{J} Je gagne 1 boost.') },
+    { k: 'r', w: 2, fr: 'Réserve : je gagne 2 boosts', en: 'Reserve: I gain 2 boosts', ok: CH, ap: fx('Réserve : je gagne 2 boosts', 'Reserve: I gain 2 boosts', '{R} I gain 2 boosts.', '{R} Je gagne 2 boosts.') },
+    { k: 'n', w: 2, fr: 'À Midi : je gagne 1 boost', en: 'At Noon: I gain 1 boost', ok: CH, ap: fx('À Midi : je gagne 1 boost', 'At Noon: I gain 1 boost', 'At Noon — I gain 1 boost.', 'À Midi — Je gagne 1 boost.') },
+    { k: 'a', w: 2, fr: 'Joué : je gagne Ancré', en: 'Played: I gain Anchored', ok: CH, ap: fx('Joué : je gagne Ancré', 'Played: I gain Anchored', '{J} I gain [[Anchored]].', '{J} Je gagne [[Ancré]].') },
+    { k: 'm', w: 2, fr: 'Joué : redressez un Orbe de Mana', en: 'Played: ready a Mana Orb', ok: c => num(c.c) >= 3, ap: fx('Joué : redressez un Orbe de Mana', 'Played: ready a Mana Orb', '{J} Ready a Mana Orb.', '{J} Redressez un Orbe de Mana.') },
+    { k: 'e', w: 1, rare: 1, fr: 'Joué : chaque personnage de mon expédition gagne 1 boost', en: 'Played: each Character in my Expedition gains 1 boost', ok: CH, ap: fx('Joué : chaque personnage de mon expédition gagne 1 boost', 'Played: each Character in my Expedition gains 1 boost', '{J} Each Character in my Expedition gains 1 boost.', '{J} Chaque Personnage de mon Expédition gagne 1 boost.') },
+    { k: 'D', w: 1, rare: 1, fr: 'Main : piochez deux cartes', en: 'Hand: draw two cards', ok: c => num(c.c) >= 4, ap: fx('Main : piochez deux cartes', 'Hand: draw two cards', '{H} Draw two cards.', '{H} Piochez deux cartes.') },
+    // Stats et coûts
+    { k: 'A', w: 1, fr: '+1 partout', en: '+1 to all stats', ok: CH, rare: 1, ap: c => { c.p = c.p.map(v => String(num(v) + 1)); } },
+    { k: 'H', w: 2, fr: '−1 coût de main', en: '−1 hand cost', ok: c => num(c.c) >= 2, ap: c => { c.c = String(num(c.c) - 1); } },
+    { k: 'R', w: 1, fr: '−1 coût de Réserve', en: '−1 Reserve cost', ok: c => num(c.rc) >= 2, ap: c => { c.rc = String(num(c.rc) - 1); } },
   ];
+  const wpick = (R, a) => { const t = a.reduce((x, y) => x + (y.w || 1), 0); let r = R() * t; for (const x of a) { r -= (x.w || 1); if (r <= 0) return x; } return a[a.length - 1]; };
   let UQN = 0;
   function alterCard(run, ref, alt) {
     const DB = P().DB, b = DB[ref]; if (!b) return null;
@@ -55,7 +65,7 @@
     const boss = i === FIGHTS - 1;
     const ups = [0, 2, 4, 6, 8, 10, 12, 16][i] || 0, alts = [0, 0, 0, 2, 3, 5, 7, 12][i] || 0;
     for (let k = 0; k < ups; k++) { const commons = Object.keys(d.cards).filter(r => /_C$/.test(r) && DB[r].t !== 'HERO'); if (!commons.length) break; const r = pick(R, commons), up = rareOf(R, r, f); if (!up) continue; delCard(d, r); addCard(d, up); }
-    for (let k = 0; k < alts; k++) { const pool = Object.keys(d.cards).filter(r => !DB[r].u && DB[r].t !== 'HERO'); if (!pool.length) break; const r = pick(R, pool), ok = ALT.filter(a => a.ok(DB[r]) && (!a.rare || boss || R() < .3)); if (!ok.length) continue; const nr = alterCard(run, r, pick(R, ok)); if (nr) { delCard(d, r); addCard(d, nr); } }
+    for (let k = 0; k < alts; k++) { const pool = Object.keys(d.cards).filter(r => !DB[r].u && DB[r].t !== 'HERO'); if (!pool.length) break; const r = pick(R, pool), ok = ALT.filter(a => a.ok(DB[r]) && (!a.rare || boss || R() < .3)); if (!ok.length) continue; const nr = alterCard(run, r, wpick(R, ok)); if (nr) { delCard(d, r); addCard(d, nr); } }
     return { d, f, boss };
   }
 
@@ -70,7 +80,7 @@
   async function mutate(run, ref) {
     const DB = P().DB, b = DB[ref]; if (!b) return null;
     const m = fam(ref).match(/^ALT_([A-Z0-9]+)_B_([A-Z]{2})_(\d+)$/);
-    if (m && window.AltUniques && Math.random() < .7) {
+    if (m && window.AltUniques && Math.random() < .5) {
       for (const set of m[1] === 'CORE' ? ['CORE', 'COREKS'] : [m[1]]) {
         try {
           const res = await fetch('https://api.github.com/repos/Altered-Community/databases/contents/' + set + '/' + m[2] + '/' + m[3]);
@@ -83,7 +93,7 @@
         } catch (e) { }
       }
     }
-    const ok = ALT.filter(a => a.ok(b)); return ok.length ? alterCard(run, ref, ok[Math.floor(Math.random() * ok.length)]) : null;
+    const ok = ALT.filter(a => a.ok(b) && (!a.rare || Math.random() < .5)); return ok.length ? alterCard(run, ref, wpick(Math.random, ok)) : null;
   }
   // ---- Écrans ----
   function img(ref, cls) { return '<span class="rgc' + (cls ? ' ' + cls : '') + '">' + P().cardImg(ref) + '</span>'; }
@@ -104,8 +114,9 @@
       '<p class="note">' + (run.i === FIGHTS - 1 ? L('Dernier combat : le boss, avec un deck très amélioré.', 'Final fight: the boss, with a heavily upgraded deck.') : L('Combat ', 'Fight ') + (run.i + 1) + ' / ' + FIGHTS + ' · ' + L('Ton adversaire a un deck plus fort à chaque combat.', 'Your opponent’s deck gets stronger every fight.')) + '</p>' +
       '<div class="row" style="gap:8px;flex-wrap:wrap"><button class="pri" data-rg="fight"' + (deckCount(run.deck) < MINDECK ? ' disabled title="' + L('Il faut au moins 39 cartes', 'You need at least 39 cards') + '"' : '') + '>⚔️ ' + L('Combattre', 'Fight') + '</button><button data-rg="org">🃏 ' + L('Organiser mon deck', 'Organise my deck') + ' (' + deckCount(run.deck) + ')</button><button data-rg="quit" style="margin-left:auto">' + L('Abandonner la partie', 'Abandon the run') + '</button></div></div>' + (run.showDeck ? deckView(run) : ''));
   }
-  function deckView(run, act) {
-    const DB = P().DB, refs = sorted(run.deck.cards);
+  const rareRefs = run => Object.keys(run.deck.cards).filter(r => P().DB[r] && P().DB[r].y === 'R');
+  function deckView(run, act, only) {
+    const DB = P().DB, refs = sorted(run.deck.cards).filter(r => !only || only(r));
     return '<div class="rggrid">' + refs.map(r => '<div class="rgitem"' + (act ? ' data-rg="' + act + '" data-r="' + r + '" style="cursor:pointer"' : '') + '>' + img(r) + '<span class="rgq">×' + run.deck.cards[r] + '</span>' + (DB[r].u ? '<span class="rgalt">✦ ' + esc(altLabel(DB[r])) + '</span>' : '') + '</div>').join('') + '</div>';
   }
   function choose() {
@@ -142,8 +153,8 @@
     } else if (rw.step === 'boon') {
       const ups = rw.ups || [];
       show('<div class="rgbox">' + top + '<p><b>2/2</b> · ' + L('Améliore une carte en rare…', 'Upgrade a card to rare…') + '</p>' + (ups.length ? '<div class="rgoffers">' + ups.map((o, k) => '<button class="rgoffer" data-rg="up" data-k="' + k + '"><div class="rgpair">' + img(o.ref, 'sm') + '<span class="rgarr">→</span>' + img(o.to, 'sm') + '</div></button>').join('') + '</div>' : '<p class="note">' + L('Aucune commune améliorable dans ton deck.', 'No upgradable common in your deck.') + '</p>') +
-        '<p style="margin-top:14px">' + L('…ou tente une <b>mutation</b> : choisis une carte de ton deck, elle devient une unique au hasard (une vraie unique de la base communautaire quand c’est possible, sinon une altération de stats).', '…or try a <b>mutation</b>: pick a card from your deck, it becomes a random unique (a real unique from the community database when possible, otherwise a stat alteration).') + '</p><div class="row"><button data-rg="mutpick">🎲 ' + L('Mutation', 'Mutation') + '</button><button data-rg="boonskip">' + L('Passer', 'Skip') + '</button></div>' +
-        (rw.picking ? '<p class="note">' + L('Clique la carte à faire muter :', 'Click the card to mutate:') + '</p>' + deckView(run, 'mut') : '') + (rw.busy ? '<p class="note">⏳ ' + L('Mutation en cours…', 'Mutating…') + '</p>' : '') + (rw.result ? '<div class="rgbox" style="text-align:center"><p><b>' + L('Résultat :', 'Result:') + '</b></p>' + img(rw.result) + '<p class="rgalt" style="display:inline-block;margin-top:6px">✦ ' + esc(altLabel(P().DB[rw.result])) + '</p><div class="row" style="justify-content:center;margin-top:8px"><button class="pri" data-rg="boonok">' + L('Continuer', 'Continue') + '</button></div></div>' : '') + '</div>');
+        '<p style="margin-top:14px">' + L('…ou tente une <b>mutation</b> : choisis une <b>rare</b> de ton deck, elle devient une unique au hasard (une vraie unique de la base communautaire quand c’est possible, sinon une altération de stats).', '…or try a <b>mutation</b>: pick a <b>rare</b> from your deck, it becomes a random unique (a real unique from the community database when possible, otherwise a stat alteration).') + '</p><div class="row"><button data-rg="mutpick">🎲 ' + L('Mutation', 'Mutation') + '</button><button data-rg="boonskip">' + L('Passer', 'Skip') + '</button></div>' +
+        (rw.picking ? (rareRefs(run).length ? '<p class="note">' + L('Clique la rare à faire muter :', 'Click the rare to mutate:') + '</p>' + deckView(run, 'mut', r => P().DB[r].y === 'R') : '<p class="note">' + L('Il te faut d’abord une rare : améliore une commune, puis fais-la muter à un prochain combat.', 'You need a rare first: upgrade a common, then mutate it after a later fight.') + '</p>') : '') + (rw.busy ? '<p class="note">⏳ ' + L('Mutation en cours…', 'Mutating…') + '</p>' : '') + (rw.result ? '<div class="rgbox" style="text-align:center"><p><b>' + L('Résultat :', 'Result:') + '</b></p>' + img(rw.result) + '<p class="rgalt" style="display:inline-block;margin-top:6px">✦ ' + esc(altLabel(P().DB[rw.result])) + '</p><div class="row" style="justify-content:center;margin-top:8px"><button class="pri" data-rg="boonok">' + L('Continuer', 'Continue') + '</button></div></div>' : '') + '</div>');
     }
   }
   // Organiser son deck : retirer des cartes vers la réserve d'aventure (banc) ou les remettre, minimum 39 cartes
