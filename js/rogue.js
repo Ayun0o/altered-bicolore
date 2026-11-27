@@ -248,7 +248,7 @@
         '</div>' + deckBar(run, ((run.rr | 0) ? '<button data-rg="reroll"' + (rw.busy ? ' disabled' : '') + '>🎲 ' + L('Relancer', 'Reroll') + ' (' + run.rr + ')</button>' : '') + '<button data-rg="draftskip"' + (rw.busy ? ' disabled' : '') + '>' + L('Ne rien prendre', 'Take nothing') + '</button>'));
     } else if (rw.step === 'boon') {
       const ups = rw.ups || [], free = !!rw.free, res = rw.res || [], pick = T(run, 'pickup');
-      const canMut = free ? (r => P().DB[r].t !== 'HERO' && !P().DB[r].u) : (r => P().DB[r].y === 'R'), hasMut = Object.keys(run.deck.cards).some(canMut);
+      const canMut = free ? (r => P().DB[r].t !== 'HERO' && !P().DB[r].u && P().DB[r].v !== 'E') : (r => P().DB[r].y === 'R' && P().DB[r].v !== 'E'), hasMut = Object.keys(run.deck.cards).some(canMut);
       const tile = '<div class="rgact">' + (free ? '<p>🎁 ' + L('<b>Mutation offerte</b> : une carte de ton deck devient une <b>vraie unique</b> tirée au hasard.', '<b>Free mutation</b>: a card from your deck becomes a random <b>real unique</b>.') + '</p>'
           : '<p>' + L('…ou une <b>mutation</b> : une <b>rare</b> de ton deck devient une <b>vraie unique</b> tirée au hasard.', '…or a <b>mutation</b>: a <b>rare</b> from your deck becomes a random <b>real unique</b>.') + '</p>') +
         '<button class="pri" data-rg="mutpick"' + (rw.busy || !hasMut ? ' disabled' : '') + '>🎲 ' + L('Mutation', 'Mutation') + '</button>' +
