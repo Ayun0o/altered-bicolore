@@ -656,6 +656,11 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 .dcbtn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:16px;background:#5865f2;color:#fff!important;font-weight:700;text-decoration:none!important;font-size:14px;margin-right:8px}
 .dcbtn:hover{filter:brightness(1.08)}
 .donDlg a:not(.donate){color:#5865f2;font-weight:600}
+
+.helpq{width:34px;flex:none;padding:0!important;border-radius:50%!important;font-weight:800;font-size:15px}
+#rgHelpDlg{border:1px solid var(--line);border-radius:12px;background:var(--panel);color:var(--ink);max-width:560px;width:calc(100% - 24px);max-height:88vh;overflow:auto}
+#rgHelpDlg::backdrop{background:rgba(0,0,0,.45)}
+#rgHelpDlg ul,#rgHelpDlg ol{margin:4px 0;padding-left:20px}#rgHelpDlg li{margin:4px 0}
 </style>
 </head>
 <body>
@@ -677,7 +682,7 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 </div>
 <button id="bSolo2" style="width:100%;margin-top:-4px">▶ Lancer une partie d'essai</button>
 <button id="bTuto" style="width:100%;margin-top:6px">🎓 Tutoriel : apprendre à jouer</button>
-<button data-rg="open" style="width:100%;margin-top:6px">🗡️ Aventure (roguelike, contre l’ordinateur)</button>
+<div class="row" style="margin-top:6px;gap:6px;flex-wrap:nowrap"><button data-rg="open" style="flex:1;min-width:0">🗡️ Aventure (roguelike, contre l’ordinateur)</button><button id="rgHelp" class="helpq" type="button" title="Règles de l’Aventure" aria-label="Règles de l’Aventure">?</button></div>
 <p class="note">La plupart des effets des cartes s'appliquent tout seuls ; les rares effets situationnels se règlent avec les boutons de chaque carte.</p>
 </div>
 <div class="lcol">
@@ -800,5 +805,21 @@ body[data-mood=noon] #adv::before,body[data-mood=noon] #adv::after{box-shadow:0 
 <script>(function(){const b=document.getElementById('langLobby');const set=()=>{let l='fr';try{l=localStorage.getItem('alt-bi-lang')==='en'?'en':'fr'}catch(e){}b.innerHTML=l==='en'?'<b>EN</b> / fr':'<b>FR</b> / en'};set();b.onclick=()=>{let l='fr';try{l=localStorage.getItem('alt-bi-lang')==='en'?'fr':'en';localStorage.setItem('alt-bi-lang',l)}catch(e){}location.reload()}})();</script>
 
 <dialog id="donDlg" class="donDlg"><h3>☕ Soutenir Altered bicolore</h3><p>Altered bicolore est un projet bénévole, que je développe sur mon temps libre pour que les joueurs d’Altered puissent continuer à se retrouver et à jouer en ligne.</p><p>Si le site vous plaît, je reste à l’écoute : j’essaie de le mettre à jour selon vos retours. N’hésitez pas à me dire ce qui marche, ce qui coince ou ce qui manque sur le <a href="https://discord.gg/bcCPUVX22s" target="_blank" rel="noopener">Discord Altered bicolore</a>.</p><p>Et si vous voulez soutenir le projet, tous les dons sont les bienvenus. Merci ! 💛</p><div class="donb"><button type="button" data-donclose>Fermer</button><a class="donate" href="https://www.paypal.com/qrcodes/p2pqrc/6TLGEJPFGP2KY" target="_blank" rel="noopener">Faire un don via PayPal</a></div></dialog><script>(()=>{const d=document.getElementById('donDlg');document.addEventListener('click',e=>{const a=e.target.closest('a.donate');if(a&&!a.closest('#donDlg')){e.preventDefault();d.showModal();return}if(e.target.closest('[data-donclose]')||e.target===d)d.close()})})()</script>
+<dialog id="rgHelpDlg" data-noi18n><div id="rgHelpBody"></div><div class="row" style="justify-content:flex-end;margin-top:12px"><button type="button" class="pri" data-rghclose>OK</button></div></dialog>
+<script>(()=>{const $=id=>document.getElementById(id);
+const EN=()=>{try{return localStorage.getItem('alt-bi-lang')==='en'}catch(e){return false}},L=(fr,en)=>EN()?en:fr;
+function html(){return '<h2 style="margin:0 0 8px">🗡️ '+L('Aventure : les règles','Adventure: the rules')+'</h2>'+
+ '<p>'+L('Une course en solo contre l’ordinateur, avec un deck qui grandit au fil des combats.','A solo run against the computer, with a deck that grows from fight to fight.')+'</p><ol>'+
+ '<li>'+L('<b>Choisis ta faction</b> : tu pars avec son deck de départ officiel.','<b>Choose your faction</b>: you start with its official starter deck.')+'</li>'+
+ '<li>'+L('<b>8 combats</b> d’affilée, contre des decks de départ d’autres factions, de plus en plus améliorés (rares, altérations). Le 8e est le <b>boss</b> 👑.','<b>8 fights</b> in a row, against other factions’ starter decks, upgraded more and more (rares, alterations). The 8th is the <b>boss</b> 👑.')+'</li>'+
+ '<li>'+L('Après chaque victoire :','After each win:')+'<ul>'+
+ '<li>'+L('<b>Draft</b> : choisis 1 carte parmi 3 de ta faction (communes ou rares) et ajoute-la au deck, sans limite d’exemplaires. Tu peux aussi passer.','<b>Draft</b>: pick 1 card out of 3 from your faction (commons or rares) and add it to your deck, with no copy limit. You can also skip.')+'</li>'+
+ '<li>'+L('<b>Amélioration</b> : passe une commune de ton deck en rare (1 choix parmi 3)…','<b>Upgrade</b>: turn one of your commons into its rare (1 choice out of 3)…')+'</li>'+
+ '<li>'+L('…ou tente une <b>mutation</b> 🎲 sur une rare : un bonus garanti, ou elle devient une vraie unique au hasard (meilleure ou pire).','…or try a <b>mutation</b> 🎲 on a rare: a guaranteed bonus, or it becomes a random real unique (better or worse).')+'</li></ul></li>'+
+ '<li>'+L('Une défaite coûte une vie ♥ et tu rejoues le même combat. <b>3 défaites</b> et la course s’arrête.','A loss costs a life ♥ and you replay the same fight. <b>3 losses</b> and the run is over.')+'</li></ol>'+
+ '<p class="note">'+L('La course est enregistrée dans ce navigateur : tu peux t’arrêter et reprendre plus tard.','The run is saved in this browser: you can stop and resume later.')+'</p>'}
+$('rgHelp').onclick=()=>{$('rgHelpBody').innerHTML=html();$('rgHelpDlg').showModal()};
+$('rgHelpDlg').addEventListener('click',e=>{if(e.target.closest('[data-rghclose]')||e.target===$('rgHelpDlg'))$('rgHelpDlg').close()});
+})()</script>
 </body>
 </html>

@@ -311,6 +311,15 @@ img[hidden],.heroimg[hidden]{display:none!important}
 .dcbtn{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border-radius:16px;background:#5865f2;color:#fff!important;font-weight:700;text-decoration:none!important;font-size:14px;margin-right:8px}
 .dcbtn:hover{filter:brightness(1.08)}
 .donDlg a:not(.donate){color:#5865f2;font-weight:600}
+
+.helpq{width:30px;height:30px;min-height:0!important;padding:0!important;border-radius:50%!important;font-weight:800;font-size:15px!important;line-height:1}
+#helpDlg{max-width:640px;max-height:88vh;overflow:auto}
+#helpDlg h3{font-size:16px;margin:16px 0 6px}#helpDlg h3:first-of-type{margin-top:4px}
+#helpDlg ul{margin:4px 0;padding-left:20px}#helpDlg li{margin:3px 0}
+#helpDlg .hwheel{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin:6px 0}
+#helpDlg .hwheel svg{width:210px;max-width:100%;height:auto;flex:none}
+#helpDlg .hwheel p{flex:1;min-width:180px;margin:0}
+#helpDlg .hx{position:sticky;top:0;float:right;min-height:0;padding:2px 9px}
 </style>
 </head>
 <body>
@@ -320,7 +329,7 @@ img[hidden],.heroimg[hidden]{display:none!important}
 <button id="myDecks" type="button">📚 Mes decks</button><button id="newDeck">Nouveau deck</button>
 <a id="siteLink" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener"><button tabindex="-1" class="on">▶ Jouer en ligne</button></a><a id="webLink" href="https://ayun0o.github.io/altered-bicolore/" target="_blank" rel="noopener" title="Ouvre ce deck dans le deckbuilder en ligne et y copie toutes tes uniques scannées"><button tabindex="-1">🌐 Ouvrir en ligne</button></a>
 <button id="fmtBtn" hidden>Format</button>
-<button id="langBtn" aria-label="Langue des cartes"></button>
+<button id="langBtn" aria-label="Langue des cartes"></button><button id="helpBtn" class="helpq" type="button" title="Aide : formats, construction, import" aria-label="Aide">?</button>
 <button id="viewDeck" title="Voir les cartes de ton deck en grand, avec les statistiques">🃏 Voir mon deck</button>
 <a class="dcbtn" href="https://discord.gg/bcCPUVX22s" target="_blank" rel="noopener" title="Rejoindre le Discord">💬 Discord</a><a class="donate" id="donateLink" href="https://www.paypal.com/qrcodes/p2pqrc/6TLGEJPFGP2KY" target="_blank" rel="noopener" title="Soutenir le projet (facultatif)" hidden>☕ Soutenir</a><span class="sync" id="sync">Chargement…</span>
 </header>
@@ -377,6 +386,7 @@ img[hidden],.heroimg[hidden]{display:none!important}
 <div id="newList" style="display:grid;gap:6px;margin-top:8px"></div>
 <div class="row" style="justify-content:flex-end;margin-top:10px"><button id="newCancel">Annuler</button></div>
 </dialog>
+<dialog id="helpDlg" data-noi18n><button type="button" class="hx" data-helpclose aria-label="Fermer">✕</button><div id="helpBody"></div></dialog>
 <dialog id="fmtDlg">
 <h2 style="margin-bottom:8px">Règles du format</h2>
 <p class="note">Partagées par tous ceux qui utilisent cette page.</p>
@@ -459,7 +469,7 @@ function analyse(d){
  add('Cartes (hors héros)',total,fmt.deck,total===fmt.deck);
  if(bi){R.push({label:'Faction secondaire voisine sur la roue',val:FN[S],ok:!P||neighbours(P).includes(S)});
   add('Rares au total',rares,fmt.biR,rares<=fmt.biR);add('Cartes secondaires',sec,fmt.secMax,sec<=fmt.secMax);add('Rares secondaires',secR,fmt.secR,secR<=fmt.secR);
-  add('Uniques faction principale',uP,fmt.uP,uP<=fmt.uP);add('Uniques faction secondaire',uS,fmt.uS,uS<=fmt.uS)}
+  add('Uniques au total',uP+uS,fmt.uP+fmt.uS,uP+uS<=fmt.uP+fmt.uS);add('Uniques faction secondaire',uS,fmt.uS,uS<=fmt.uS)}
  else{add('Rares',rares,fmt.monoR,rares<=fmt.monoR);add('Uniques',uP,fmt.monoU,uP<=fmt.monoU)}
  if(ex)add('Exaltées',ex,3,ex<=3);
  R.push({label:'Exemplaires max par nom ('+fmt.copies+')',val:over.length?over.length+' nom(s) en trop':'ok',ok:!over.length});
@@ -808,6 +818,43 @@ async function start(){
 function setLangBtn(){$('langBtn').innerHTML=(EN()?'<b>EN</b> / fr':'<b>FR</b> / en')}
 $('langBtn').onclick=()=>{LANG=EN()?'fr':'en';try{localStorage.setItem('alt-bi-lang',LANG)}catch(e){}setLangBtn();renderAll()};
 setLangBtn();
+// Aide (bouton ?)
+(()=>{
+const FC={AX:'#a0661c',BR:'#c83a35',LY:'#c5487a',MU:'#4f8a1f',OR:'#2f74c0',YZ:'#6b55c9'};
+const L=(fr,en)=>EN()?en:fr;
+function wheelSvg(hl){const w=fmt.wheel,cx=105,cy=105,R=72;const pts=w.map((f,i)=>{const a=-Math.PI/2+i*Math.PI/3;return[cx+R*Math.cos(a),cy+R*Math.sin(a)]});
+ const nb=hl?neighbours(hl):[];let g='';
+ for(let i=0;i<6;i++){const j=(i+1)%6,on=hl&&((w[i]===hl&&nb.includes(w[j]))||(w[j]===hl&&nb.includes(w[i])));g+='<line x1="'+pts[i][0]+'" y1="'+pts[i][1]+'" x2="'+pts[j][0]+'" y2="'+pts[j][1]+'" stroke="'+(on?'#ece9e4':'#6b6f76')+'" stroke-width="'+(on?4:2)+'"/>'}
+ w.forEach((f,i)=>{const[x,y]=pts[i],dim=hl&&f!==hl&&!nb.includes(f);g+='<g opacity="'+(dim?.35:1)+'"><circle cx="'+x+'" cy="'+y+'" r="25" fill="'+FC[f]+'" stroke="'+(f===hl?'#fff':'none')+'" stroke-width="3"/><text x="'+x+'" y="'+(y+4)+'" text-anchor="middle" font-size="12" font-weight="700" fill="#fff">'+FN[f]+'</text></g>'});
+ return '<svg viewBox="0 0 210 210" role="img" aria-label="'+L('Roue des factions','Faction wheel')+'">'+g+'</svg>'}
+function helpHtml(){const hf=(BY[(D()||{}).hero]||{}).f||'',nb=hf?neighbours(hf):[];const tot=fmt.uP+fmt.uS;
+ return '<h2 style="margin:0 0 4px">'+L('Construire un deck','Building a deck')+'</h2>'+
+ '<h3>'+L('Format standard (une faction)','Standard format (one faction)')+'</h3><ul>'+
+ '<li>'+L('Règles officielles : 1 héros + '+fmt.deck+' cartes de sa faction.','Official rules: 1 hero + '+fmt.deck+' cards from its faction.')+'</li>'+
+ '<li>'+L(fmt.copies+' exemplaires max par nom, toutes versions confondues (commune, rare, unique).',fmt.copies+' copies max per name, all versions combined (common, rare, unique).')+'</li>'+
+ '<li>'+L(fmt.monoR+' rares et '+fmt.monoU+' uniques max.','Up to '+fmt.monoR+' rares and '+fmt.monoU+' uniques.')+'</li>'+
+ '<li>'+L('Les rares « hors faction » comptent pour la faction imprimée sur la carte.','“Out-of-faction” rares count as the faction printed on the card.')+'</li></ul>'+
+ '<h3>'+L('Format bicolore','Bicolore format')+'</h3>'+
+ '<div class="hwheel">'+wheelSvg(hf)+'<p>'+L('Ton héros donne la <b>faction principale</b>. Tu peux y ajouter <b>une</b> faction secondaire : l’une de ses deux voisines sur la roue.','Your hero sets the <b>main faction</b>. You can add <b>one</b> secondary faction: one of its two neighbours on the wheel.')+(hf?'<br><br>'+L('Avec ton héros','With your hero')+' ('+FN[hf]+') : <b>'+nb.map(f=>FN[f]).join('</b> '+L('ou','or')+' <b>')+'</b>.':'')+'</p></div>'+
+ '<p style="margin:6px 0 2px"><b>'+L('Ce que ça coûte :','What it costs:')+'</b></p><ul>'+
+ '<li>'+L('<b>'+fmt.biR+' rares max au total</b> au lieu de '+fmt.monoR+' (tu perds '+(fmt.monoR-fmt.biR)+' rares).','<b>'+fmt.biR+' rares max in total</b> instead of '+fmt.monoR+' (you lose '+(fmt.monoR-fmt.biR)+' rares).')+'</li>'+
+ '<li>'+L('<b>'+fmt.secMax+' cartes secondaires max</b>, dont '+fmt.secR+' rares max.','<b>'+fmt.secMax+' secondary cards max</b>, including '+fmt.secR+' rares max.')+'</li>'+
+ '<li>'+L('<b>'+tot+' uniques max</b> au lieu de '+fmt.monoU+' : '+fmt.uP+' de chaque faction, ou '+tot+' de la faction principale ('+fmt.uS+' secondaire max).','<b>'+tot+' uniques max</b> instead of '+fmt.monoU+': '+fmt.uP+' from each faction, or '+tot+' from the main faction ('+fmt.uS+' secondary max).')+'</li>'+
+ '<li>'+L('Le reste ne change pas : '+fmt.deck+' cartes, '+fmt.copies+' exemplaires max par nom.','Everything else is unchanged: '+fmt.deck+' cards, '+fmt.copies+' copies max per name.')+'</li></ul>'+
+ '<p class="note">'+L('Le panneau du deck vérifie toutes ces règles en direct. La faction secondaire se choisit dans le deck (ou se déduit toute seule des cartes ajoutées).','The deck panel checks all these rules live. The secondary faction is picked in the deck (or deduced from the cards you add).')+'</p>'+
+ '<h3>'+L('Importer un deck','Importing a deck')+'</h3><ul>'+
+ '<li>'+L('Sur <b>altered.re</b> (ou altered.gg), exporte ou copie la liste du deck (« 3 ALT_… » par ligne).','On <b>altered.re</b> (or altered.gg), export or copy the deck list (“3 ALT_…” per line).')+'</li>'+
+ '<li>'+L('Ici : <b>Nouveau deck → Importer une liste</b>, ou le bouton <b>Importer</b> du deck en cours (remplace son contenu), puis colle.','Here: <b>New deck → Import a list</b>, or the deck’s <b>Import</b> button (replaces its contents), then paste.')+'</li>'+
+ '<li>'+L('Les uniques de la liste sont récupérées avec leurs vraies stats et illustrations.','Uniques in the list are fetched with their real stats and artwork.')+'</li>'+
+ '<li>'+L('<b>Copier la liste</b> fait l’inverse : pour partager ton deck ou le reprendre ailleurs.','<b>Copy list</b> does the reverse: to share your deck or use it elsewhere.')+'</li></ul>'+
+ '<h3>'+L('Uniques','Uniques')+'</h3><ul>'+
+ '<li>'+L('<b>＋ Ajouter un unique</b> : saisie à la main (carte de base + stats), ou scan photo dans la version artifact, qui les envoie ici avec « Ouvrir en ligne ».','<b>＋ Add a unique</b>: enter it by hand (base card + stats), or scan a photo in the artifact version, which sends them here with “Open online”.')+'</li>'+
+ '<li>'+L('Filtre « Uniques (mes uniques) » pour retrouver ta collection.','Use the “Uniques (my uniques)” filter to find your collection.')+'</li></ul>'+
+ '<h3>'+L('Enregistrement','Saving')+'</h3><ul>'+
+ '<li>'+L('Tes decks restent dans ce navigateur. Connecte-toi (page « Jouer ») pour les retrouver sur tous tes appareils.','Your decks stay in this browser. Sign in (on the “Play” page) to get them on all your devices.')+'</li></ul>'}
+$('helpBtn').onclick=()=>{$('helpBody').innerHTML=helpHtml();$('helpDlg').showModal()};
+$('helpDlg').addEventListener('click',e=>{if(e.target.closest('[data-helpclose]')||e.target===$('helpDlg'))$('helpDlg').close()});
+})()
 {const t=document.createElement('button');t.id='toTop';t.className='on';t.textContent='↑ Filtres';document.body.appendChild(t);
  t.onclick=()=>{$('fbar').scrollIntoView({behavior:'smooth',block:'start'});setTimeout(()=>$('q').focus({preventScroll:true}),400)};
  const th=()=>document.documentElement.style.setProperty('--toph',(document.querySelector('header.top').offsetHeight||0)+'px');

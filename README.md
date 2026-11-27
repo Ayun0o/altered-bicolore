@@ -15,7 +15,7 @@ Outil de deckbuilding non officiel pour **Altered TCG**, avec un format maison �
 
 ## Format bicolore (v1)
 - Mono : règles officielles, 15 rares, 3 uniques
-- Bicolore : 12 rares au total, 12 cartes secondaires max dont 3 rares max, 1 unique principale + 1 unique secondaire
+- Bicolore : 12 rares au total, 12 cartes secondaires max dont 3 rares max, 2 uniques (1 de chaque faction, ou 2 de la faction principale)
 - Faction secondaire : voisine sur la roue Muna – Ordis – Yzmir – Axiom – Lyra – Bravos
 - 3 exemplaires max par nom, toutes versions confondues
 
