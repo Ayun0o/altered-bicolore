@@ -913,7 +913,7 @@ body[data-foe=mini1] #game .zone.exp:not(.mine),body[data-foe=mini2] #game .zone
 <script src="js/ai.js?v=1795806638"></script>
 <script src="js/net.js?v=1795785407"></script>
 <script src="js/rogue.js?v=1795813544"></script>
-<script src="js/play.js?v=1795813983"></script>
+<script src="js/play.js?v=1795877092"></script>
 <script>
 (function(){const b=document.body,t=document.getElementById('sideTab'),bg=document.getElementById('sideBg'),log=document.getElementById('log');
  t.onclick=()=>{b.classList.add('sideopen');t.classList.remove('new')};bg.onclick=()=>b.classList.remove('sideopen');
@@ -963,7 +963,7 @@ body[data-foe=mini1] #game .zone.exp:not(.mine),body[data-foe=mini2] #game .zone
   box.dataset.w=waiting?'1':'';box.dataset.r=ready?'1':'';
  }
  function start(){
-  const ai=$('soloAI');if(ai)ai.checked=true;$('bSolo').click();
+  const ai=$('soloAI');if(ai)ai.checked=true;if(window.AltStartTuto)window.AltStartTuto();else $('bSolo').click();
   box=document.createElement('div');box.id='tutBox';box.setAttribute('data-noi18n','');document.body.appendChild(box);i=0;
   setTimeout(show,900);
   tm=setInterval(()=>{if(!box)return;const st=S[i];if(!st)return;const ready=!st.when||st.when(),waiting=!ready||(st.until&&!st.until());

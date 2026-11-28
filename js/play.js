@@ -143,7 +143,12 @@
       '<div class="admsc"><table class="admt"><tr><th>Joueur</th><th>Parties</th><th>Gagnées / perdues</th><th>Aventures</th><th>Combats d’aventure G / P</th><th>Battu par</th></tr>' + (rows || '<tr><td colspan="6">Aucune donnée.</td></tr>') + '</table></div>' +
       '<h4>Dernières parties</h4><div class="admsc"><table class="admt">' + (recent || '<tr><td>—</td></tr>') + '</table></div>'; }
   const myName = (def) => ($('pname').value.trim() || def || 'Joueur 1').slice(0, 24);
-  function needDeck() { const d = getDeck($('pdeck').value); if (!d) { $('lobbyMsg').innerHTML = '<span class="err">Choisis un deck avec un héros.</span>'; } return d; }
+  const deckOK = d => !!(d && d.hero && DB[d.hero] && Object.values(d.cards || {}).reduce((a, n) => a + (+n || 0), 0) >= 30);
+  const starterDeck = () => { const s = STARTERS[0]; return s ? { hero: s.hero, cards: s.cards, name: s.name } : null; };
+  // Contre l'ordi (et au tutoriel), un deck injouable ou absent est remplacé par un deck de départ officiel
+  function needDeck(fallback) { const d = getDeck($('pdeck').value); if (deckOK(d)) return d;
+    if (fallback) { const s = starterDeck(); if (s) { $('lobbyMsg').innerHTML = '<span class="note">Ton deck n’est pas jouable (héros ou cartes manquants) : partie lancée avec « ' + esc(s.name) + ' ».</span>'; return s; } }
+    $('lobbyMsg').innerHTML = '<span class="err">Choisis un deck jouable : un héros et au moins 30 cartes.</span>'; return null; }
 
   function startHost() {
     const d = needDeck(); if (!d) return;
@@ -190,8 +195,10 @@
     });
   }
 
-  function startSolo() {
-    const a = needDeck(); if (!a) return; const b = getDeck($('sdeck').value) || a;
+  window.AltStartTuto = () => startSolo(true);
+  function startSolo(tuto) {
+    if (tuto === true) { const s0 = STARTERS[0]; if (s0) { const sel = $('pdeck'); if (sel) sel.value = s0.id; } }
+    const a = needDeck(true); if (!a) return; const b0 = getDeck($('sdeck').value), b = deckOK(b0) ? b0 : (deckOK(a) ? a : starterDeck());
     const vsAI = !$('soloAI') || $('soloAI').checked;
     mode = vsAI ? 'ai' : 'solo'; me = 0; decksUsed = [a, b]; addArt(a.art); addArt(b.art); names = [myName('Joueur 1'), vsAI ? 'Ordinateur' : 'Joueur 2'];
     S = E.newGame({}); E.addPlayer(S, 0, names[0], a, DB); E.addPlayer(S, 1, names[1], b, DB); E.advance(S, DB);
